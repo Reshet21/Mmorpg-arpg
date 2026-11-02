@@ -35,7 +35,7 @@ const MIME = {
 
 function safePath(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
-  if (p === '/' || p === '') p = '/mobile/index.html';
+  if (p === '/' || p === '' || p === '/mobile' || p === '/mobile/') p = '/mobile/index.html';
   else if (!p.startsWith('/mobile/') && !p.startsWith('/data/') && p !== '/health') {
     p = '/mobile' + p;                 // /index.html, /js/..., /css/... → внутри mobile/
   }
@@ -123,6 +123,7 @@ server.on('upgrade', (req, socket, head) => {
           players:Array.from(sim.players.values()).filter(p=>p.zone===player.zone).map(p=>({
             uid:p.uid,name:p.name,classId:p.classId,level:p.level,x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,zone:p.zone
           })) });
+        sim.syncInitial(player);
         sim.log(player.name+' подключился · игроков: '+sim.players.size);
         sim.broadcast({t:'chat',ch:'local',name:'СЕРВЕР',text:player.name+' вошёл в мир',color:'#4fd6d0'});
       } else {

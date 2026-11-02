@@ -120,6 +120,9 @@
           net.ping=Math.round(performance.now()-msg.ts); break;
         case 'event':
           G.log('⚑ '+msg.text,'#f0d27a'); break;
+        default:
+          if (G.market && G.market.applyNet) G.market.applyNet(msg);
+          break;
       }
     }
 
@@ -136,7 +139,9 @@
         net.ws=ws;
         ws.onopen=()=>{
           net.retry=0;
-          send({t:'hello',name:G.char.name,classId:G.char.classId,level:G.char.level,zone:G.world.id,x:G.player.x,y:G.player.y});
+          send({t:'hello',name:G.char.name,classId:G.char.classId,level:G.char.level,zone:G.world.id,
+            x:G.player.x,y:G.player.y,gold:Math.round(G.char.gold),
+            itemUids:G.char.inventory.map(i=>i.uid)});
           setInterval(()=>{ if(net.state==='online') send({t:'ping',ts:performance.now()}); },5000);
         };
         ws.onmessage=ev=>{ try{ handle(JSON.parse(ev.data)); }catch(e){} };
@@ -216,7 +221,13 @@
       }
     }
 
+    function whisper(uid,text){ send({t:'whisper',to:uid,text:String(text||'').slice(0,180)}); }
+    function emote(text){ send({t:'emote',text:String(text||'машет рукой').slice(0,60)}); }
+    function who(){ send({t:'who'}); }
+    function pingMap(x,y){ send({t:'pingmap',x:+x.toFixed(1),y:+y.toFixed(1)}); }
+    function syncItems(){ send({t:'sync_items',uids:G.char.inventory.map(i=>i.uid)}); }
     net.connect=connect; net.disconnect=disconnect; net.send=send; net.chat=chat;
+    net.whisper=whisper; net.emote=emote; net.who=who; net.pingMap=pingMap; net.syncItems=syncItems;
     net.update=update; net.syncEntities=syncEntities; net.startGhosts=startGhosts;
     net.status=()=>({state:net.state,count:net.state==='online'?net.serverPlayers:net.ghosts.length,
       ping:net.ping,url:net.url,ghosts:net.ghosts.length});

@@ -151,6 +151,70 @@ class WSClient {
   const ev=await A.waitFor(m=>m.t==='event',1800);
   ok(!!ev,'сервер применил урон и прислал событие');
 
+  // ---- G2.1 · ростер, рынок, торговля 1:1, шёпот, эмоции ----
+  A.messages.length=0;
+  A.send({t:'who'});
+  const rosterA=await A.waitFor(m=>m.t==='roster'&&m.players.length===3,1500);
+  ok(!!rosterA,'сервер рассылает общий ростер из 3 игроков');
+
+  const ITEM={uid:'it_a_1',name:'Клинок Завета',rarity:'epic',slot:'weapon',price:900,ilvl:14,affixes:[],plus:0};
+  A.send({t:'sync_items',uids:[ITEM.uid]});
+  A.send({t:'market_list',order:{id:'ord_a_1',item:ITEM,price:100},key:'mkt_list_1'});
+  const listed=await B.waitFor(m=>m.t==='market'&&m.orders.length===1,1800);
+  ok(!!listed,'серверный order book разослан всем игрокам');
+  ok(!!(await A.waitFor(m=>m.t==='wallet'&&m.gold<500,1200)),'комиссия рынка 5% списана авторитетно (sink)');
+  // идемпотентность: повтор того же ключа не создаёт второй лот
+  A.send({t:'market_list',order:{id:'ord_a_2',item:ITEM,price:100},key:'mkt_list_1'});
+  await sleep(200);
+  const h1=JSON.parse((await get('http://127.0.0.1:'+PORT+'/health')).body);
+  ok(h1.orders===1,'idem-ключ защищает от дюпа лотов');
+
+  B.messages.length=0;
+  B.send({t:'market_buy',id:'ord_a_1',key:'mkt_buy_1'});
+  const got=await B.waitFor(m=>m.t==='grant_item'&&m.item.uid===ITEM.uid,1800);
+  ok(!!got,'покупатель получил предмет от сервера');
+  ok(!!(await A.waitFor(m=>m.t==='market_sold',1800)),'продавец получил уведомление о продаже');
+  const h2=JSON.parse((await get('http://127.0.0.1:'+PORT+'/health')).body);
+  ok(h2.orders===0,'лот удалён из order book после покупки');
+
+  // торговля 1:1 с подтверждением владения
+  A.send({t:'sync_items',uids:['it_a_2']});
+  // смена класса в уже открытой игре реплицируется без переподключения
+  A.send({t:'hello',name:'Аркеонец',classId:'necromancer'});
+  B.messages.length=0; B.send({t:'who'});
+  const classRoster=await B.waitFor(m=>m.t==='roster'&&
+    (m.players||[]).some(p=>p.uid===welcomes[0].uid&&p.classId==='necromancer'),1500);
+  ok(!!classRoster,'повторный hello обновляет класс в общем ростере (6 героев онлайн)');
+
+  B.messages.length=0;
+  A.send({t:'trade_invite',to:welcomes[1].uid});
+  const req=await B.waitFor(m=>m.t==='trade_request',1500);
+  ok(!!req&&req.from===welcomes[0].uid,'приглашение торговли 1:1 доставлено');
+  B.send({t:'trade_accept',from:welcomes[0].uid,with:welcomes[0].uid});
+  ok(!!(await A.waitFor(m=>m.t==='trade_state',1200)),'сервер создал защищённую сессию торговли');
+  A.send({t:'trade_offer',with:welcomes[1].uid,items:['it_a_2'],gold:10,
+    detail:[{uid:'it_a_2',name:'Обет',rarity:'rare',slot:'ring',price:20,ilvl:4,affixes:[],plus:0}]});
+  const off=await B.waitFor(m=>m.t==='trade_state'&&(m.items||[]).length===1,1500);
+  ok(!!off,'встречное предложение реплицировано партнёру');
+  A.send({t:'trade_confirm',with:welcomes[1].uid,key:'tc_a'});
+  B.send({t:'trade_confirm',with:welcomes[0].uid,key:'tc_b'});
+  const [doneA,doneB]=await Promise.all([
+    A.waitFor(m=>m.t==='trade_done',1800), B.waitFor(m=>m.t==='trade_done',1800)
+  ]);
+  ok(!!doneA&&!!doneB,'атомарный обмен подтверждён обоими клиентами');
+  const h3=JSON.parse((await get('http://127.0.0.1:'+PORT+'/health')).body);
+  ok(h3.trades===0,'сессия торговли закрыта после обмена');
+  ok(h3.ledger>=2,' ledger экономики записал комиссию, покупку и обмен');
+
+  B.messages.length=0;
+  A.send({t:'whisper',to:welcomes[1].uid,text:'держим строй'});
+  ok(!!(await B.waitFor(m=>m.t==='whisper'&&m.text==='держим строй',1500)),'личный шёпот доставлен адресату');
+  A.send({t:'emote',text:'поднимает Знамя Завета'});
+  ok(!!(await B.waitFor(m=>m.t==='emote',1500)),'эмоция видна игрокам той же зоны');
+  A.messages.length=0;
+  A.send({t:'who'});
+  ok(!!(await A.waitFor(m=>m.t==='roster'&&m.players.length===3,1200)),'команда who возвращает ростер');
+
   // health
   const health=JSON.parse((await get('http://127.0.0.1:'+PORT+'/health')).body);
   ok(health.players===3,'/health: 3 игрока');

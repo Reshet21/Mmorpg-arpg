@@ -29,6 +29,11 @@ const TICK_MS = 1000/30, SNAP_MS = 1000/20;
 const worlds = new Map();
 const players = new Map();
 const parties = new Map();      // leaderUid -> [uids]
+const orders = new Map();       // общий order book рынка
+const issued = new Set();       // uid предметов, уже выставленных (антидюп)
+const trades = new Map();       // сессии торговли 1:1
+const seenKeys = new Set();     // идемпотентность операций
+const ledger = [];
 const events = [];
 let uidSeq = 0, lastTick = Date.now(), snapAcc = 0;
 
@@ -47,7 +52,9 @@ function addPlayer(ws, hello) {
     classId:A2.CLASS(hello.classId).id, level:A2.clamp(parseInt(hello.level,10)||1,1,60),
     zone, x:A2.clamp(Number(hello.x)||12,2,C.ZONE_N-3), y:A2.clamp(Number(hello.y)||16,2,C.ZONE_N-3),
     hp:12000, maxHp:12000, gearRarity:'rare', seq:0, lastAt:Date.now(),
-    cds:{}, lastInput:null, party:null, muted:false, ping:0
+    cds:{}, lastInput:null, party:null, muted:false, ping:0,
+    gold:A2.clamp(parseInt(hello.gold,10)||500,0,1e12),
+    items:new Set((Array.isArray(hello.itemUids)?hello.itemUids:[]).map(String))
   };
   players.set(uid,p);
   log(p.name+' вошёл в '+A2.ZONE(zone).ru);
@@ -61,6 +68,7 @@ function removePlayer(uid) {
     if(arr.length<2 || k===uid) parties.delete(k); else parties.set(k,arr);
   }
   log(p.name+' покинул мир');
+  broadcastRoster();
   broadcast({t:'chat',ch:'local',name:'СЕРВЕР',text:p.name+' покинул мир',color:'#9db0bd'});
 }
 
@@ -85,14 +93,45 @@ function publicPlayer(p) {
   return { uid:p.uid,name:p.name,classId:p.classId,level:p.level,x:+p.x.toFixed(2),y:+p.y.toFixed(2),
     hp:Math.round(p.hp),maxHp:p.maxHp,zone:p.zone,gearRarity:p.gearRarity };
 }
+function roster() { return Array.from(players.values()).map(publicPlayer); }
+function broadcastRoster() { broadcast({t:'roster',players:roster()}); }
+function broadcastMarket() { broadcast({t:'market',orders:Array.from(orders.values())}); }
+function syncInitial(p) {
+  send(p.ws,{t:'wallet',gold:p.gold});
+  send(p.ws,{t:'market',orders:Array.from(orders.values())});
+  broadcastRoster();
+}
+function idempotent(k) {
+  if(!k) return true;              // без ключа разрешаем (старые клиенты)
+  if(seenKeys.has(k)) return false;
+  seenKeys.add(k);
+  if(seenKeys.size>4000) seenKeys.clear();
+  return true;
+}
+function tradeKey(a,b) { return [a,b].sort().join('|'); }
+function tradeSession(p,msg) {
+  const other=msg.with || msg.from || (msg.to);
+  const tk=tradeKey(p.uid,other);
+  return { tk, s:trades.get(tk) };
+}
+function marketFee(price) { return Math.max(1,Math.ceil(price*0.05)); }
+function record(type,amount,text) {
+  ledger.push({t:Date.now(),type,amount,text});
+  if(ledger.length>500) ledger.shift();
+}
 
 /* ------------------------- обработка сообщений ------------------------- */
 function handle(p, msg) {
   if(!p || !msg || typeof msg!=='object') return;
   switch(msg.t) {
     case 'hello': {
-      // повторный hello — идемпотентный: просто подтверждаем
+      // Повторный hello приходит при выборе другого класса в уже открытой игре:
+      // обновляем только представление (имя/класс), НЕ кошелёк и не уровень —
+      // сервер остаётся авторитетным по прогрессии и Серебру.
+      if(msg.name) p.name=String(msg.name).slice(0,16);
+      if(msg.classId) p.classId=A2.CLASS(msg.classId).id;
       send(p.ws,{t:'welcome',uid:p.uid,zone:p.zone,players:zonePlayers(p.zone).map(publicPlayer)});
+      broadcastRoster();
       break;
     }
     case 'input': {
@@ -178,6 +217,142 @@ function handle(p, msg) {
       }
       break;
     }
+    /* ------------------------------ рынок ------------------------------ */
+    case 'market_list': {
+      const o=msg.order;
+      if(!o || !o.item || !o.item.uid || !Number.isFinite(o.price)) return;
+      if(!idempotent(msg.key)) return;
+      const uid=String(o.item.uid);
+      if(!p.items.has(uid) || issued.has(uid)) { send(p.ws,{t:'event',text:'Предмет уже выставлен или не ваш'}); return; }
+      const price=A2.clamp(Math.round(o.price),1,1e9);
+      const fee=marketFee(price);
+      if(p.gold<fee) { send(p.ws,{t:'event',text:'Не хватает Серебра на комиссию 5%'}); return; }
+      p.gold-=fee; p.items.delete(uid); issued.add(uid);
+      const order={ id:o.id||('srv_'+Math.random().toString(36).slice(2,10)), sellerUid:p.uid,
+        sellerName:p.name, item:o.item, price, ts:Date.now(), ghost:false };
+      orders.set(order.id,order);
+      record('fee',-fee,'Комиссия рынка от '+p.name);
+      send(p.ws,{t:'wallet',gold:p.gold});
+      send(p.ws,{t:'event',text:'Лот выставлен: '+(o.item.name||'предмет')});
+      log(p.name+' выставил лот за '+price+' S');
+      broadcastMarket(); break;
+    }
+    case 'market_buy': {
+      const id=String(msg.id||''), o=orders.get(id);
+      if(!o || o.sellerUid===p.uid) return;
+      if(!idempotent(msg.key)) return;
+      if(p.gold<o.price) { send(p.ws,{t:'event',text:'Не хватает Серебра'}); return; }
+      const seller=players.get(o.sellerUid);
+      const fee=marketFee(o.price);
+      p.gold-=o.price;
+      if(seller) seller.gold+=o.price-fee;
+      p.items.add(String(o.item.uid)); issued.delete(String(o.item.uid));
+      orders.delete(id);
+      send(p.ws,{t:'grant_item',item:o.item});
+      send(p.ws,{t:'wallet',gold:p.gold});
+      if(seller) { send(seller.ws,{t:'wallet',gold:seller.gold});
+        send(seller.ws,{t:'market_sold',by:p.name,gold:o.price-fee,item:o.item.name}); }
+      record('trade_market',o.price,p.name+' купил у '+(seller?seller.name:'рынка'));
+      log('Рынок: '+p.name+' купил лот за '+o.price+' S');
+      broadcastMarket(); break;
+    }
+    case 'market_cancel': {
+      const id=String(msg.id||''), o=orders.get(id);
+      if(!o || o.sellerUid!==p.uid) return;
+      if(!idempotent(msg.key)) return;
+      orders.delete(id); issued.delete(String(o.item.uid)); p.items.add(String(o.item.uid));
+      send(p.ws,{t:'grant_item',item:o.item});
+      broadcastMarket(); break;
+    }
+    /* ---------------------------- торговля 1:1 ---------------------------- */
+    case 'trade_invite': {
+      const q=players.get(String(msg.to||'')); if(!q) return;
+      send(q.ws,{t:'trade_request',from:p.uid,name:p.name});
+      send(p.ws,{t:'event',text:'Приглашение отправлено: '+q.name}); break;
+    }
+    case 'trade_accept': {
+      const q=players.get(String(msg.from||'')); if(!q) return;
+      const tk=tradeKey(p.uid,q.uid);
+      const s={ a:p.uid, b:q.uid, offers:{}, confirms:{} };
+      s.offers[p.uid]={uids:[],items:[],gold:0}; s.offers[q.uid]={uids:[],items:[],gold:0};
+      trades.set(tk,s);
+      for(const uid of [p.uid,q.uid]) sendTo(uid,{t:'trade_state',items:[],gold:0,confirm:false,with:uid===p.uid?q.uid:p.uid});
+      log('Торговля: '+p.name+' и '+q.name); break;
+    }
+    case 'trade_offer': {
+      const peerUid=String(msg.with||'');
+      const tk=tradeKey(p.uid,peerUid), s=trades.get(tk); if(!s) return;
+      const uids=(Array.isArray(msg.items)?msg.items:[]).map(String).slice(0,6);
+      for(const u of uids) if(!p.items.has(u)) { send(p.ws,{t:'event',text:'Предмет не принадлежит вам'}); return; }
+      const gold=A2.clamp(Math.round(Number(msg.gold)||0),0,Math.max(0,p.gold));
+      if(!Number.isFinite(gold)) return;
+      const items=Array.isArray(msg.detail)?msg.detail:uids.map(u=>({uid:u,name:'Предмет',rarity:'rare',slot:'ring',price:10,ilvl:1,affixes:[],plus:0}));
+      s.offers[p.uid]={uids,items,gold}; s.confirms[p.uid]=false;
+      const q=players.get(peerUid);
+      if(q) send(q.ws,{t:'trade_state',items,gold,confirm:false});
+      send(p.ws,{t:'event',text:'Предложение передано'}); break;
+    }
+    case 'trade_confirm': {
+      const peerUid=String(msg.with||'');
+      const tk=tradeKey(p.uid,peerUid), s=trades.get(tk); if(!s) return;
+      s.confirms[p.uid]=true;
+      const q=players.get(peerUid);
+      if(q) send(q.ws,{t:'trade_state',items:s.offers[p.uid].items,gold:s.offers[p.uid].gold,confirm:true});
+      if(!s.confirms[peerUid]) return;
+      // атомарный обмен: проверяем владение ещё раз
+      const A=players.get(s.a), B=players.get(s.b); if(!A||!B) { trades.delete(tk); return; }
+      const oa=s.offers[s.a], ob=s.offers[s.b];
+      for(const u of oa.uids) if(!A.items.has(u)) { trades.delete(tk); return; }
+      for(const u of ob.uids) if(!B.items.has(u)) { trades.delete(tk); return; }
+      A.gold=A.gold-oa.gold+ob.gold; B.gold=B.gold-ob.gold+oa.gold;
+      for(const u of oa.uids) { A.items.delete(u); B.items.add(u); }
+      for(const u of ob.uids) { B.items.delete(u); A.items.add(u); }
+      send(A.ws,{t:'trade_done',items:ob.items,gold:A.gold});
+      send(B.ws,{t:'trade_done',items:oa.items,gold:B.gold});
+      send(A.ws,{t:'wallet',gold:A.gold}); send(B.ws,{t:'wallet',gold:B.gold});
+      record('trade_p2p',oa.gold-ob.gold,'Обмен '+A.name+' ↔ '+B.name);
+      log('Обмен завершён: '+A.name+' ↔ '+B.name);
+      trades.delete(tk); break;
+    }
+    case 'trade_cancel': {
+      const peerUid=String(msg.with||'');
+      const tk=tradeKey(p.uid,peerUid);
+      if(trades.has(tk)) trades.delete(tk);
+      if(players.has(peerUid)) sendTo(peerUid,{t:'trade_cancel'});
+      break;
+    }
+    /* ------------------------------ социал ------------------------------ */
+    case 'whisper': {
+      const text=String(msg.text||'').slice(0,180).replace(/[<>]/g,'');
+      const to=String(msg.to||'');
+      let q=players.get(to);
+      if(!q) q=Array.from(players.values()).find(x=>x.name.toLowerCase()===to.toLowerCase());
+      if(!q || !text) return;
+      const m={t:'whisper',name:p.name,text,from:p.uid};
+      send(q.ws,m); send(p.ws,{t:'whisper',name:'→ '+q.name,text,from:q.uid}); break;
+    }
+    case 'emote': {
+      const text=String(msg.text||'машет рукой').slice(0,60).replace(/[<>]/g,'');
+      for(const q of zonePlayers(p.zone)) send(q.ws,{t:'emote',name:p.name,text});
+      break;
+    }
+    case 'who': send(p.ws,{t:'roster',players:roster()}); break;
+    case 'pingmap': {
+      for(const q of zonePlayers(p.zone)) send(q.ws,{t:'event',text:'◈ '+p.name+' отметил точку на карте'});
+      break;
+    }
+    case 'sync_items': {
+      // Реестр предметов, сгенерированных клиентом: запрещаем чужие и уже
+      // выставленные uid, ограничиваем пакет. Сервер остаётся авторитетным
+      // по владению и Серебру, поэтому дубликат не проходит в рынок/торговлю.
+      if(Array.isArray(msg.uids)) msg.uids.slice(0,120).forEach(raw=>{
+        const u=String(raw||'').slice(0,48);
+        if(!u || issued.has(u)) return;
+        for(const q of players.values()) if(q.uid!==p.uid && q.items.has(u)) return;
+        p.items.add(u);
+      });
+      break;
+    }
     case 'ping': send(p.ws,{t:'pong',ts:msg.ts}); break;
   }
 }
@@ -231,11 +406,12 @@ function start() {
 }
 
 function stats() {
-  return { version:'G2.0', tickHz:30, snapshotHz:20, aoi:C.AOI,
+  return { version:'G2.1', tickHz:30, snapshotHz:20, aoi:C.AOI,
     players:players.size, zones:worlds.size,
     mobs:Array.from(worlds.values()).reduce((a,W)=>a+W.mobs.filter(m=>m.alive).length,0),
-    parties:parties.size, uptime:Math.round((Date.now()-lastTick)/1000),
+    parties:parties.size, orders:orders.size, trades:trades.size, ledger:ledger.length,
+    uptime:Math.round((Date.now()-lastTick)/1000),
     canon:'data.js + world.js (vm)', maxPlayers:C.MAX_PLAYERS };
 }
 
-module.exports = { A2, worlds, players, addPlayer, removePlayer, handle, start, stats, send, broadcast, log };
+module.exports = { A2, worlds, players, orders, trades, ledger, addPlayer, removePlayer, handle, start, stats, send, broadcast, broadcastRoster, broadcastMarket, syncInitial, roster, log };

@@ -1,4 +1,4 @@
-# АРКЕОН · G2 · authoritative server
+# АРКЕОН · G2.1 · authoritative server
 
 Настоящий многопользовательский сервер для «Мира Завета». **Ноль npm-зависимостей**: HTTP и WebSocket (RFC 6455) реализованы на стандартной библиотеке Node, мир переиспользует `mobile/js/data.js` и `mobile/js/world.js` через `vm` — сервер и клиент живут на одном каноне.
 
@@ -10,7 +10,11 @@
 | Зоны | 4 общих мира с мобами, элитами, боссами, респавном и Волнами Разлома |
 | Античит | валидация скорости/коллизий, серверные кулдауны, `seq` против реплея |
 | Лут | владелец на 30 с, идемпотентные `uid` дропов |
-| Чат | `local` / `global` / `trade` / `party` |
+| Чат | `local` / `global` / `trade` / `party` / `whisper` / `emote` |
+| Рынок | общий order book, комиссия 5% (sink), фильтры на клиенте, `issued` против повторного выставления uid |
+| Торговля 1:1 | приглашение → сессия → предложение → двойное подтверждение → атомарный обмен с повторной проверкой владения |
+| Социал | общий ростер (`who`, рассылка при входе/выходе), `pingmap`, приглашения в группу |
+| Защита сделок | `seenKeys` идемпотентности, `ledger` операций, авторитетный кошелёк и реестр предметов |
 
 ## Запуск за 10 секунд
 
@@ -48,14 +52,18 @@ docker run -p 8080:8080 arkeon-g2
 
 | `t` | Поля | Назначение |
 |---|---|---|
-| `hello` | `name, classId, level, zone, x, y` | регистрация, ответ `welcome` |
+| `hello` | `name, classId, level, zone, x, y, gold, itemUids` | регистрация, ответ `welcome` + `syncInitial` |
 | `input` | `seq, x, y, hp, level, zone, gearRarity` | предсказанная позиция, 20 Гц |
 | `cast` | `name, coeff, tx, ty, range` | авторитетное применение урона |
 | `chat` | `ch, text` | сообщение |
 | `party` | `act: invite/accept/leave, target, from` | группа |
 | `ping` | `ts` | измерение RTT |
+| `market_list` / `market_buy` / `market_cancel` | `order` / `id`, `key` | общий рынок |
+| `trade_invite` / `trade_accept` / `trade_offer` / `trade_confirm` / `trade_cancel` | `to`/`from`/`with`, `items`, `gold`, `detail`, `key` | торговля 1:1 |
+| `whisper` / `emote` / `who` / `pingmap` | `to`, `text`, `x`, `y` | социальные действия |
+| `sync_items` | `uids[]` | регистрация предметов клиента (отклоняет чужие и уже выставленные uid) |
 
-Сервер → клиент: `welcome`, `snap` (`players`, `mobs`, `events`, `tick`), `chat`, `party`, `event`, `correction` (античит), `pong`.
+Сервер → клиент: `welcome`, `snap` (`players`, `mobs`, `events`, `tick`), `chat`, `party`, `event`, `correction` (античит), `pong`, `wallet`, `market`, `market_sold`, `grant_item`, `trade_request`, `trade_state`, `trade_done`, `trade_cancel`, `whisper`, `emote`, `roster`.
 
 ## Тест
 
@@ -63,6 +71,6 @@ docker run -p 8080:8080 arkeon-g2
 node tools/smoke_net.js
 ```
 
-Поднимает сервер на свободном порту, подключает трёх настоящих WebSocket-клиентов, проверяет `welcome`, видимость всех игроков в снапшоте, движение, чат, авторитетный урон и `/health`, затем гасит процесс.
+Поднимает сервер на свободном порту, подключает трёх настоящих WebSocket-клиентов, проверяет `welcome`, видимость всех игроков, движение, чат, авторитетный урон, ростер, выставление/покупку лота, отказ повторного ключа, торговлю 1:1, шёпот, эмоции и `/health` (32/32), затем гасит процесс.
 
 Связанные документы: `docs/08-server.md`, `docs/09-client.md`, `docs/11-roadmap.md`, `docs/16-mobile.md`. Хартия P3: сервер не имеет платежей и силовых SKU.

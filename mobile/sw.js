@@ -1,10 +1,10 @@
 /* =====================================================================
- * АРКЕОН · G1 · Service Worker
+ * АРКЕОН · G2.1 · Service Worker
  * Офлайн-кэш телефонного вертикального среза. Только тот же источник,
  * только GET, без аналитики и без сетевых зависимостей извне.
  * ===================================================================== */
 'use strict';
-const VERSION = 'arkeon-g2-v1';
+const VERSION = 'arkeon-g21-v1';
 const CACHE = 'arkeon-g2-' + VERSION;
 const SHELL = [
   './',
@@ -24,6 +24,8 @@ const SHELL = [
   './js/rpg.js',
   './js/render.js',
   './js/net.js',
+  './js/audio.js',
+  './js/market.js',
   './js/main.js',
   './js/game.js',
   '../data/classes.json'

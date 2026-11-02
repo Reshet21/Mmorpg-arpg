@@ -12,7 +12,7 @@ const fs = require('fs');
 const vm = require('vm');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
-const FILES = ['data.js','world.js','rpg.js','render.js','net.js','main.js']
+const FILES = ['data.js','world.js','rpg.js','render.js','net.js','audio.js','market.js','main.js']
   .map(f => path.join(ROOT,'mobile/js',f));
 const CANON = JSON.parse(fs.readFileSync(path.join(ROOT,'data/classes.json'),'utf8'));
 
@@ -69,7 +69,7 @@ function makeEnv(useCanon) {
     readyState:'complete', hidden:false, getElementById:el,
     createElement:(tag)=>new FakeEl('new',tag),
     querySelectorAll:sel=>sel==='.class-card'?cards:[],
-    querySelector:sel=>sel==='.class-card.selected'?cards[0]:null,
+    querySelector:sel=>sel==='.class-card.selected'?(cards.find(c=>c.classList.contains('selected'))||cards[0]):null,
     addEventListener(){}
   };
   class FakeWS {
@@ -91,6 +91,7 @@ function makeEnv(useCanon) {
     sent:[], lastWS:null
   };
   env.globalThis=env;
+  env.cards=cards;
   return env;
 }
 const A2_CLASSES=['warrior','paladin','assassin','ranger','mage','necromancer'];
@@ -103,7 +104,7 @@ async function run(useCanon) {
   const API=env.window.ARKEON_G2, A2=env.window.A2;
   ok(!!API,'window.ARKEON_G2 определён');
   if(!API) return;
-  ok(API.version==='G2.0','версия G2.0');
+  ok(API.version==='G2.1','версия G2.1');
   ok(API.source===(useCanon?'canon':'fallback'),'источник навыков: '+(useCanon?'canon':'fallback'));
   if(useCanon) {
     const m=API.meta('Клинок Рубежа');
@@ -158,10 +159,84 @@ async function run(useCanon) {
   for(const m of mobs.slice(0,16)) A2.RPG.hit(G,m,50,'Физический');
   ok(G.char.kills>before.kills,'убийства засчитаны: '+G.char.kills);
   ok(G.char.xp+G.char.level*1000>before.xp,'опыт начислен');
+  G.settings.lootFilter='all';
   A2.RPG.dropItem(G,{x:G.player.x+0.4,y:G.player.y+0.4,lvl:5},3);
   ok(W.drops.length>=3,'дроп появился в мире: '+W.drops.length);
   for(let i=0;i<10;i++) API.step(A2.C.TICK);
   ok(G.char.inventory.length>0,'лут автоматически подобран: '+G.char.inventory.length+' предметов');
+
+  // ---- G2.1 · ВЫБОР ВСЕХ 6 КЛАССОВ (главный баг прошлого билда) ----
+  for(const cid of A2_CLASSES){
+    env.cards.forEach(c=>c.classList.toggle('selected', c.dataset.class===cid));
+    API.startGame();
+    ok(G.char.classId===cid,'выбор класса доступен: '+cid);
+  }
+  env.cards.forEach(c=>c.classList.toggle('selected', c.dataset.class==='warrior'));
+  API.startGame();
+  ok(G.char.classId==='warrior','возврат к Воину после выбора других классов');
+
+  // ---- G2.1 · ЗВУК ----
+  ok(!!A2.Audio && typeof A2.Audio.play==='function','модуль A2.Audio подключён');
+  ok(Object.keys(A2.Audio.BANK).length>=24,'процедурная библиотека SFX: '+Object.keys(A2.Audio.BANK).length);
+  ok(typeof A2.Audio.loot==='function' && typeof A2.Audio.ambient==='function',
+     'лутовые арпеджио по редкости и амбиент 4 биомов');
+  ok(A2.Audio.state().ctx===false,'в Node без WebAudio модуль безопасно молчит (нет исключений)');
+  ok(typeof G.onHit==='function' && typeof G.onKill==='function' && typeof G.onLevel==='function',
+     'звуковые хуки боя/уровня привязаны к симуляции');
+  ok(G.settings.sound===true && G.settings.lootFilter==='all','настройки звука и фильтра лута на месте');
+
+  // ---- G2.1 · ИНВЕНТАРЬ / ЛУТ ----
+  ok(typeof A2.RPG.sell==='function','продажа предмета торговцу реализована');
+  G.settings.lootFilter='legendary';
+  ok(A2.RPG.autoPickupAllowed(G,{rarity:'common'})===false,'фильтр лута оставляет обычное на земле');
+  ok(A2.RPG.autoPickupAllowed(G,{rarity:'legendary'})===true,'фильтр лута подбирает легендарное');
+  G.settings.lootFilter='all';
+  const ground={uid:'dg1',x:G.player.x,y:G.player.y,t:G.world.time,item:null,gold:25,owner:null};
+  const g0=G.char.gold; G.world.drops.push(ground); A2.RPG.pickup(G,ground);
+  ok(G.char.gold>g0,'Серебро с земли подбирается');
+  const dItem=A2.RPG.dropItem(G,{x:G.player.x,y:G.player.y,lvl:20},1,{x:G.player.x,y:G.player.y});
+  ok(dItem && dItem.item && !!dItem.rar,'у каждого моба падает видимый предмет с редкостью');
+  ok(G.market.newItems>=0,'счётчик новых предметов рынка');
+
+  // ---- G2.1 · РЫНОК ----
+  const M=G.market;
+  ok(M.orders.length>=14,'офлайн-рынок: '+M.orders.length+' лотов от союзников');
+  ok(M.fee(1000)===50,'комиссия рынка 5% (sink, без P2W)');
+  const lit=A2.RPG.rollItem(20,'grove',{rarity:'epic'});
+  G.char.inventory.push(lit);
+  const nLots=M.orders.length, nBag=G.char.inventory.length;
+  ok(M.list(lit,1200)===true,'выставление предмета на рынок');
+  ok(M.orders.length===nLots+1 && G.char.inventory.length===nBag-1,'лот создан, предмет списан из сумки');
+  G.char.gold=999999;
+  const ghostLot=M.orders.find(o=>o.ghost && !o.mine);
+  ok(M.buy(ghostLot.id)===true,'покупка лота у союзника-призрака');
+  ok(M.orders.indexOf(ghostLot)<0,'купленный лот удалён из order book');
+  const own=M.orders[M.orders.length-1];
+  ok(M.cancel(own.id)===true,'снятие собственного лота возвращает предмет');
+  ok(M.filtered().length>0,'фильтры рынка возвращают список лотов');
+  M.filter.rarity='mythic'; ok(Array.isArray(M.filtered()),'фильтр по редкости не ломает рынок'); M.filter.rarity='all';
+
+  // ---- G2.1 · ТОРГОВЛЯ 1:1 ----
+  ok(M.tradeInvite('ghost_7','Лиана')===true,'торговля 1:1: приглашение');
+  ok(M.trade.their.items.length===1,'призрак делает встречное предложение');
+  M.tradeSetOffer([],10);
+  ok(M.tradeConfirm()===true,'обмен с призраком завершён без исключений');
+  ok(M.trade.active===false,'сессия торговли закрыта после обмена');
+
+  // ---- G2.1 · МОДАЛЬНЫЕ ПАНЕЛИ ----
+  let merr=null;
+  try { ['bag','item','filters','market','trade','players','player','char','quests','chat','party','codex','settings','talents','forge','shop']
+    .forEach(md=>API.openModal(md,md==='item'?0:null)); } catch(e){ merr=e; }
+  ok(!merr,'все 16 панелей открываются без исключений'+(merr?': '+merr.message:''));
+  API.closeModal();
+
+  // ---- G2.1 · ДЕТАЛИЗАЦИЯ РЕНДЕРА ----
+  let derr=null;
+  try { for(let i=0;i<4;i++){ G.world.drops.push({uid:'dr'+i,x:12+i,y:16,t:G.world.time,
+      item:A2.RPG.rollItem(20,'grove',{rarity:'legendary'}),gold:0,owner:null,rar:'legendary',spin:i});
+      G.corpses.push({x:12+i,y:16,kind:'wraith',color:'#7a4a3a',life:1,max:1,scale:1});
+      API.render(1/60); } } catch(e){ derr=e; }
+  ok(!derr,'рендер лучей лута, трупов, воды и объёмных лучей без исключений'+(derr?': '+derr.message:''));
 
   // ---- уровни, экипировка, кузница ----
   const lv=G.char.level;

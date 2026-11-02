@@ -8,7 +8,7 @@
   'use strict';
   const A2 = window.A2 || (window.A2 = {});
 
-  A2.VERSION = 'G2.0';
+  A2.VERSION = 'G2.1';
   A2.C = {
     TICK: 1 / 30, SNAPSHOT: 1 / 20, WEAPON_HIT: 21600,
     TILE_W: 64, TILE_H: 32, H_UNIT: 26,
@@ -170,18 +170,18 @@
       services:['quest','heal','portal'], quests:['q1','q2'] },
     { id:'borin',  ru:'Борин',     role:'Кузнец', zone:'grove', x:17, y:12, color:'#e8b25c',
       lines:['Сталь помнит каждый удар. Покажи, что принёс.','Заточка до +12. Выше — только клятва.'],
-      services:['vendor','forge','salvage'], quests:['q3'] },
+      services:['vendor','forge','salvage','market','trade'], quests:['q3'] },
     { id:'irina',  ru:'Ирина',     role:'Наставница', zone:'grove', x:9,  y:18, color:'#4fd6d0',
       lines:['Каждый класс держит свою клятву. Выбери свою.','Таланты можно перековать в городе раз в сутки.'],
       services:['trainer','respec'], quests:[] },
     { id:'serg',   ru:'Серж',      role:'Капитан дозора', zone:'ash', x:20, y:20, color:'#ff9a5c',
       lines:['Пустошь не прощает пауз. Считай мёртвых, не удары.'], services:['quest','vendor'], quests:['q4','q5'] },
     { id:'mira',   ru:'Мира',      role:'Торговка реликвиями', zone:'ash', x:14, y:26, color:'#b07ae8',
-      lines:['Всё, что продаю, я сначала сама нашла. Почти всё.'], services:['vendor','gamble'], quests:['q6'] },
+      lines:['Всё, что продаю, я сначала сама нашла. Почти всё.'], services:['vendor','gamble','market'], quests:['q6'] },
     { id:'hilda',  ru:'Хильда',    role:'Воевода Стены', zone:'frost', x:18, y:13, color:'#9fe8ff',
       lines:['Здесь предали слово впервые. Держи строй.'], services:['quest','heal','portal'], quests:['q7','q8'] },
     { id:'tomas',  ru:'Томас',     role:'Картограф', zone:'frost', x:25, y:24, color:'#8fd08a',
-      lines:['Карта врёт меньше, чем люди. Но тоже врёт.'], services:['vendor','map'], quests:['q9'] },
+      lines:['Карта врёт меньше, чем люди. Но тоже врёт.'], services:['vendor','map','market','trade'], quests:['q9'] },
     { id:'vesper', ru:'Веспер',    role:'Голос Разлома', zone:'rift', x:20, y:18, color:'#c07bff',
       lines:['Ты пришёл услышать правду? Её здесь не осталось.','Убей то, что носит моё имя, и получишь покой.'],
       services:['quest','portal','forge'], quests:['q10','q11','q12'] },

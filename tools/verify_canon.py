@@ -204,6 +204,61 @@ check("G2" in (ROOT / "README.md").read_text(encoding="utf-8") and
       "G2" in (ROOT / "index.html").read_text(encoding="utf-8"),
       "хаб и README ведут на G2")
 
+# --- 8c. G2.1 «звук · лут · рынок · торговля · 6 классов» ---
+audio_js = (MOB / "js/audio.js").read_text(encoding="utf-8")
+market_js = (MOB / "js/market.js").read_text(encoding="utf-8")
+html_g2 = (MOB / "index.html").read_text(encoding="utf-8")
+sw_js = (MOB / "sw.js").read_text(encoding="utf-8")
+rpg_js = (MOB / "js/rpg.js").read_text(encoding="utf-8")
+check((MOB / "js/audio.js").is_file() and len(audio_js) > 5000,
+      "G2.1: процедурный звуковой движок audio.js на месте")
+sfx = re.findall(r"^\s{4}([a-z]+):\s*\(", audio_js, re.M)
+check(len(sfx) >= 24, f"G2.1: >=24 SFX в банке звуков ({len(sfx)})")
+check("AudioContext" in audio_js and "A2.Audio =" in audio_js and "master" in audio_js,
+      "G2.1: WebAudio, master/sfx/music-шины и публичный API")
+check(len(re.findall(r"^\s{4}(grove|ash|frost|rift):", audio_js, re.M)) == 4,
+      "G2.1: амбиент всех 4 биомов")
+check("A2.RARITIES.indexOf" in audio_js or "A2.RARITY(rarity)" in audio_js,
+      "G2.1: лутовые арпеджио зависят от редкости")
+check((MOB / "js/market.js").is_file() and len(market_js) > 5000,
+      "G2.1: модуль рынка и торговли market.js на месте")
+check("0.05" in market_js and "fee" in market_js, "G2.1: комиссия 5% как экономический sink")
+for token in ("market_list", "market_buy", "market_cancel", "trade_invite", "trade_confirm",
+              "whisper", "emote", "roster"):
+    check(token in market_js, f"G2.1: market.js обрабатывает {token}")
+check("A2.Market =" in market_js and "M.applyNet" in market_js,
+      "G2.1: серверные сообщения рынка маршрутизируются в UI")
+check(".class-card" in main_js and "classList.add('selected')" in main_js,
+      "G2.1: ИСПРАВЛЕН выбор всех 6 классов (обработчик .class-card)")
+check("[?&]class=([a-z]+)" in main_js and "autostart=1" in main_js,
+      "G2.1: прямой вход ?class=…&autostart=1")
+check("A2.Audio.play" in main_js and "G.onHit" in main_js and "G.onZone" in main_js,
+      "G2.1: звуковые хуки боя, лута, UI и смены зон")
+check("G.market=A2.Market.create(G)" in main_js and "openModal('market')" in main_js,
+      "G2.1: рынок и торговля интегрированы в универсальную панель")
+check("lootFilter" in main_js and "autoPickupAllowed" in rpg_js,
+      "G2.1: фильтр лута и видимый дроп на земле")
+check("sell" in rpg_js and "function sell(" in rpg_js,
+      "G2.1: продажа предметов торговцу")
+check("Math.random()<0.62" in rpg_js, "G2.1: лут падает с каждого моба в духе Diablo/PoE")
+for token in ("js/audio.js", "js/market.js", "btnMarket", "btnPlayers", "bagCount", "lootCount"):
+    check(token in html_g2, f"G2.1: mobile/index.html подключает {token}")
+for token in ("js/audio.js", "js/market.js"):
+    check(token in sw_js, f"G2.1: service worker кэширует {token}")
+check("arkeon-g21" in sw_js, "G2.1: версия офлайн-кэша обновлена")
+for token in ("market_list", "market_buy", "trade_invite", "trade_confirm", "whisper", "emote",
+              "syncInitial", "broadcastRoster", "broadcastMarket", "idempotent"):
+    check(token in sim_js, f"G2.1: авторитетный сервер поддерживает {token}")
+check("sim.syncInitial(player)" in srv_js,
+      "G2.1: сервер синхронизирует ростер, кошелёк и order book при входе")
+for f in ("js/audio.js", "js/market.js"):
+    t = (MOB / f).read_text(encoding="utf-8").lower()
+    check("https://" not in t and "http://" not in t and "unpkg.com" not in t and
+          "cdn.jsdelivr.net" not in t and "cdnjs" not in t,
+          f"mobile/{f}: без внешних CDN и сетевых зависимостей")
+check("0 силовых" not in audio_js and "buy_gold" not in market_js.lower(),
+      "P3: новый функционал не добавляет силовых SKU / Pay-To-Win")
+
 # --- 9. Отчёт ---
 passed = sum(1 for ok, _ in results if ok)
 failed = [m for ok, m in results if not ok]

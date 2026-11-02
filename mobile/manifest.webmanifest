@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "АРКЕОН: Пепел Завета — Мир Завета (G2)",
-  "short_name": "АРКЕОН G2",
-  "description": "Открытый мир АРКЕОН: 6 классов, гринд мобов, 12 квестов, НПС, 4 зоны и онлайн. Телефонный PWA.",
+  "name": "АРКЕОН: Пепел Завета — Мир Завета (G2.1)",
+  "short_name": "АРКЕОН G2.1",
+  "description": "Открытый мир АРКЕОН G2.1: 6 классов, звук, лут, инвентарь, рынок, торговля 1:1, 12 квестов и онлайн.",
   "lang": "ru-RU",
   "dir": "ltr",
   "start_url": "./index.html",
@@ -52,7 +52,7 @@
       "name": "Воин",
       "short_name": "Воин",
       "description": "Войти в мир Воином",
-      "url": "./index.html?class=warrior",
+      "url": "./index.html?class=warrior&autostart=1",
       "icons": [
         {
           "src": "icon-192.png",
@@ -64,7 +64,7 @@
       "name": "Маг",
       "short_name": "Маг",
       "description": "Войти в мир Магом",
-      "url": "./index.html?class=mage",
+      "url": "./index.html?class=mage&autostart=1",
       "icons": [
         {
           "src": "icon-192.png",

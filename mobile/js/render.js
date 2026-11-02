@@ -86,6 +86,29 @@
         g.strokeStyle = 'rgba(190,230,255,.22)'; g.lineWidth = 1;
         g.beginPath(); g.moveTo(sx - 14, sy + 2 + n2 * 5); g.quadraticCurveTo(sx, sy - 2 + n2 * 4, sx + 14, sy + 1 + n2 * 5); g.stroke();
       }
+      // G2.1 · фаска изометрического тайла и микро-рельеф
+      g.strokeStyle = 'rgba(255,255,255,.05)'; g.lineWidth = 0.8;
+      g.beginPath(); g.moveTo(sx - TW/2, sy); g.lineTo(sx, sy - TH/2); g.lineTo(sx + TW/2, sy); g.stroke();
+      g.strokeStyle = 'rgba(0,0,0,.14)';
+      g.beginPath(); g.moveTo(sx - TW/2, sy); g.lineTo(sx, sy + TH/2); g.lineTo(sx + TW/2, sy); g.stroke();
+      if (t === T.GROUND || t === T.PATH) {
+        const q = A2.hash(x*13, y*17, W.seed+83);
+        if (q > 0.79) {
+          g.fillStyle = t === T.PATH ? 'rgba(205,190,160,.28)' : 'rgba(150,165,145,.22)';
+          g.beginPath(); g.ellipse(sx + (q-0.9)*30, sy + (n2-0.5)*10, 2.6, 1.4, 0, 0, 6.283); g.fill();
+          g.fillStyle = 'rgba(0,0,0,.18)';
+          g.beginPath(); g.ellipse(sx + (q-0.9)*30, sy + (n2-0.5)*10 + 1, 2.6, 1, 0, 0, 6.283); g.fill();
+        }
+        const moss = A2.hash(x*5, y*23, W.seed+97);
+        if (moss > 0.88 && t !== T.PATH) {
+          g.strokeStyle = 'rgba(120,180,105,.22)'; g.lineWidth = 1.1;
+          for (let k=0;k<3;k++){ g.beginPath(); g.moveTo(sx-8+k*3, sy+2); g.lineTo(sx-9+k*3, sy-3-n2*2); g.stroke(); }
+        }
+        if (t === T.PATH) {
+          g.strokeStyle = 'rgba(30,24,18,.20)'; g.lineWidth = 0.8;
+          g.beginPath(); g.moveTo(sx-13, sy-1); g.lineTo(sx-2, sy+5); g.moveTo(sx+2, sy-5); g.lineTo(sx+13, sy+1); g.stroke();
+        }
+      }
       // кромки высот
       if (t === T.WALL || t === T.ROCK) {
         g.fillStyle = 'rgba(0,0,0,.28)';
@@ -251,15 +274,25 @@
       case 'oak': case 'pine': case 'deadtree': {
         shadow(g, 0, 2, 20, .4);
         g.fillStyle = '#3b2b1e'; g.fillRect(-4, -42, 8, 44); outline(g);
+        // G2.1 · текстура коры и корневые лапы
+        g.strokeStyle = 'rgba(210,180,140,.16)'; g.lineWidth = 0.9;
+        for (let k=0;k<5;k++){ g.beginPath(); g.moveTo(-3+k*1.5,-40); g.lineTo(-2+k*1.5,-6); g.stroke(); }
+        g.fillStyle = '#33251a';
+        g.beginPath(); g.moveTo(-4,-2); g.lineTo(-13,2); g.lineTo(-2,1); g.fill();
+        g.beginPath(); g.moveTo(4,-2); g.lineTo(13,2); g.lineTo(2,1); g.fill();
         g.strokeStyle = '#3b2b1e'; g.lineWidth = 2.6;
-        [-1,1].forEach(d => { g.beginPath(); g.moveTo(0,-30); g.lineTo(d*13,-44); g.stroke(); });
+        [-1,1].forEach(d => { g.beginPath(); g.moveTo(0,-30); g.lineTo(d*13,-44); g.stroke();
+          g.lineWidth=1; g.beginPath(); g.moveTo(d*9,-40); g.lineTo(d*16,-50); g.stroke(); g.lineWidth=2.6; });
         if (p.kind !== 'deadtree') {
           const cols = p.kind === 'pine' ? ['#2f5a3d','#3a6b46','#478055'] : ['#3f6b3f','#4f8449','#66a05b'];
           if (p.kind === 'pine') {
             for (let i=0;i<3;i++){ g.fillStyle=cols[i]; g.beginPath(); g.moveTo(0,-72+i*14); g.lineTo(-16+i*3,-44+i*12); g.lineTo(16-i*3,-44+i*12); g.fill(); outline(g); }
           } else {
             [[0,-56,17],[-13,-48,12],[13,-48,12],[0,-70,12]].forEach((c,i)=>{ g.fillStyle=cols[i%3]; g.beginPath(); g.arc(c[0],c[1],c[2],0,6.283); g.fill(); outline(g); });
-            for (let i=0;i<10;i++){ g.fillStyle='rgba(190,230,150,.28)'; g.beginPath(); g.arc(-18+i*4,-62+Math.sin(i+p.variant)*8,2.2,0,6.283); g.fill(); }
+            for (let i=0;i<14;i++){ g.fillStyle='rgba(190,230,150,'+(0.16+0.12*Math.sin(t*1.7+i+p.variant)).toFixed(2)+')';
+              g.beginPath(); g.arc(-20+i*3.2,-62+Math.sin(i+p.variant+t*0.8)*8,1.8,0,6.283); g.fill(); }
+            // солнечные зайчики в кроне
+            g.fillStyle='rgba(255,240,180,.13)'; g.beginPath(); g.arc(-5,-66,7,0,6.283); g.fill();
           }
         }
         break;
@@ -268,6 +301,9 @@
         shadow(g,0,1,15,.45); g.fillStyle='#5c666d';
         g.beginPath(); g.moveTo(-15,0); g.lineTo(-12,-13); g.lineTo(-2,-19); g.lineTo(11,-14); g.lineTo(15,0); g.closePath(); g.fill(); outline(g);
         g.fillStyle='rgba(255,255,255,.14)'; g.beginPath(); g.moveTo(-10,-12); g.lineTo(-2,-17); g.lineTo(1,-6); g.closePath(); g.fill();
+        g.strokeStyle='rgba(20,26,28,.35)'; g.lineWidth=0.9;
+        g.beginPath(); g.moveTo(-6,-13); g.lineTo(-2,-8); g.lineTo(2,-9); g.stroke();
+        g.fillStyle='rgba(105,155,80,.35)'; g.beginPath(); g.ellipse(-9,-2,5,1.8,0,0,6.283); g.fill();
         break;
       }
       case 'ruin': case 'obelisk': {
@@ -277,6 +313,9 @@
         g.fillRect(-14,-41,32,5); outline(g);
         g.strokeStyle='rgba(20,28,32,.35)'; g.lineWidth=1;
         for(let i=0;i<3;i++){ g.beginPath(); g.moveTo(-11,-28+i*9); g.lineTo(-4,-28+i*9); g.stroke(); }
+        g.fillStyle=rgba(z.accent,.28+0.18*Math.sin(t*2+p.seed));
+        for(let i=0;i<3;i++) g.fillRect(6+i*3,-31+i*7,1.6,1.6);
+        g.fillStyle='rgba(0,0,0,.20)'; g.beginPath(); g.moveTo(5,0); g.lineTo(18,2); g.lineTo(12,-3); g.fill();
         break;
       }
       case 'campfire': {
@@ -286,6 +325,15 @@
         gr.addColorStop(0,'rgba(255,240,180,.95)'); gr.addColorStop(.5,'rgba(255,150,60,.65)'); gr.addColorStop(1,'rgba(255,90,30,0)');
         g.fillStyle=gr; g.beginPath(); g.arc(0,-10,14+f*0.4,0,6.283); g.fill();
         g.fillStyle='#ffd27a'; g.beginPath(); g.moveTo(-5,-2); g.quadraticCurveTo(-3,-14-f,0,-20-f); g.quadraticCurveTo(4,-12-f,5,-2); g.fill();
+        // G2.1 · дым и разлетающиеся искры
+        for(let i=0;i<5;i++){ const ph=(t*0.55+i*0.2+p.seed)%1;
+          g.fillStyle='rgba(190,190,185,'+(0.20*(1-ph)).toFixed(2)+')';
+          g.beginPath(); g.arc(Math.sin(i*2+ph*3)*7,-22-ph*38,2+ph*5,0,6.283); g.fill(); }
+        for(let i=0;i<6;i++){ const ph=(t*2.2+i*0.17+p.seed)%1;
+          g.fillStyle='rgba(255,'+(160+Math.floor(70*ph))+',90,'+(0.9*(1-ph)).toFixed(2)+')';
+          g.fillRect(Math.sin(i*3.1)*9,-14-ph*26,1.5,1.5); }
+        g.strokeStyle='rgba(255,160,70,.20)'; g.lineWidth=1;
+        g.beginPath(); g.arc(0,-6,16+Math.sin(t*7+p.seed)*2,0,6.283); g.stroke();
         break;
       }
       case 'crystal': case 'ice': {
@@ -294,12 +342,18 @@
         [[0,-26,7],[ -8,-18,5],[9,-20,6]].forEach((c,i)=>{
           g.fillStyle=rgba(col,.75-i*.12); g.beginPath(); g.moveTo(c[0],c[1]-c[2]); g.lineTo(c[0]+c[2]*0.7,c[1]); g.lineTo(c[0],c[1]+c[2]); g.lineTo(c[0]-c[2]*0.7,c[1]); g.fill(); outline(g);
         });
+        const gl=g.createRadialGradient(0,-20,1,0,-20,22);
+        gl.addColorStop(0,rgba(col,.34+0.10*Math.sin(t*2.4+p.seed))); gl.addColorStop(1,rgba(col,0));
+        g.fillStyle=gl; g.beginPath(); g.arc(0,-20,22,0,6.283); g.fill();
+        g.fillStyle='rgba(255,255,255,.55)'; g.beginPath(); g.moveTo(-1,-30); g.lineTo(1,-24); g.lineTo(-1,-19); g.fill();
         break;
       }
       case 'bone': { g.strokeStyle='#d8d2bd'; g.lineWidth=3; g.beginPath(); g.moveTo(-9,0); g.lineTo(9,-6); g.stroke(); g.fillStyle='#d8d2bd'; g.beginPath(); g.arc(-9,0,3,0,6.283); g.arc(9,-6,3,0,6.283); g.fill(); break; }
       case 'banner': {
         g.fillStyle='#4a3c28'; g.fillRect(-1.5,-42,3,44);
-        g.fillStyle=rgba(z.accent,.85); g.beginPath(); g.moveTo(1,-40); g.lineTo(15,-38); g.lineTo(12,-20); g.lineTo(1,-22); g.fill(); outline(g);
+        const wv=Math.sin(t*3+p.seed)*2.4;
+        g.fillStyle=rgba(z.accent,.85); g.beginPath(); g.moveTo(1,-40);
+        g.quadraticCurveTo(8,-40+wv,15+wv,-38); g.lineTo(12+wv*0.5,-20); g.lineTo(1,-22); g.fill(); outline(g);
         g.fillStyle=rgba('#f0d27a',.8); g.beginPath(); g.arc(7,-31,3,0,6.283); g.fill();
         break;
       }
@@ -307,12 +361,15 @@
         shadow(g,0,1,18,.4); g.fillStyle='#6b5a42';
         g.beginPath(); g.moveTo(-18,0); g.lineTo(0,-26); g.lineTo(18,0); g.fill(); outline(g);
         g.fillStyle='#2b211a'; g.beginPath(); g.moveTo(-5,0); g.lineTo(0,-14); g.lineTo(5,0); g.fill();
+        g.strokeStyle='rgba(200,180,140,.35)'; g.lineWidth=0.8;
+        g.beginPath(); g.moveTo(0,-26); g.lineTo(-22,-1); g.moveTo(0,-26); g.lineTo(22,-1); g.stroke();
         break;
       }
       case 'bridge': { g.fillStyle='#6b5540'; g.fillRect(-20,-4,40,7); outline(g); break; }
       case 'grass': case 'flower': {
         g.strokeStyle = p.kind==='flower' ? z.accent : '#5e8c52'; g.lineWidth=1.4;
-        for(let i=0;i<5;i++){ g.beginPath(); g.moveTo((i-2)*2,0); g.quadraticCurveTo((i-2)*3,-7,(i-2)*4,-10); g.stroke(); }
+        const sw=Math.sin(t*2.2+p.seed)*2.2;
+        for(let i=0;i<5;i++){ g.beginPath(); g.moveTo((i-2)*2,0); g.quadraticCurveTo((i-2)*3,-7,(i-2)*4+sw,-10); g.stroke(); }
         if(p.kind==='flower'){ g.fillStyle='#ffe08a'; g.beginPath(); g.arc(0,-11,2.2,0,6.283); g.fill(); }
         break;
       }
@@ -345,19 +402,106 @@
   }
 
   function drawDrop(g, d, x, y, t) {
-    const rar = A2.RARITY(d.item ? d.item.rarity : 'rare'), bob = Math.sin(t*3+d.t)*2;
-    if (!d.item) { // слиток Серебра
-      g.save(); g.translate(x,y-8+bob); g.fillStyle='#f0d27a';
-      g.beginPath(); g.ellipse(0,0,6,3.5,0,0,6.283); g.fill(); g.restore(); return;
+    const rar = A2.RARITY(d.item ? d.item.rarity : 'rare');
+    const bob = Math.sin(t * 3 + d.t) * 2.4;
+    const pulse = 0.75 + 0.25 * Math.sin(t * 4 + (d.spin || 0));
+    if (!d.item) { // слиток Серебра · монетный столб
+      const gr = g.createLinearGradient(x, y-30, x, y);
+      gr.addColorStop(0,'rgba(240,210,122,0)'); gr.addColorStop(1,'rgba(240,210,122,.28)');
+      g.fillStyle=gr; g.fillRect(x-4,y-30,8,30);
+      g.save(); g.translate(x,y-8+bob); g.shadowColor='#f0d27a'; g.shadowBlur=10;
+      g.fillStyle='#f0d27a'; g.beginPath(); g.ellipse(0,0,7,4,0,0,6.283); g.fill();
+      g.fillStyle='#fff3c8'; g.beginPath(); g.ellipse(-2,-1,3,1.4,0,0,6.283); g.fill();
+      g.shadowBlur=0; g.restore();
+      lootLabel(g,x,y-26,'СЕРЕБРО','#f0d27a');
+      return;
     }
-    const gr = g.createLinearGradient(x, y-70, x, y);
-    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, rgba(rar.color, .35 + rar.glow*.25));
-    g.fillStyle = gr; g.fillRect(x-7, y-70, 14, 70);
-    g.save(); g.translate(x, y-10+bob);
-    g.shadowColor = rar.color; g.shadowBlur = 12*rar.glow+4;
-    g.fillStyle = rar.color; g.beginPath();
+    // G2.1 · вертикальный луч редкости + вращающаяся руна + подпись предмета
+    const h = 62 + rar.glow * 34;
+    const beam = g.createLinearGradient(x, y-h, x, y+4);
+    beam.addColorStop(0, rgba(rar.color, 0));
+    beam.addColorStop(0.45, rgba(rar.color, .13 * pulse));
+    beam.addColorStop(1, rgba(rar.color, (.36 + rar.glow*.26) * pulse));
+    g.fillStyle = beam;
+    g.beginPath(); g.moveTo(x-3, y-h); g.lineTo(x+3, y-h); g.lineTo(x+11, y+2); g.lineTo(x-11, y+2); g.closePath(); g.fill();
+    // основание: алмазный круг
+    g.strokeStyle = rgba(rar.color, .55 * pulse); g.lineWidth = 1.2;
+    g.beginPath(); g.ellipse(x,y,11,5.5,0,0,6.283); g.stroke();
+    // вращающаяся руническая рамка
+    g.save(); g.translate(x, y-13+bob); g.rotate(t*0.7+(d.spin||0));
+    g.strokeStyle = rgba(rar.color, .7*pulse); g.lineWidth = 1.4;
+    g.beginPath();
+    for(let i=0;i<4;i++){ const a=i*Math.PI/2; g.moveTo(Math.cos(a)*10,Math.sin(a)*10); g.lineTo(Math.cos(a+Math.PI/4)*3,Math.sin(a+Math.PI/4)*3); }
+    g.stroke(); g.restore();
+    // сердечник предмета
+    g.save(); g.translate(x, y-13+bob);
+    g.shadowColor = rar.color; g.shadowBlur = 10 + 16*rar.glow;
+    g.fillStyle = rar.color;
+    g.beginPath();
     for(let i=0;i<4;i++){ const a=i*Math.PI/2-0.785; g.lineTo(Math.cos(a)*7,Math.sin(a)*7); }
-    g.closePath(); g.fill(); g.shadowBlur=0; g.restore();
+    g.closePath(); g.fill(); g.shadowBlur=0;
+    g.fillStyle='rgba(255,255,255,.55)'; g.beginPath(); g.arc(-2,-2,2,0,6.283); g.fill();
+    g.restore();
+    // искры для высоких редкостей
+    if (A2.RARITIES.indexOf(rar) >= 3) {
+      for(let i=0;i<4;i++){ const a=t*2+i*1.57+(d.spin||0), r=14+Math.sin(t*3+i)*4;
+        g.fillStyle=rgba(rar.color,.75); g.beginPath(); g.arc(x+Math.cos(a)*r, y-13+Math.sin(a)*r*0.6,1.5,0,6.283); g.fill(); }
+    }
+    const icon = (typeof A2.Market !== 'undefined' && A2.Market.ICON) ? (A2.Market.ICON[d.item.slot] || '✦') : '✦';
+    lootLabel(g,x,y-h-10,icon+' '+A2.RPG.itemName(d.item).slice(0,22),rar.color);
+  }
+  function lootLabel(g,x,y,text,col){
+    g.save(); g.font='700 9px -apple-system,system-ui,sans-serif'; g.textAlign='center';
+    const w=Math.min(180,Math.max(50,g.measureText(text).width+12));
+    g.fillStyle='rgba(4,10,14,.78)'; g.fillRect(x-w/2,y-9,w,14);
+    g.strokeStyle=rgba(col,.6); g.lineWidth=0.8; g.strokeRect(x-w/2,y-9,w,14);
+    g.fillStyle=col; g.fillText(text,x,y+1); g.restore();
+  }
+
+  /* ------------- G2.1 · анимированная вода и останки врагов ------------- */
+  function drawWater(g,W,o,t,ox,oy,zoom){
+    const T=A2.World.T;
+    for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+      if(W.tiles[y*N+x]!==T.WATER) continue;
+      const [sx,sy]=iso(x+0.5,y+0.5,0,o);
+      const ssx=sx*zoom+ox, ssy=sy*zoom+oy;
+      if(ssx<-70||ssx>VW+70||ssy<-70||ssy>VH+70) continue;
+      const ph=t*1.6+x*0.71+y*0.93;
+      g.strokeStyle='rgba(190,235,255,'+(0.10+0.09*Math.sin(ph)).toFixed(3)+')'; g.lineWidth=1;
+      for(let k=0;k<2;k++){
+        const w=7+k*7+Math.sin(ph+k)*3;
+        g.beginPath(); g.moveTo(sx-w,sy+2+k*3); g.quadraticCurveTo(sx,sy-2+k*3,sx+w,sy+2+k*3); g.stroke();
+      }
+      if(A2.hash(x,y,W.seed+211)>0.82){
+        g.fillStyle='rgba(220,250,255,'+(0.10+0.08*Math.sin(ph*1.7)).toFixed(3)+')';
+        g.beginPath(); g.ellipse(sx,sy,9,2.4,0,0,6.283); g.fill();
+      }
+    }
+  }
+  function drawCorpses(g,G,o,t){
+    if(!G.corpses || !G.corpses.length) return;
+    for(const c of G.corpses){
+      const [x,y]=iso(c.x,c.y,0,o), a=A2.clamp(c.life/c.max,0,1);
+      g.save(); g.globalAlpha=a*0.62; g.translate(x,y+3); g.scale(1,0.44);
+      g.fillStyle=c.color||'#7a4a3a'; g.beginPath(); g.arc(0,0,12*(c.scale||1),0,6.283); g.fill();
+      g.strokeStyle='rgba(240,210,122,'+(a*0.45).toFixed(2)+')'; g.lineWidth=1.4; g.stroke();
+      g.restore();
+      g.globalAlpha=1;
+      // поднимающаяся пепельная частица
+      g.fillStyle='rgba(200,210,215,'+(a*0.35).toFixed(2)+')';
+      g.beginPath(); g.arc(x+Math.sin(t*3+c.x)*7,y-6-(1-a)*20,1.6,0,6.283); g.fill();
+    }
+  }
+  function drawGodRays(g,z,t,VW,VH){
+    g.save(); g.globalCompositeOperation='lighter';
+    const gr=g.createLinearGradient(0,0,VW*0.35,VH);
+    gr.addColorStop(0,rgba(z.accent,.085)); gr.addColorStop(.5,rgba(z.accent,.02)); gr.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle=gr;
+    for(let i=0;i<5;i++){
+      g.save(); g.translate(VW*(0.10+i*0.21),-60); g.rotate(0.33+Math.sin(t*0.09+i)*0.015);
+      g.fillRect(0,0,34+10*Math.sin(t*0.35+i),VH*1.7); g.restore();
+    }
+    g.restore();
   }
 
   /* ------------------------------ погода ------------------------------ */
@@ -401,8 +545,11 @@
       ctx.beginPath(); ctx.moveTo(bx-70,VH*0.60); ctx.lineTo(bx,VH*(0.36+((i*37)%12)/100)); ctx.lineTo(bx+80,VH*0.60); ctx.fill();
     }
 
+    drawGodRays(ctx,z,t,VW,VH);
     ctx.save(); ctx.translate(ox, oy); ctx.scale(zoom, zoom);
     if (ground) ctx.drawImage(ground, 0, 0);
+    drawWater(ctx,W,o,t,ox,oy,zoom);
+    drawCorpses(ctx,G,o,t);
     // телеграфы под существами
     for (const e of W.effects) if (e.kind==='telegraph') drawTelegraph(ctx, W, e, o, t);
     // порталы
@@ -506,6 +653,10 @@
     const vg = ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*0.32,VW/2,VH/2,Math.max(VW,VH)*0.72);
     vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.52)');
     ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
+    // G2.1 · цветокоррекция биома
+    const grade=ctx.createLinearGradient(0,0,VW,VH);
+    grade.addColorStop(0,rgba(z.accent,.055)); grade.addColorStop(.55,'rgba(0,0,0,0)'); grade.addColorStop(1,rgba(z.fog,.045));
+    ctx.fillStyle=grade; ctx.fillRect(0,0,VW,VH);
     drawWeather(ctx,dt,z);
     if (G.flash>0){ ctx.fillStyle='rgba(255,240,210,'+(G.flash*0.35).toFixed(2)+')'; ctx.fillRect(0,0,VW,VH); }
 
@@ -553,8 +704,12 @@
     if (!cv || !cv.getContext) return;
     const g=cv.getContext('2d'), S=cv.width;
     g.clearRect(0,0,S,S);
-    g.fillStyle=W.zone.ground[0]; g.fillRect(0,0,S,S);
+    const bg=g.createLinearGradient(0,0,S,S);
+    bg.addColorStop(0,W.zone.ground[0]); bg.addColorStop(1,W.zone.ground[W.zone.ground.length-1]||W.zone.ground[0]);
+    g.fillStyle=bg; g.fillRect(0,0,S,S);
     const k=S/N, T=A2.World.T;
+    g.strokeStyle='rgba(255,255,255,.035)'; g.lineWidth=.5;
+    for(let i=0;i<=N;i+=8){ g.beginPath(); g.moveTo(i*k,0); g.lineTo(i*k,S); g.moveTo(0,i*k); g.lineTo(S,i*k); g.stroke(); }
     for(let y=0;y<N;y+=1) for(let x=0;x<N;x+=1){
       const t=W.tiles[y*N+x];
       if(t===T.PATH) g.fillStyle='rgba(210,180,130,.35)';
@@ -570,6 +725,11 @@
     W.mobs.forEach(m=>{ if(m.alive) dot(m.x,m.y,m.boss?'#ff7a4d':m.elite?'#f0b45c':'rgba(224,87,79,.65)',m.boss?4:1.6); });
     W.drops.forEach(d=>dot(d.x,d.y,d.item?A2.RARITY(d.item.rarity).color:'#f0d27a',2.2));
     G.entities.forEach(e=>dot(e.x,e.y,e===G.player?'#ffffff':'#4fd6d0',e===G.player?3.4:2.4));
+    // пульсирующие точки лута и стрелка направления игрока
+    W.drops.forEach(d=>{ if(d.t>0&&d.item){ g.strokeStyle=A2.RARITY(d.item.rarity).color; g.lineWidth=1;
+      g.beginPath(); g.arc(d.x*k,d.y*k,3.2,0,6.283); g.stroke(); } });
+    const ppx=G.player.x*k, ppy=G.player.y*k;
+    g.fillStyle='#ffffff'; g.beginPath(); g.moveTo(ppx,ppy-6); g.lineTo(ppx-3.4,ppy+3); g.lineTo(ppx+3.4,ppy+3); g.closePath(); g.fill();
     // рамка обзора
     g.strokeStyle='rgba(255,255,255,.45)'; g.lineWidth=1;
     g.strokeRect((G.player.x-8)*k,(G.player.y-8)*k,16*k,16*k);

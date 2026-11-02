@@ -166,29 +166,58 @@
   }
 
   /* -------------------------------- лут -------------------------------- */
-  function dropItem(G, mob, force) {
+  function dropItem(G, mob, force, at) {
     const ch=G.char, z=G.world.zone;
     ch.pity++;
     let rarity = null;
     if (ch.pity >= C.PITY) { rarity = 'legendary'; ch.pity = 0; }
     const it = rollItem(mob.lvl, z.id, rarity ? {rarity} : {});
     if (it.rarity !== 'common' && it.rarity !== 'rare') ch.pity = 0;
-    const d = { uid:'d'+Math.random().toString(36).slice(2,8), x:mob.x+(Math.random()-0.5)*1.4,
-      y:mob.y+(Math.random()-0.5)*1.4, t:G.world.time, item:it, owner:null, gold:0 };
+    const px = at ? at.x : mob.x, py = at ? at.y : mob.y;
+    const d = { uid:'d'+Math.random().toString(36).slice(2,8),
+      x:A2.clamp(px+(Math.random()-0.5)*1.5,2,C.ZONE_N-3),
+      y:A2.clamp(py+(Math.random()-0.5)*1.5,2,C.ZONE_N-3),
+      t:G.world.time, item:it, owner:null, gold:0, rar:it.rarity, spin:Math.random()*6.28 };
     G.world.drops.push(d);
     G.onLoot && G.onLoot(it, d);
-    // материалы
-    if (Math.random()<0.42) {
-      const mat = A2.pick(A2.MATS); ch.mats[mat]=(ch.mats[mat]||0)+1;
-      G.onMaterial && G.onMaterial(mat);
-    }
-    if (force) for(let i=0;i<(force-1);i++) dropItem(G,mob,1);
+    G.onDrop && G.onDrop(d);
+    // материалы падают всегда: гринд-петля не зависит от удачи
+    const mat = A2.pick(A2.MATS); ch.mats[mat]=(ch.mats[mat]||0)+1;
+    G.onMaterial && G.onMaterial(mat);
+    if (force) for(let i=0;i<(force-1);i++) dropItem(G,mob,1,at);
+    return d;
   }
-  function pickup(G, d) {
+  function pickup(G, d, manual) {
     const ch=G.char;
-    if (d.item) { ch.inventory.push(d.item); G.log('Подобрано: '+itemName(d.item), A2.RARITY(d.item.rarity).color); }
+    if (ch.inventory.length >= 40) { G.log && G.log('Сумка полна (40)','#e0574f'); return false; }
+    if (d.item) {
+      ch.inventory.push(d.item);
+      const r=A2.RARITY(d.item.rarity);
+      G.log('✦ '+r.abbr+' '+itemName(d.item)+' · сила '+itemPower(d.item), r.color);
+      if (G.market) G.market.newItems++;
+      if (A2.Audio) A2.Audio.play('loot', d.item.rarity);
+      G.onPickup && G.onPickup(d.item);
+    }
     if (d.gold) grantGold(G,d.gold);
     d.t = -999;
+    if (G.net && G.net.syncItems) G.net.syncItems();   // авторитетный сервер знает о новом предмете
+    return true;
+  }
+  function sell(G, it) {
+    const ch=G.char, idx=ch.inventory.indexOf(it);
+    if(idx<0) return false;
+    ch.inventory.splice(idx,1);
+    const v=Math.max(1,Math.round(it.price*0.42));
+    grantGold(G,v);
+    G.log && G.log('Продано: '+itemName(it)+' · +'+v+' S','#f0d27a');
+    return true;
+  }
+  function autoPickupAllowed(G, item) {
+    const f = G.settings && G.settings.lootFilter || 'rare';
+    if (f === 'all') return true;
+    if (f === 'none') return false;
+    const idx = id => A2.RARITIES.findIndex(r=>r.id===id);
+    return idx(item.rarity) >= idx(f);
   }
   function equip(G, it) {
     const ch=G.char, old=ch.equip[it.slot];
@@ -263,7 +292,7 @@
     st.done=true; st.active=false;
     grantXP(G,q.xp); grantGold(G,q.gold);
     ch.rep[q.zone]=(ch.rep[q.zone]||0)+q.rep;
-    for(let i=0;i<q.item;i++) { const it=rollItem(Math.max(ch.level,q.lvl? A2.ZONE(q.zone).lv[1]:1),q.zone); ch.inventory.push(it); }
+    for(let i=0;i<q.item;i++) { const it=rollItem(Math.max(ch.level, A2.ZONE(q.zone).lv[1]),q.zone); ch.inventory.push(it); }
     G.log('Квест завершён: «'+q.ru+'» · +'+q.xp+' XP · +'+q.gold+' S','#8fd08a');
     G.onQuest&&G.onQuest(q,'complete');
     if(q.next) G.log('Открыта следующая глава Завета','#f0d27a');
@@ -284,12 +313,15 @@
     if(npc.services.includes('heal')) options.push({text:'Исцелиться (бесплатно)',action:'heal'});
     if(npc.services.includes('forge')) options.push({text:'Кузница · заточка и перековка',action:'forge'});
     if(npc.services.includes('vendor')) options.push({text:'Торговля',action:'shop'});
+    if(npc.services.includes('market')) options.push({text:'Рынок Завета · лоты, комиссия 5%',action:'market'});
+    if(npc.services.includes('trade')) options.push({text:'Торговля 1:1 с игроками',action:'trade'});
     if(npc.services.includes('salvage')) options.push({text:'Разобрать ненужное',action:'salvage'});
     if(npc.services.includes('trainer')) options.push({text:'Таланты',action:'talents'});
     if(npc.services.includes('respec')) options.push({text:'Перековать таланты · 500 S',action:'respec'});
     if(npc.services.includes('portal')) options.push({text:'Портал в другую зону',action:'portal'});
     if(npc.services.includes('map')) options.push({text:'Отметить все лагеря на карте',action:'map'});
     if(npc.services.includes('gamble')) options.push({text:'Купить реликвию · 800 S',action:'gamble'});
+    if(!options.length) options.push({text:'Поговорить позже',action:'info'});
     return { npc, lines, options };
   }
 
@@ -324,9 +356,10 @@
       const key = mob.boss ? G.world.zone.boss : mob.elite ? G.world.zone.elite : mob.id;
       questProgress(G,type,key,1);
       // дроп
-      const rolls = mob.boss?4:mob.elite?2:(Math.random()<0.34?1:0);
-      if(rolls) dropItem(G,mob,rolls);
-      if(mob.gold) G.world.drops.push({uid:'g'+Math.random().toString(36).slice(2,7),x:mob.x,y:mob.y,t:G.world.time,item:null,gold:mob.gold,owner:null});
+      const rolls = mob.boss?6:mob.elite?3:(Math.random()<0.62?2:1);
+      dropItem(G,mob,rolls);   // лут падает с каждого моба, как в Diablo/PoE
+      if(mob.gold) { const gd={uid:'g'+Math.random().toString(36).slice(2,7),x:mob.x,y:mob.y,t:G.world.time,item:null,gold:mob.gold,owner:null,rar:'rare',spin:0};
+        G.world.drops.push(gd); G.onDrop && G.onDrop(gd); }
       G.onKill && G.onKill(killed,dmg);
     }
     return dmg;
@@ -408,7 +441,7 @@
 
   A2.RPG = { createCharacter, rollItem, itemPower, itemName, recompute, talentMods, setBonus,
     grantXP, grantGold, talentUp, respec, dropItem, pickup, equip, salvage, enchant, reroll, buy,
-    questAvailable, questsFor, startQuest, questProgress, completeQuest, activeQuests,
+    questAvailable, questsFor, startQuest, questProgress, completeQuest, activeQuests, sell, autoPickupAllowed,
     dialogue, mitigation, hit, elementColor, applyElement, spawnParticles, hurtPlayer,
     save, load, restore };
 })();
