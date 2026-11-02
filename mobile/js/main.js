@@ -462,6 +462,8 @@
     G.target=null; G.atkCd=0; G.attackHeld=false; G.cooldowns={};
     G.damageDealt=0; G.damageTaken=0; G.kills=0; G.dps=0; G.dmgWindow=[];
     G.particles=[]; G.numbers=[]; G.corpses=[]; G.pets=[]; G.logLines=[];
+    G.attacks=[]; G.hitStop=0; G.bagSel.clear();
+    G.bagFilter={rarity:'all',slot:'all',q:'',junkOnly:false};
     const z0=A2.ZONE('haven');
     G.player=makePlayer(G.char,z0.spawn[0],z0.spawn[1]);
     G.char.x=G.player.x; G.char.y=G.player.y;
@@ -528,6 +530,8 @@
     G.target=null; G.atkCd=0; G.attackHeld=false; G.cooldowns={};
     G.damageDealt=0; G.damageTaken=0; G.kills=0; G.dps=0; G.dmgWindow=[];
     G.particles=[]; G.numbers=[]; G.corpses=[]; G.pets=[]; G.logLines=[];
+    G.attacks=[]; G.hitStop=0; G.bagSel.clear();
+    G.bagFilter={rarity:'all',slot:'all',q:'',junkOnly:false};
     G.attacks=[]; G.hitStop=0; G.bagSel.clear(); G.bagFilter={rarity:'all',slot:'all',q:'',junkOnly:false};
     G.time=0; G.tick=0; G.accum=0; G.saveT=0; G.toastUntil=0; G.flash=0;
     G.pointers.clear(); G.pinch=null; G.joy.id=null; G.joy.dx=0; G.joy.dy=0;
@@ -822,7 +826,8 @@
       html.push('</div><div class="btnrow"><select id="bagSlot" class="field" data-bag="slot">');
       html.push('<option value="all">Все слоты</option>');
       A2.SLOTS.forEach(sl=>html.push('<option value="'+sl.id+'" '+(f.slot===sl.id?'selected':'')+'>'+sl.icon+' '+sl.ru+'</option>'));
-      html.push('</select><input id="bagQ" class="field" data-bag="q" placeholder="Поиск по названию" value="'+f.q+'"></div></div>');
+      html.push('</select><input id="bagQ" class="field" data-bag="q" placeholder="Поиск по названию" value="'+f.q+'">'+
+        '<button data-act="bagApply">Применить</button></div></div>');
       // ---- массовое выделение ----
       html.push('<div class="bagselect"><div class="btnrow">'+
         '<button data-act="selectAll">☑ Выбрать всё</button><button data-act="selectJunk">🧹 Выбрать хлам</button>'+
@@ -1018,6 +1023,8 @@
         openModal('bag'); break;
       }
       case 'bagRarity': G.bagFilter.rarity=v; A2.Audio.play('ui'); openModal('bag'); break;
+      case 'bagApply': G.bagFilter.slot=val('bagSlot')||'all'; G.bagFilter.q=val('bagQ')||'';
+        A2.Audio.play('ui'); openModal('bag'); break;
       case 'selectAll': G.bagSel=new Set(bagView().map(o=>o.it.uid)); A2.Audio.play('ui'); openModal('bag'); break;
       case 'selectJunk': G.bagSel=new Set(ch.inventory.filter(isJunk).map(it=>it.uid));
         A2.Audio.play('ui'); openModal('bag'); break;
