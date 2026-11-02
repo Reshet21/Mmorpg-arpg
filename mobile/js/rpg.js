@@ -85,7 +85,7 @@
   }
   function recompute(ch) {
     const cls = A2.CLASS(ch.classId), tm = talentMods(ch);
-    let power=0, armor=0, hp=0, critPct=C.BASE_CRIT*100, critDmg=50, haste=0, cdr=0, elem=0, leech=0, gold=0, xp=0, speed=2.8, pickup=2.2;
+    let power=0, armor=0, hp=0, critPct=C.BASE_CRIT*100, critDmg=50, haste=0, cdr=0, elem=0, leech=0, gold=0, xp=0, speed=2.8, pickup=2.8;
     for (const s in ch.equip) {
       const it=ch.equip[s]; if(!it) continue;
       const rr=A2.RARITY(it.rarity);
@@ -166,6 +166,24 @@
   }
 
   /* -------------------------------- лут -------------------------------- */
+  /* Дроп всегда должен лежать в проходимой точке: иначе вещь физически
+   * недостижима и «не поднимается» — одна из главных жалоб приёмки. */
+  function walkableDropPos(G, x, y) {
+    const W = G.world;
+    x = A2.clamp(x, 2, C.ZONE_N - 3); y = A2.clamp(y, 2, C.ZONE_N - 3);
+    if (!W || !A2.World.canMove) return { x, y };
+    if (A2.World.canMove(W, x, y)) return { x, y };
+    for (let r = 0.5; r <= 6; r += 0.5) {
+      for (let k = 0; k < 12; k++) {
+        const a = k * Math.PI / 6 + r * 0.31;
+        const nx = A2.clamp(x + Math.cos(a) * r, 2, C.ZONE_N - 3);
+        const ny = A2.clamp(y + Math.sin(a) * r, 2, C.ZONE_N - 3);
+        if (A2.World.canMove(W, nx, ny)) return { x: nx, y: ny };
+      }
+    }
+    return { x: G.player ? G.player.x : 12, y: G.player ? G.player.y : 16 };
+  }
+
   function dropItem(G, mob, force, at) {
     const ch=G.char, z=G.world.zone;
     ch.pity++;
@@ -174,10 +192,12 @@
     const it = rollItem(mob.lvl, z.id, rarity ? {rarity} : {});
     if (it.rarity !== 'common' && it.rarity !== 'rare') ch.pity = 0;
     const px = at ? at.x : mob.x, py = at ? at.y : mob.y;
+    const pos = walkableDropPos(G,
+      px + (Math.random()-0.5)*1.2,
+      py + (Math.random()-0.5)*1.2);
     const d = { uid:'d'+Math.random().toString(36).slice(2,8),
-      x:A2.clamp(px+(Math.random()-0.5)*1.5,2,C.ZONE_N-3),
-      y:A2.clamp(py+(Math.random()-0.5)*1.5,2,C.ZONE_N-3),
-      t:G.world.time, item:it, owner:null, gold:0, rar:it.rarity, spin:Math.random()*6.28 };
+      x:pos.x, y:pos.y, t:G.world.time, item:it, owner:null, gold:0,
+      rar:it.rarity, spin:Math.random()*6.28, picked:false, magnet:0 };
     G.world.drops.push(d);
     G.onLoot && G.onLoot(it, d);
     G.onDrop && G.onDrop(d);
@@ -187,9 +207,32 @@
     if (force) for(let i=0;i<(force-1);i++) dropItem(G,mob,1,at);
     return d;
   }
+
+  /* При полной сумке не бросаем лут на землю «молча»: автоматически
+   * разбираем самый слабый обычный предмет, как в Diablo/Torchlight. */
+  function freeBagSlot(G) {
+    const ch=G.char;
+    if (ch.inventory.length < 40) return true;
+    if (!G.settings || G.settings.autoSalvage === false) return false;
+    let idx=-1, low=Infinity;
+    ch.inventory.forEach((it,i)=>{
+      if(it.rarity==='common'){ const pw=itemPower(it); if(pw<low){low=pw;idx=i;} }
+    });
+    if(idx<0) return false;
+    const junk=ch.inventory[idx];
+    salvage(G,junk);
+    G.log && G.log('✧ Сумка полна · авторазбор: '+itemName(junk),'#9db0bd');
+    return ch.inventory.length < 40;
+  }
+
   function pickup(G, d, manual) {
     const ch=G.char;
-    if (ch.inventory.length >= 40) { G.log && G.log('Сумка полна (40)','#e0574f'); return false; }
+    if(!d || d.picked || d.t<0) return false;
+    if(!freeBagSlot(G)) {
+      G.toast && G.toast('Сумка полна (40) — разберите лут',2);
+      G.log && G.log('Сумка полна (40)','#e0574f');
+      return false;
+    }
     if (d.item) {
       ch.inventory.push(d.item);
       const r=A2.RARITY(d.item.rarity);
@@ -199,10 +242,65 @@
       G.onPickup && G.onPickup(d.item);
     }
     if (d.gold) grantGold(G,d.gold);
-    d.t = -999;
-    if (G.net && G.net.syncItems) G.net.syncItems();   // авторитетный сервер знает о новом предмете
+    d.picked=true; d.t=-999;
+    if (G.net && G.net.syncItems) G.net.syncItems();   // троттлится в net.js
     return true;
   }
+
+  /* Магнит лута: вещи с убитого вдали моба летят к игроку, а не остаются
+   * за стеной / вне радиуса. Радиус 9.5 тайла покрывает дальность любого класса. */
+  function magnetLoot(G, dt) {
+    const p=G.player, ch=G.char;
+    const R=9.5, pickR=Math.max(2.6, ch.stats.pickup);
+    let got=0;
+    for(const d of G.world.drops) {
+      if(d.picked || d.t<0) continue;
+      const dist=A2.dist(d.x,d.y,p.x,p.y);
+      if(dist>R) continue;
+      // Небольшой люфт у радиуса: без него дроп зависал ровно на границе
+      // pickR и никогда не подбирался — ещё одна причина «вещи не поднимаются».
+      if(dist<=pickR+0.4) {
+        if(!d.item || autoPickupAllowed(G,d.item)) { if(pickup(G,d)) got++; }
+        continue;
+      }
+      const stepLen=Math.min(dist-pickR, (d.item?6.5:9)*dt);
+      d.x += (p.x-d.x)/dist*stepLen;
+      d.y += (p.y-d.y)/dist*stepLen;
+      d.magnet=1;
+    }
+    return got;
+  }
+
+  function collectNearby(G, radius) {
+    const R=radius||7.5; let n=0;
+    for(const d of G.world.drops.slice()) {
+      if(d.picked || d.t<0) continue;
+      if(A2.dist(d.x,d.y,G.player.x,G.player.y)<=R && pickup(G,d,true)) n++;
+    }
+    if(n && G.toast) G.toast('Подобрано предметов: '+n,1.6);
+    else if(!n && G.toast) G.toast('Рядом нет добычи',1.2);
+    return n;
+  }
+
+  function unequip(G, slot) {
+    const ch=G.char, it=ch.equip[slot];
+    if(!it) return false;
+    if(ch.inventory.length>=40){ G.toast && G.toast('Сумка полна (40)',2); return false; }
+    ch.inventory.push(it); ch.equip[slot]=null; recompute(ch);
+    G.log && G.log('Снято: '+itemName(it),'#9db0bd');
+    return true;
+  }
+  function equipBest(G) {
+    const ch=G.char; let n=0;
+    for(const s of A2.SLOTS) {
+      let best=null;
+      for(const it of ch.inventory) if(it.slot===s.id && (!best || itemPower(it)>itemPower(best))) best=it;
+      const cur=ch.equip[s.id];
+      if(best && (!cur || itemPower(best)>itemPower(cur))) { if(equip(G,best)) n++; }
+    }
+    return n;
+  }
+
   function sell(G, it) {
     const ch=G.char, idx=ch.inventory.indexOf(it);
     if(idx<0) return false;
@@ -442,6 +540,7 @@
   A2.RPG = { createCharacter, rollItem, itemPower, itemName, recompute, talentMods, setBonus,
     grantXP, grantGold, talentUp, respec, dropItem, pickup, equip, salvage, enchant, reroll, buy,
     questAvailable, questsFor, startQuest, questProgress, completeQuest, activeQuests, sell, autoPickupAllowed,
+    magnetLoot, collectNearby, unequip, equipBest, walkableDropPos, freeBagSlot,
     dialogue, mitigation, hit, elementColor, applyElement, spawnParticles, hurtPlayer,
     save, load, restore };
 })();

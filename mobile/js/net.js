@@ -225,9 +225,22 @@
     function emote(text){ send({t:'emote',text:String(text||'машет рукой').slice(0,60)}); }
     function who(){ send({t:'who'}); }
     function pingMap(x,y){ send({t:'pingmap',x:+x.toFixed(1),y:+y.toFixed(1)}); }
-    function syncItems(){ send({t:'sync_items',uids:G.char.inventory.map(i=>i.uid)}); }
+    // Раньше каждый подбор предмета отправлял полный реестр: при магните лута
+    // это давало десятки WS-пакетов в тик и ощутимые лаги. Теперь — не чаще
+    // 1 раза в 700 мс, с отложенной досылкой из step().
+    let lastSync=0, syncPending=false;
+    function pushItems(){
+      lastSync=Date.now(); syncPending=false;
+      send({t:'sync_items',uids:G.char.inventory.map(i=>i.uid)});
+    }
+    function syncItems(){
+      if(Date.now()-lastSync>=700) pushItems();
+      else syncPending=true;
+    }
+    function flushItems(){ if(syncPending && Date.now()-lastSync>=700) pushItems(); }
     net.connect=connect; net.disconnect=disconnect; net.send=send; net.chat=chat;
-    net.whisper=whisper; net.emote=emote; net.who=who; net.pingMap=pingMap; net.syncItems=syncItems;
+    net.whisper=whisper; net.emote=emote; net.who=who; net.pingMap=pingMap;
+    net.syncItems=syncItems; net.flushItems=flushItems;
     net.update=update; net.syncEntities=syncEntities; net.startGhosts=startGhosts;
     net.status=()=>({state:net.state,count:net.state==='online'?net.serverPlayers:net.ghosts.length,
       ping:net.ping,url:net.url,ghosts:net.ghosts.length});

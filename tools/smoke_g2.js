@@ -225,9 +225,107 @@ async function run(useCanon) {
 
   // ---- G2.1 · МОДАЛЬНЫЕ ПАНЕЛИ ----
   let merr=null;
-  try { ['bag','item','filters','market','trade','players','player','char','quests','chat','party','codex','settings','talents','forge','shop']
-    .forEach(md=>API.openModal(md,md==='item'?0:null)); } catch(e){ merr=e; }
-  ok(!merr,'все 16 панелей открываются без исключений'+(merr?': '+merr.message:''));
+  try { ['bag','item','filters','market','trade','players','player','char','quests','chat','party','codex','settings','talents','forge','shop','equip','slot']
+    .forEach(md=>API.openModal(md,md==='item'?0:md==='slot'?'weapon':null)); } catch(e){ merr=e; }
+  ok(!merr,'все 18 панелей открываются без исключений'+(merr?': '+merr.message:''));
+  API.closeModal();
+
+  // ---- G2.2 · ИНВЕНТАРЬ, СНАРЯЖЕНИЕ, МАГНИТ ЛУТА, ПЕРФОРМАНС ----
+  ok(G.settings.lootFilter==='all','G2.2: по умолчанию подбирается ВСЬ лут, а не только редкий');
+  ok(G.settings.autoSalvage===true,'G2.2: авторазбор обычного при полной сумке');
+  ok(typeof A2.RPG.magnetLoot==='function' && typeof A2.RPG.collectNearby==='function',
+     'G2.2: магнит лута и «забрать всё» реализованы');
+  ok(typeof A2.RPG.unequip==='function' && typeof A2.RPG.equipBest==='function',
+     'G2.2: снять предмет и надеть лучшее реализованы');
+  ok(typeof G.net.flushItems==='function','G2.2: реестр предметов досылается троттлингом, без спама в WS');
+  ok(A2.Render.setQuality!==undefined,'G2.2: адаптивное качество рендера доступно');
+
+  const body=env.document.getElementById('modalBody');
+  API.openModal('equip');
+  ok(body.innerHTML.indexOf('data-act="slot"')>=0,'G2.2: панель снаряжения показывает 8 кликабельных слотов');
+  ok(body.innerHTML.indexOf('equipBest')>=0,'G2.2: кнопка «Надеть лучшее» на месте');
+  API.openModal('bag');
+  ok(body.innerHTML.indexOf('data-act="pickAll"')>=0 && body.innerHTML.indexOf('goequip')>=0,
+     'G2.2: из сумки есть доступ к снаряжению и сбору лута');
+  API.openModal('slot','weapon');
+  ok(body.innerHTML.indexOf('data-act="unequip"')>=0 || body.innerHTML.indexOf('В сумке')>=0,
+     'G2.2: слот показывает надетое и подходящие предметы');
+  API.closeModal();
+
+  // дроп никогда не оказывается в стене
+  const edge=A2.RPG.dropItem(G,{x:1,y:1,lvl:20},1,{x:1,y:1});
+  ok(A2.World.canMove(G.world,edge.x,edge.y),'G2.2: дроп создаётся в проходимой точке');
+  edge.picked=true; edge.t=-999;
+
+  // вещь, упавшая далеко, притягивается и подбирается
+  G.char.inventory.length=0;
+  const farItem=A2.RPG.rollItem(20,'grove',{rarity:'rare'});
+  const far={uid:'far1',x:G.player.x+7.6,y:G.player.y,t:G.world.time+1,item:farItem,gold:0,owner:null,picked:false,magnet:0,rar:'rare',spin:0};
+  G.world.drops.push(far);
+  const d0=A2.dist(far.x,far.y,G.player.x,G.player.y);
+  for(let i=0;i<150;i++) A2.RPG.magnetLoot(G,1/30);
+  ok(d0>6,'G2.2: тестовый дроп действительно далеко ('+d0.toFixed(1)+')');
+  ok(far.picked===true && G.char.inventory.indexOf(farItem)>=0,
+     'G2.2: далёкий лут притягивается магнитом и подбирается');
+
+  // «Забрать всё» собирает несколько вещей за один тап
+  const many=[];
+  for(let i=0;i<4;i++){
+    const it=A2.RPG.rollItem(20,'grove',{rarity:'common'});
+    G.world.drops.push({uid:'many'+i,x:G.player.x+3+i*0.3,y:G.player.y+1,t:G.world.time+1,item:it,gold:0,owner:null,picked:false,magnet:0,rar:'common',spin:0});
+    many.push(it);
+  }
+  const gotN=A2.RPG.collectNearby(G,7.5);
+  ok(gotN>=4 && many.every(it=>G.char.inventory.indexOf(it)>=0),'G2.2: «Забрать всё» поднимает все вещи рядом ('+gotN+')');
+
+  // полная сумка больше не блокирует лут
+  G.char.inventory.length=0;
+  for(let i=0;i<40;i++) G.char.inventory.push(A2.RPG.rollItem(5,'grove',{rarity:'common'}));
+  const overflow=A2.RPG.rollItem(20,'grove',{rarity:'epic'});
+  const od={uid:'ov1',x:G.player.x,y:G.player.y,t:G.world.time+1,item:overflow,gold:0,owner:null,picked:false,magnet:0,rar:'epic',spin:0};
+  ok(A2.RPG.pickup(G,od)===true,'G2.2: полная сумка не теряет лут (авторазбор)');
+  ok(G.char.inventory.indexOf(overflow)>=0 && G.char.inventory.length<=40,
+     'G2.2: новый предмет в сумке, лимит 40 соблюдён');
+
+  // снять / надеть лучшее
+  G.char.inventory.length=0;
+  const strong=A2.RPG.rollItem(40,'rift',{rarity:'legendary',slot:'weapon'});
+  G.char.inventory.push(strong);
+  const beforeW=G.char.equip.weapon?A2.RPG.itemPower(G.char.equip.weapon):0;
+  const nBest=A2.RPG.equipBest(G);
+  ok(nBest>=1 && A2.RPG.itemPower(G.char.equip.weapon)>beforeW,'G2.2: «Надеть лучшее» повышает силу оружия');
+  ok(A2.RPG.unequip(G,'weapon')===true && G.char.equip.weapon===null,
+     'G2.2: предмет снимается обратно в сумку');
+
+  // экономный режим не ломает рендер и мини-карту
+  let qerr=null;
+  try { A2.Render.setQuality('low');
+    for(let i=0;i<3;i++){ API.render(1/60); }
+    A2.Render.minimap(G.world,G,env.document.getElementById('minimap'));
+    A2.Render.setQuality('high'); API.render(1/60);
+  } catch(e){ qerr=e; }
+  ok(!qerr,'G2.2: экономный режим и кэш мини-карты работают без исключений'+(qerr?': '+qerr.message:''));
+  ok(A2.Render.quality==='high','G2.2: качество возвращается в полный режим');
+
+  // ---- G2.2 · РЕАЛЬНЫЕ КЛИКИ ПО КНОПКАМ ПАНЕЛЕЙ ----
+  const fakeEl=(act,attrs)=>({ getAttribute:k=>k==='data-act'?act:(attrs&&Object.prototype.hasOwnProperty.call(attrs,k)?attrs[k]:null) });
+  const clickAct=(act,attrs)=>env.document.getElementById('modalBody').onclick({target:fakeEl(act,attrs||{})});
+  let cerr2=null;
+  try {
+    API.openModal('bag');       clickAct('goequip');
+    ok(G.modalMode==='equip','G2.2: клик «Снаряжение» из сумки открывает панель');
+    clickAct('slot',{'data-s':'weapon'});
+    ok(G.modalMode==='slot','G2.2: клик по слоту открывает список предметов');
+    clickAct('equipBest');      clickAct('pickAll');
+    API.openModal('settings');  clickAct('quality',{'data-v':'low'});
+    ok(G.settings.quality==='low' && A2.Render.quality==='low','G2.2: переключатель качества применяется');
+    clickAct('quality',{'data-v':'high'});
+    ok(A2.Render.quality==='high','G2.2: полный режим возвращается');
+    clickAct('quality',{'data-v':'auto'});
+    API.openModal('equip');     clickAct('enchantAll'); clickAct('salvageCommon');
+    API.openModal('char');      clickAct('gochar');
+  } catch(e){ cerr2=e; }
+  ok(!cerr2,'G2.2: все действия панелей отрабатывают без исключений'+(cerr2?': '+cerr2.message:''));
   API.closeModal();
 
   // ---- G2.1 · ДЕТАЛИЗАЦИЯ РЕНДЕРА ----
@@ -244,11 +342,15 @@ async function run(useCanon) {
   ok(G.char.level>lv,'уровень вырос: '+lv+' → '+G.char.level);
   ok(G.char.talentPoints>0,'очки талантов начислены');
   ok(A2.RPG.talentUp(G,'steel'),'вложение очка таланта');
+  // Фиксируем чистое состояние: предыдущие тесты уже примеряли предметы,
+  // поэтому сравнивать «стало больше» с произвольным надетым нельзя.
+  for(const k of Object.keys(G.char.equip)) G.char.equip[k]=null;
+  A2.RPG.recompute(G.char);
   const it=A2.RPG.rollItem(30,'rift',{rarity:'legendary',slot:'weapon'});
   const p0=G.char.stats.power;
   G.char.inventory.push(it);
   ok(A2.RPG.equip(G,it),'экипировка предмета');
-  ok(G.char.stats.power>=p0,'сила пересчитана после надевания');
+  ok(G.char.stats.power>p0,'сила пересчитана после надевания');
   ok(A2.RPG.enchant(G,'weapon'),'заточка +1');
   ok(G.char.equip.weapon.plus===1,'предмет получил +1');
   ok(A2.RPG.reroll(G,'weapon'),'перековка аффиксов');

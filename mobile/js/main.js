@@ -29,8 +29,8 @@
     cooldowns:{}, autoCd:0, buffs:{}, settings:{motion:true,sound:true,vibration:true,quality:'auto'},
     hooks:{}, pendingZone:null, pendingPos:null, modalMode:null, modalData:null,
     market:null, corpses:[], selectedItem:null, selectedPlayer:null, lastStep:0,
-    settings:{motion:true,sound:true,vibration:true,quality:'auto',lootFilter:'rare',volume:0.8,music:0.45},
-    lowFps:0, lastFrame:0, started:false
+    settings:{motion:true,sound:true,vibration:true,quality:'auto',lootFilter:'all',autoSalvage:true,volume:0.8,music:0.45},
+    lowFps:0, lastFrame:0, started:false, perf:'high', fpsAvg:60, fpsLowT:0, fpsHighT:0, itemFlushT:0
   };
 
   /* ---------------------------журнал и уведомления --------------------------- */
@@ -330,6 +330,8 @@
     on('btnCamera',()=>{ G.cam.orient=(G.cam.orient+1)%4; A2.Render.makeGround(G.world,G.cam.orient); G.toast('Камера: '+[0,90,180,270][G.cam.orient]+'°',1.2); });
     on('btnInteract',interact);
     on('btnChar',()=>openModal('char')); on('btnBag',()=>openModal('bag'));
+    on('btnEquip',()=>openModal('equip')); on('pAvatar',()=>openModal('equip'));
+    on('btnLoot',()=>{ A2.RPG.collectNearby(G,9.5); });
     on('btnQuests',()=>openModal('quests')); on('btnChat',()=>openModal('chat'));
     on('btnParty',()=>openModal('party')); on('btnCodex',()=>openModal('codex'));
     on('btnSettings',()=>openModal('settings')); on('btnPause',()=>openModal('settings'));
@@ -345,7 +347,8 @@
       if(ev.key===' ') dodge(G.joy.dx||1,G.joy.dy||0);
       if(ev.key==='e'||ev.key==='E') interact();
       if(ev.key==='m'||ev.key==='M') openModal('market');
-      if(ev.key==='i'||ev.key==='I') openModal('bag');
+      if(ev.key==='i'||ev.key==='I'||ev.key==='b'||ev.key==='B') openModal('bag');
+      if(ev.key==='g'||ev.key==='G') openModal('equip');
       if(ev.key==='Escape') closeModal();
     });
     document.addEventListener('keyup',ev=>{ G.keys[ev.key]=false; });
@@ -393,7 +396,8 @@
     G.mode='playing';
     const s=$('startScreen'); if(s) s.classList.add('hidden');
     const h=$('hud'); if(h) h.classList.remove('hidden');
-    G.toast('Добро пожаловать в Рощу Завета',3);
+    G.toast('Джойстик — движение · «Взаим.» забирает лут · Сумка и Снаряжение внизу',4.5);
+    G.log('✦ Лут подбирается сам (магнит 9.5 м); «Взаим.» или «Забрать лут» соберут всё рядом','#8fd08a');
     G.log('Возжённый: '+G.char.name+' · '+A2.CLASS(id).ru,'#f0d27a');
     if($('serverInput')&&$('serverInput').value) G.net.connect($('serverInput').value.trim());
     updateUI(true);
@@ -411,8 +415,8 @@
       A2.RPG.questProgress(G,'explore','rift_gate',1);
       setZone(p.to); A2.RPG.save(G); return;
     }
-    const d=G.world.drops.find(dd=>A2.dist(dd.x,dd.y,G.player.x,G.player.y)<3.2);
-    if(d){ A2.RPG.pickup(G,d); return; }
+    const loot=G.world.drops.some(dd=>!dd.picked && dd.t>0 && A2.dist(dd.x,dd.y,G.player.x,G.player.y)<7.5);
+    if(loot){ A2.RPG.collectNearby(G,7.5); return; }
     G.toast('Рядом нет НПС, портала или добычи',1.5);
   }
 
@@ -514,7 +518,49 @@
       html.push('<h4>Экипировка · '+A2.SLOTS.length+' слотов</h4>');
       A2.SLOTS.forEach(s=>{ const it=ch.equip[s.id]; html.push('<div class="item '+A2.RARITY(it?it.rarity:'common').id+'"><b>'+s.icon+' '+(it?A2.RPG.itemName(it):'пусто')+'</b><span>'+(it?'Сила '+A2.RPG.itemPower(it)+' · ур. '+it.ilvl:'—')+'</span></div>'); });
       const sets=A2.RPG.setBonus(ch); if(sets.length) html.push('<h4>Сеты</h4>'+sets.map(s=>row(s.ru+' '+s.pieces,A2.SETS.find(x=>x.ru===s.ru).pieces+' · '+s.bonus)).join(''));
+      html.push('<div class="btnrow"><button data-act="goequip">⚔ Снаряжение · 8 слотов</button><button data-act="equipBest">✦ Надеть лучшее</button></div>');
       html.push('<div class="btnrow"><button data-act="gototalents">Таланты ('+ch.talentPoints+')</button><button data-act="goforge">Кузница</button><button data-act="backbag">Сумка</button></div>');
+    } else if(mode==='equip'){
+      h('Снаряжение · 8 слотов · сила '+A2.fmt(ch.stats.power));
+      const worn=Object.values(ch.equip).filter(Boolean).length;
+      html.push('<div class="bagbar"><span>Надето: <b>'+worn+' / 8</b></span><span>В сумке: <b>'+ch.inventory.length+' / 40</b></span>'+
+        '<span>Радиус подбора: <b>'+ch.stats.pickup.toFixed(1)+'</b></span></div>');
+      html.push('<div class="equip-grid">');
+      A2.SLOTS.forEach(sl=>{
+        const it=ch.equip[sl.id], r=A2.RARITY(it?it.rarity:'common');
+        html.push('<button class="slot-card '+(it?r.id:'empty')+'" data-act="slot" data-s="'+sl.id+'">'+
+          '<span class="sicon">'+sl.icon+'</span><b>'+sl.ru+'</b>'+
+          '<small>'+(it?A2.RPG.itemName(it):'пусто')+'</small>'+
+          '<em>'+(it?'сила '+A2.RPG.itemPower(it):'—')+'</em></button>');
+      });
+      html.push('</div>');
+      html.push('<p class="note">Тап по слоту — список подходящих предметов из сумки: надеть, снять, сравнить прирост силы.</p>');
+      html.push('<div class="btnrow"><button data-act="equipBest">✦ Надеть лучшее</button><button data-act="backbag">Сумка</button>'+
+        '<button data-act="gochar">Герой</button></div>');
+      html.push('<div class="btnrow"><button data-act="enchantAll">Заточить всё</button>'+
+        '<button data-act="salvageCommon">Разобрать обычное</button></div>');
+    } else if(mode==='slot'){
+      const sid=String(data||''), sl=A2.SLOTS.find(x=>x.id===sid)||A2.SLOTS[0];
+      const cur=ch.equip[sl.id], curP=cur?A2.RPG.itemPower(cur):0;
+      h(sl.icon+' '+sl.ru);
+      html.push('<div class="detail '+(cur?A2.RARITY(cur.rarity).id:'empty')+'"><div class="dhead">'+
+        '<span class="dicon">'+sl.icon+'</span><div><b>'+(cur?A2.RPG.itemName(cur):'Слот пуст')+'</b><small>'+
+        (cur?A2.RARITY(cur.rarity).ru+' · ур. '+cur.ilvl+' · сила '+curP:'Наденьте предмет из сумки')+'</small></div></div>'+
+        (cur?'<div class="btnrow"><button data-act="unequip" data-s="'+sl.id+'">Снять в сумку</button>'+
+          '<button data-act="enchant" data-s="'+sl.id+'">Заточить · '+(120*(cur.plus+1))+' S</button>'+
+          '<button data-act="reroll" data-s="'+sl.id+'">Перековать</button></div>':'')+'</div>');
+      const candidates=ch.inventory.map((it,i)=>({it,i})).filter(x=>x.it.slot===sl.id)
+        .sort((a,b)=>A2.RPG.itemPower(b.it)-A2.RPG.itemPower(a.it));
+      html.push('<h4>В сумке · '+candidates.length+' подходящих</h4>');
+      if(!candidates.length) html.push('<p class="empty">Предметов для этого слота пока нет. Убейте мобов или загляните на рынок.</p>');
+      candidates.forEach(x=>{
+        const r=A2.RARITY(x.it.rarity), dp=A2.RPG.itemPower(x.it)-curP;
+        html.push('<div class="item '+r.id+'"><b>'+r.abbr+' '+A2.RPG.itemName(x.it)+'</b>'+
+          '<span>ур. '+x.it.ilvl+' · сила '+A2.RPG.itemPower(x.it)+' · прирост <b style="color:'+(dp>=0?'#8fd08a':'#e0574f')+'">'+(dp>=0?'+':'')+dp+'</b></span>'+
+          '<div class="acts"><button data-act="equipSlot" data-i="'+x.i+'" data-s="'+sl.id+'">Надеть</button>'+
+          '<button data-act="list" data-i="'+x.i+'">На рынок</button></div></div>');
+      });
+      html.push('<div class="btnrow"><button data-act="goequip">← Все слоты</button><button data-act="backbag">Сумка</button></div>');
     } else if(mode==='bag'){
       h('Сумка · '+ch.inventory.length+' / 40 · новых: '+G.market.newItems);
       html.push('<div class="bagbar"><span>Автоподбор: <b>'+({all:'всё',rare:'редкое+',epic:'эпическое+',legendary:'легендарное+',none:'выключен'}[G.settings.lootFilter])+'</b></span>'+
@@ -522,6 +568,8 @@
       html.push('<div class="grid40">');
       for(let i=0;i<40;i++) html.push(itemCard(ch.inventory[i],i,true));
       html.push('</div>');
+      html.push('<div class="btnrow"><button data-act="goequip">⚔ Снаряжение</button><button data-act="equipBest">✦ Надеть лучшее</button>'+
+        '<button data-act="pickAll">✦ Забрать лут рядом</button></div>');
       html.push('<div class="btnrow"><button data-act="salvageCommon">Разобрать обычное</button><button data-act="sellCommon">Продать обычное</button>'+
         '<button data-act="gomarket">Рынок</button><button data-act="filters">Фильтр лута</button></div>');
       html.push('<p class="note">Тап по ячейке — карточка предмета: сравнение со слотом, надевание, разбор, продажа и выставление на рынок.</p>');
@@ -532,13 +580,14 @@
     } else if(mode==='filters'){
       h('Фильтр лута и звук');
       html.push('<h4>Автоподбор предметов</h4>');
-      [['all','Всё подряд'],['rare','Редкое и выше'],['epic','Эпическое и выше'],['legendary','Легендарное и выше'],['none','Только вручную']].forEach(f=>
+      [['all','Всё подряд (рекомендуется)'],['rare','Редкое и выше'],['epic','Эпическое и выше'],['legendary','Легендарное и выше'],['none','Только вручную']].forEach(f=>
         html.push('<button class="wide" data-act="setLoot" data-v="'+f[0]+'" '+(G.settings.lootFilter===f[0]?'style="border-color:#4fd6d0"':'')+'>'+(G.settings.lootFilter===f[0]?'✓ ':'')+f[1]+'</button>'));
       html.push('<h4>Звук · '+A2.Audio.state().running+' / '+A2.Audio.state().ctx+'</h4>');
       html.push('<label class="check"><input type="checkbox" data-set="sound" '+(G.settings.sound?'checked':'')+'> Звук и музыка биома</label>');
       html.push('<label class="range">Общая громкость <input type="range" data-range="volume" min="0" max="100" value="'+Math.round(G.settings.volume*100)+'"></label>');
       html.push('<label class="range">Музыка <input type="range" data-range="music" min="0" max="100" value="'+Math.round(G.settings.music*100)+'"></label>');
       html.push('<label class="range">Эффекты <input type="range" data-range="sfx" min="0" max="100" value="90"></label>');
+      html.push('<label class="check"><input type="checkbox" data-set="autoSalvage" '+(G.settings.autoSalvage?'checked':'')+'> Авторазбор обычного при полной сумке</label>');
       html.push('<div class="btnrow"><button data-act="testSound">Проверить звук</button><button data-act="backbag">← К сумке</button></div>');
     } else if(mode==='market'){
       G.market.seed();
@@ -608,6 +657,12 @@
       html.push('<label class="check"><input type="checkbox" data-set="motion" '+(G.settings.motion?'checked':'')+'> Тряска и частицы</label>');
       html.push('<label class="check"><input type="checkbox" data-set="sound" '+(G.settings.sound?'checked':'')+'> Звук и музыка биома</label>');
       html.push('<label class="check"><input type="checkbox" data-set="vibration" '+(G.settings.vibration?'checked':'')+'> Вибрация</label>');
+      html.push('<label class="check"><input type="checkbox" data-set="autoSalvage" '+(G.settings.autoSalvage?'checked':'')+'> Авторазбор обычного при полной сумке</label>');
+      html.push('<h4>Графика · сейчас '+(G.perf==='low'?'экономный':'полный')+' режим · '+Math.round(G.fpsAvg)+' FPS</h4>');
+      [['auto','Авто (по FPS)'],['high','Полная детализация'],['low','Экономная · без лагов']].forEach(q=>
+        html.push('<button class="wide" data-act="quality" data-v="'+q[0]+'" '+(G.settings.quality===q[0]?'style="border-color:#4fd6d0"':'')+'>'+
+          (G.settings.quality===q[0]?'✓ ':'')+q[1]+'</button>'));
+      html.push('<div class="btnrow"><button data-act="pickAll">✦ Забрать весь лут рядом</button></div>');
       html.push('<h4>Камера</h4>'+row('Зум',G.cam.zoom.toFixed(2))+row('Поворот',[0,90,180,270][G.cam.orient]+'°'));
       html.push('<div class="btnrow"><button data-act="filters">Фильтр лута и звук</button><button data-act="goplayers">Игроки</button>'+
         '<button data-act="reset">Новый персонаж</button><button data-act="save">Сохранить</button></div>');
@@ -664,6 +719,40 @@
     switch(act){
       case 'item': G.selectedItem=i; openModal('item',i); break;
       case 'backbag': M.newItems=0; openModal('bag'); break;
+      case 'goequip': openModal('equip'); break;
+      case 'gochar': openModal('char'); break;
+      case 'slot': openModal('slot',s); break;
+      case 'equipSlot': {
+        const it=ch.inventory[i];
+        if(it && A2.RPG.equip(G,it)){ A2.Audio.play('equip'); openModal('slot',s); }
+        else G.toast('Не удалось надеть предмет',1.5);
+        break;
+      }
+      case 'unequip': if(A2.RPG.unequip(G,s)){ A2.Audio.play('equip'); openModal('slot',s); } break;
+      case 'equipBest': {
+        const n=A2.RPG.equipBest(G);
+        G.toast(n?'Надето предметов: '+n:'Уже надето лучшее',2);
+        if(n) A2.Audio.play('equip');
+        openModal(G.modalMode==='char'?'char':G.modalMode==='bag'?'bag':'equip');
+        break;
+      }
+      case 'enchantAll': {
+        let n=0;
+        for(const sl of A2.SLOTS) if(ch.equip[sl.id] && A2.RPG.enchant(G,sl.id)) n++;
+        G.toast(n?'Заточено слотов: '+n:'Нет Серебра или все +12',2);
+        if(n) A2.Audio.play('enchant');
+        openModal('equip'); break;
+      }
+      case 'pickAll': {
+        const n=A2.RPG.collectNearby(G,9.5);
+        if(n) A2.Audio.play('coin');
+        openModal(G.modalMode||'bag'); break;
+      }
+      case 'quality': {
+        G.settings.quality=v; G.fpsLowT=0; G.fpsHighT=0;
+        if(v!=='auto'){ G.perf=v; A2.Render.setQuality(v); }
+        A2.Audio.play('ui'); openModal('settings'); break;
+      }
       case 'equip': if(A2.RPG.equip(G,ch.inventory[i])){A2.Audio.play('equip');openModal('bag');} break;
       case 'salvage': if(A2.RPG.salvage(G,ch.inventory[i])){A2.Audio.play('break');openModal('bag');} break;
       case 'sell': if(A2.RPG.sell(G,ch.inventory[i])) openModal('bag'); break;
@@ -737,8 +826,8 @@
         if(p) G.log('◈ '+ch.name+' отметил точку рядом с '+p.name,'#4fd6d0');
         break;
       }
-      case 'enchant': if(A2.RPG.enchant(G,s)){A2.Audio.play('enchant');openModal('forge');} else G.toast('Не хватает Серебра или +12 достигнут',2); break;
-      case 'reroll': if(A2.RPG.reroll(G,s)){A2.Audio.play('enchant');openModal('forge');} else G.toast('Нужен Осколок Разлома или 400 S',2); break;
+      case 'enchant': if(A2.RPG.enchant(G,s)){A2.Audio.play('enchant');openModal(G.modalMode==='slot'?'slot':'forge',G.modalMode==='slot'?s:null);} else G.toast('Не хватает Серебра или +12 достигнут',2); break;
+      case 'reroll': if(A2.RPG.reroll(G,s)){A2.Audio.play('enchant');openModal(G.modalMode==='slot'?'slot':'forge',G.modalMode==='slot'?s:null);} else G.toast('Нужен Осколок Разлома или 400 S',2); break;
       case 'talent': if(A2.RPG.talentUp(G,b)){A2.Audio.play('level');openModal('talents');} else G.toast('Нет очков или ветка заполнена',1.5); break;
       case 'respec': if(A2.RPG.respec(G)){G.toast('Таланты сброшены',2);openModal('talents');} else G.toast('Нужно 500 S',1.5); break;
       case 'say': { const inp=$('modalChatInput'); if(inp&&inp.value){G.net.chat(inp.value.trim());inp.value='';openModal('chat');} break; }
@@ -821,10 +910,12 @@
       } else { pet.x=A2.lerp(pet.x,p.x+1.5,dt); pet.y=A2.lerp(pet.y,p.y+1.5,dt); }
     }
     G.pets=G.pets.filter(x=>x.life>0);
-    // подбор лута: фильтр редкости, обычный лут остаётся лежать для ручного сбора
-    for(const d of G.world.drops) if(d.t>0 && A2.dist(d.x,d.y,p.x,p.y)<ch.stats.pickup) {
-      if(!d.item || A2.RPG.autoPickupAllowed(G,d.item)) A2.RPG.pickup(G,d);
-    }
+    // G2.2 · магнит лута: вещи притягиваются к игроку и подбираются сами,
+    // даже если моб умер за стеной или на дальней дистанции.
+    A2.RPG.magnetLoot(G,dt);
+    // отложенная досылка реестра предметов на сервер (не чаще раза в 700 мс)
+    G.itemFlushT+=dt;
+    if(G.itemFlushT>=1){ G.itemFlushT=0; if(G.net&&G.net.flushItems) G.net.flushItems(); }
     // звук шагов
     if(p.moving && A2.Audio) A2.Audio.play('step');
     // мир
@@ -883,10 +974,25 @@
 
   function frame(ts) {
     const dt=Math.min(0.1,((ts||0)-G.lastFrame)/1000||1/60); G.lastFrame=ts||0;
+    // G2.2 · адаптивное качество: на слабом телефоне отключаем дорогие
+    // градиенты/лучи/воду, сохраняя геймплей и читаемость лута.
+    if(dt>0.001 && dt<0.25){
+      const fps=1/dt;
+      G.fpsAvg=G.fpsAvg*0.92+fps*0.08;
+      if(G.settings.quality==='auto'){
+        if(G.fpsAvg<38){ G.fpsLowT+=dt; G.fpsHighT=0; } else if(G.fpsAvg>53){ G.fpsHighT+=dt; G.fpsLowT=0; }
+        else { G.fpsLowT=Math.max(0,G.fpsLowT-dt*0.5); G.fpsHighT=Math.max(0,G.fpsHighT-dt*0.5); }
+        if(G.fpsLowT>1.8 && G.perf!=='low'){ G.perf='low'; A2.Render.setQuality('low'); G.toast('Экономный режим графики · для плавности',2); }
+        if(G.fpsHighT>5 && G.perf!=='high'){ G.perf='high'; A2.Render.setQuality('high'); }
+      } else {
+        const want=G.settings.quality==='low'?'low':'high';
+        if(G.perf!==want){ G.perf=want; A2.Render.setQuality(want); }
+      }
+    }
     G.accum+=dt;
     let n=0; while(G.accum>=C.TICK && n<4){ step(C.TICK); G.accum-=C.TICK; n++; }
     if(G.world && G.char) A2.Render.frame(G.world,G,dt);
-    G.uiT+=dt; if(G.uiT>0.12){G.uiT=0;updateUI();}
+    G.uiT+=dt; if(G.uiT>0.2){G.uiT=0;updateUI();}
     if(typeof requestAnimationFrame==='function') requestAnimationFrame(frame);
   }
 
@@ -894,7 +1000,7 @@
     if(!G.char) return;
     const ch=G.char, cls=A2.CLASS(ch.classId), net=G.net?G.net.status():{state:'offline',count:0};
     const set=(id,v)=>{const e=$(id);if(e&&e.textContent!==undefined)e.textContent=v;};
-    set('pName',ch.name); set('pLevel','ур. '+ch.level);
+    set('pName',ch.name); set('pLevel','ур. '+ch.level); set('pAvatar',cls.icon||'В');
     set('pHpText',Math.round(ch.hp)+' / '+ch.stats.maxHp);
     set('pResText',Math.round(ch.res)+' / '+ch.maxRes+' '+cls.res);
     set('pXpText',ch.xp+' / '+A2.xpNext(ch.level)+' XP');
@@ -909,7 +1015,11 @@
     const dodge=$('dodgeCount'); if(dodge) dodge.textContent=String(ch.dodgeCharges);
     const setB=(id,v)=>{const e=$(id);if(e&&e.textContent!==undefined){e.textContent=v;e.classList&&e.classList.toggle('hot',Number(v)>0);}};
     setB('bagCount',String(ch.inventory.length));
-    setB('lootCount',String(G.world?G.world.drops.filter(d=>d.t>0&&d.item).length:0));
+    const lootN=G.world?G.world.drops.filter(d=>d.t>0&&!d.picked&&d.item).length:0;
+    setB('lootCount',String(lootN));
+    setB('equipCount',String(Object.values(ch.equip).filter(Boolean).length));
+    const lootChip=$('btnLoot');
+    if(lootChip&&lootChip.classList) lootChip.classList.toggle('show',lootN>0);
     setB('marketCount',String(G.market?G.market.orders.length:0));
     if(G.market) G.market.newItems=Math.min(99,G.market.newItems);
     const sndState=$('soundState'); if(sndState) sndState.textContent=G.settings.sound?'♪':'✕';
@@ -921,14 +1031,14 @@
       if(left>0){ b.classList.add('cooling'); b.style&&b.style.setProperty('--cd',String(Math.min(100,left/m.cd*100))); }
       else b.classList.remove('cooling');
     });
-    const mini=$('minimap'); if(mini&&G.world) A2.Render.minimap(G.world,G,mini);
+    const mini=$('minimap'); if(mini&&G.world&&force!==false) A2.Render.minimap(G.world,G,mini);
     const ev=$('eventBanner'); if(ev){ const on=G.world&&G.world.eventActive; ev.classList&&ev.classList.toggle('show',!!on);
       if(on) ev.textContent='⚠ '+G.world.eventActive.ru+' · '+G.world.eventActive.killed+'/'+G.world.eventActive.need; }
     const toast=$('toast'); if(toast&&toast.classList){ toast.classList.toggle('show',G.time<G.toastUntil); }
     const hint=$('hint'); if(hint){ const npc=G.world?A2.World.npcAt(G.world,G.player.x,G.player.y,3.2):null;
       const p=G.world?A2.World.portalAt(G.world,G.player.x,G.player.y):null;
-      const d=G.world?G.world.drops.find(dd=>A2.dist(dd.x,dd.y,G.player.x,G.player.y)<3.2):null;
-      hint.textContent=npc?'✦ '+npc.ru+' · нажмите «Взаимодействие»':p?'◈ '+p.label+' · нажмите «Взаимодействие»':d?'✦ Добыча рядом · нажмите «Взаимодействие»':'';
+      const d=G.world?G.world.drops.find(dd=>!dd.picked&&dd.t>0&&A2.dist(dd.x,dd.y,G.player.x,G.player.y)<3.2):null;
+      hint.textContent=npc?'✦ '+npc.ru+' · нажмите «Взаимодействие»':p?'◈ '+p.label+' · нажмите «Взаимодействие»':d?'✦ Добыча рядом · «Взаим.» заберёт всё':'';
       hint.classList.toggle('show',!!(npc||p||d)); }
   }
 

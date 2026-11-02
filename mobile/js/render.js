@@ -15,7 +15,10 @@
 
   let ctx = null, canvas = null, VW = 960, VH = 540, DPR = 1;
   let groundCache = null, darkCanvas = null, darkCtx = null;
-  let weather = [];
+  let weather = [], waterCache = { key:'', tiles:[] }, miniCache = null;
+  let QUALITY = 'high';
+  function setQuality(q) { QUALITY = (q === 'low' ? 'low' : 'high'); }
+  function lowQ() { return QUALITY === 'low'; }
 
   function init(cv) {
     canvas = cv; ctx = cv && cv.getContext ? cv.getContext('2d') : null;
@@ -289,7 +292,7 @@
             for (let i=0;i<3;i++){ g.fillStyle=cols[i]; g.beginPath(); g.moveTo(0,-72+i*14); g.lineTo(-16+i*3,-44+i*12); g.lineTo(16-i*3,-44+i*12); g.fill(); outline(g); }
           } else {
             [[0,-56,17],[-13,-48,12],[13,-48,12],[0,-70,12]].forEach((c,i)=>{ g.fillStyle=cols[i%3]; g.beginPath(); g.arc(c[0],c[1],c[2],0,6.283); g.fill(); outline(g); });
-            for (let i=0;i<14;i++){ g.fillStyle='rgba(190,230,150,'+(0.16+0.12*Math.sin(t*1.7+i+p.variant)).toFixed(2)+')';
+            for (let i=0;i<(lowQ()?5:14);i++){ g.fillStyle='rgba(190,230,150,'+(0.16+0.12*Math.sin(t*1.7+i+p.variant)).toFixed(2)+')';
               g.beginPath(); g.arc(-20+i*3.2,-62+Math.sin(i+p.variant+t*0.8)*8,1.8,0,6.283); g.fill(); }
             // солнечные зайчики в кроне
             g.fillStyle='rgba(255,240,180,.13)'; g.beginPath(); g.arc(-5,-66,7,0,6.283); g.fill();
@@ -313,8 +316,10 @@
         g.fillRect(-14,-41,32,5); outline(g);
         g.strokeStyle='rgba(20,28,32,.35)'; g.lineWidth=1;
         for(let i=0;i<3;i++){ g.beginPath(); g.moveTo(-11,-28+i*9); g.lineTo(-4,-28+i*9); g.stroke(); }
-        g.fillStyle=rgba(z.accent,.28+0.18*Math.sin(t*2+p.seed));
-        for(let i=0;i<3;i++) g.fillRect(6+i*3,-31+i*7,1.6,1.6);
+        if(!lowQ()){
+          g.fillStyle=rgba(z.accent,.28+0.18*Math.sin(t*2+p.seed));
+          for(let i=0;i<3;i++) g.fillRect(6+i*3,-31+i*7,1.6,1.6);
+        }
         g.fillStyle='rgba(0,0,0,.20)'; g.beginPath(); g.moveTo(5,0); g.lineTo(18,2); g.lineTo(12,-3); g.fill();
         break;
       }
@@ -326,6 +331,7 @@
         g.fillStyle=gr; g.beginPath(); g.arc(0,-10,14+f*0.4,0,6.283); g.fill();
         g.fillStyle='#ffd27a'; g.beginPath(); g.moveTo(-5,-2); g.quadraticCurveTo(-3,-14-f,0,-20-f); g.quadraticCurveTo(4,-12-f,5,-2); g.fill();
         // G2.1 · дым и разлетающиеся искры
+        if(lowQ()) break;
         for(let i=0;i<5;i++){ const ph=(t*0.55+i*0.2+p.seed)%1;
           g.fillStyle='rgba(190,190,185,'+(0.20*(1-ph)).toFixed(2)+')';
           g.beginPath(); g.arc(Math.sin(i*2+ph*3)*7,-22-ph*38,2+ph*5,0,6.283); g.fill(); }
@@ -342,6 +348,7 @@
         [[0,-26,7],[ -8,-18,5],[9,-20,6]].forEach((c,i)=>{
           g.fillStyle=rgba(col,.75-i*.12); g.beginPath(); g.moveTo(c[0],c[1]-c[2]); g.lineTo(c[0]+c[2]*0.7,c[1]); g.lineTo(c[0],c[1]+c[2]); g.lineTo(c[0]-c[2]*0.7,c[1]); g.fill(); outline(g);
         });
+        if(lowQ()) break;
         const gl=g.createRadialGradient(0,-20,1,0,-20,22);
         gl.addColorStop(0,rgba(col,.34+0.10*Math.sin(t*2.4+p.seed))); gl.addColorStop(1,rgba(col,0));
         g.fillStyle=gl; g.beginPath(); g.arc(0,-20,22,0,6.283); g.fill();
@@ -402,6 +409,17 @@
   }
 
   function drawDrop(g, d, x, y, t) {
+    if (lowQ()) { // дешёвый режим для слабых телефонов: без градиентов и рун
+      const col = A2.RARITY(d.item ? d.item.rarity : 'rare').color;
+      const bob = Math.sin(t*3+d.t)*1.5;
+      g.save(); g.translate(x,y-9+bob); g.fillStyle=col;
+      g.shadowColor=col; g.shadowBlur=6;
+      g.beginPath(); g.moveTo(0,-6); g.lineTo(5,0); g.lineTo(0,6); g.lineTo(-5,0); g.closePath(); g.fill();
+      g.restore();
+      if(d.item && A2.RARITIES.indexOf(A2.RARITY(d.item.rarity))>=3)
+        lootLabel(g,x,y-24,A2.RPG.itemName(d.item).slice(0,14),col);
+      return;
+    }
     const rar = A2.RARITY(d.item ? d.item.rarity : 'rare');
     const bob = Math.sin(t * 3 + d.t) * 2.4;
     const pulse = 0.75 + 0.25 * Math.sin(t * 4 + (d.spin || 0));
@@ -460,10 +478,17 @@
 
   /* ------------- G2.1 · анимированная вода и останки врагов ------------- */
   function drawWater(g,W,o,t,ox,oy,zoom){
-    const T=A2.World.T;
-    for(let y=0;y<N;y++) for(let x=0;x<N;x++){
-      if(W.tiles[y*N+x]!==T.WATER) continue;
-      const [sx,sy]=iso(x+0.5,y+0.5,0,o);
+    if(lowQ()) return;
+    const key=W.id+':'+o;
+    if(waterCache.key!==key){
+      const T=A2.World.T, tiles=[];
+      for(let y=0;y<N;y++) for(let x=0;x<N;x++)
+        if(W.tiles[y*N+x]===T.WATER) tiles.push({x:x+0.5,y:y+0.5});
+      waterCache={key,tiles};
+    }
+    for(const q of waterCache.tiles){
+      const x=q.x, y=q.y;
+      const [sx,sy]=iso(x,y,0,o);
       const ssx=sx*zoom+ox, ssy=sy*zoom+oy;
       if(ssx<-70||ssx>VW+70||ssy<-70||ssy>VH+70) continue;
       const ph=t*1.6+x*0.71+y*0.93;
@@ -493,12 +518,13 @@
     }
   }
   function drawGodRays(g,z,t,VW,VH){
+    if(lowQ()) return;
     g.save(); g.globalCompositeOperation='lighter';
     const gr=g.createLinearGradient(0,0,VW*0.35,VH);
     gr.addColorStop(0,rgba(z.accent,.085)); gr.addColorStop(.5,rgba(z.accent,.02)); gr.addColorStop(1,'rgba(0,0,0,0)');
     g.fillStyle=gr;
-    for(let i=0;i<5;i++){
-      g.save(); g.translate(VW*(0.10+i*0.21),-60); g.rotate(0.33+Math.sin(t*0.09+i)*0.015);
+    for(let i=0;i<3;i++){
+      g.save(); g.translate(VW*(0.14+i*0.30),-60); g.rotate(0.33+Math.sin(t*0.09+i)*0.015);
       g.fillRect(0,0,34+10*Math.sin(t*0.35+i),VH*1.7); g.restore();
     }
     g.restore();
@@ -576,10 +602,20 @@
       const [x,y]=iso(n.x,n.y,0,o);
       items.push({ d: depth(n.x,n.y,o)+0.15, fn: () => { shadow(ctx,x,y+3,15,.5); drawHero(ctx,{classId:'paladin',gearRarity:'rare',moving:false,iframe:0},x,y,t,0.95); } });
     }
+    // G2.2 · отсечение и лимит лута: без этого при долгом гринде на экране
+    // рисовались сотни градиентных лучей и кадр проседал.
+    const dropsVisible = [];
     for (const d of W.drops) {
+      if (d.picked || d.t < 0) continue;
       const [x,y]=iso(d.x,d.y,0,o);
-      items.push({ d: depth(d.x,d.y,o)+0.05, fn: () => drawDrop(ctx,d,x,y,t) });
+      const sx=x*zoom+ox, sy=y*zoom+oy;
+      if (sx<-90 || sx>VW+90 || sy<-170 || sy>VH+170) continue;
+      dropsVisible.push({ d, x, y, dist:A2.dist(d.x,d.y,G.player.x,G.player.y) });
     }
+    dropsVisible.sort((a,b)=>a.dist-b.dist);
+    const dropCap = lowQ() ? 14 : 30;
+    for (const dr of dropsVisible.slice(0,dropCap))
+      items.push({ d: depth(dr.d.x,dr.d.y,o)+0.05, fn: () => drawDrop(ctx,dr.d,dr.x,dr.y,t) });
     for (const e of G.entities) {
       const [x,y]=iso(e.x,e.y,0,o);
       items.push({ d: depth(e.x,e.y,o)+0.2, fn: () => {
@@ -638,8 +674,9 @@
       gr.addColorStop(0,rgba(L.color,.16)); gr.addColorStop(1,'rgba(0,0,0,0)');
       ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(sx,sy,r,0,6.283); ctx.fill();
     }
-    for (const d of W.drops.slice(0,8)) {
-      if(!d.item) continue;
+    for (const dr of dropsVisible.slice(0, lowQ()?3:6)) {
+      const d=dr.d;
+      if(!d.item || d.picked || d.t<0) continue;
       const [lx,ly]=iso(d.x,d.y,0,o); const sx=lx*zoom+ox, sy=ly*zoom+oy-24*zoom;
       const col=A2.RARITY(d.item.rarity).color; const gr=ctx.createRadialGradient(sx,sy,1,sx,sy,34*zoom);
       gr.addColorStop(0,rgba(col,.22)); gr.addColorStop(1,'rgba(0,0,0,0)');
@@ -726,7 +763,7 @@
     W.drops.forEach(d=>dot(d.x,d.y,d.item?A2.RARITY(d.item.rarity).color:'#f0d27a',2.2));
     G.entities.forEach(e=>dot(e.x,e.y,e===G.player?'#ffffff':'#4fd6d0',e===G.player?3.4:2.4));
     // пульсирующие точки лута и стрелка направления игрока
-    W.drops.forEach(d=>{ if(d.t>0&&d.item){ g.strokeStyle=A2.RARITY(d.item.rarity).color; g.lineWidth=1;
+    W.drops.forEach(d=>{ if(d.t>0&&!d.picked&&d.item){ g.strokeStyle=A2.RARITY(d.item.rarity).color; g.lineWidth=1;
       g.beginPath(); g.arc(d.x*k,d.y*k,3.2,0,6.283); g.stroke(); } });
     const ppx=G.player.x*k, ppy=G.player.y*k;
     g.fillStyle='#ffffff'; g.beginPath(); g.moveTo(ppx,ppy-6); g.lineTo(ppx-3.4,ppy+3); g.lineTo(ppx+3.4,ppy+3); g.closePath(); g.fill();
@@ -736,5 +773,6 @@
   }
 
   A2.Render = { init, resize, frame, minimap, iso, drawMob, drawHero, drawProp, makeGround,
+    setQuality, get quality(){ return QUALITY; },
     get size(){ return {VW,VH,DPR}; } };
 })();

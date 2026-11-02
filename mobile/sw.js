@@ -4,7 +4,7 @@
  * только GET, без аналитики и без сетевых зависимостей извне.
  * ===================================================================== */
 'use strict';
-const VERSION = 'arkeon-g21-v1';
+const VERSION = 'arkeon-g22-v1';
 const CACHE = 'arkeon-g2-' + VERSION;
 const SHELL = [
   './',

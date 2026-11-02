@@ -7,8 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="АРКЕОН: Пепел Завета — G2.1 «Мир Завета». 6 классов, звук, лут, инвентарь, рынок, торговля и онлайн.">
-<title>АРКЕОН · Мир Завета · G2.1</title>
+<meta name="description" content="АРКЕОН: Пепел Завета — G2.2 «Мир Завета». 6 классов, инвентарь, экипировка, лут без потерь, рынок и онлайн.">
+<title>АРКЕОН · Мир Завета · G2.2</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -22,7 +22,7 @@
   <div id="hud" class="hidden">
     <div class="hud-top">
       <div class="panel pinfo">
-        <div class="avatar" id="pAvatar">В</div>
+        <button class="avatar" id="pAvatar" aria-label="Открыть снаряжение">В</button>
         <div class="bars">
           <div class="bar-line"><b id="pName">Возжённый</b><span id="pLevel">ур. 1</span></div>
           <div class="bar hp"><i id="pHp"></i></div><div class="bar-t" id="pHpText">12000 / 12000</div>
@@ -45,7 +45,7 @@
     </div>
 
     <div id="questTracker" class="quest-tracker">▸ Квесты у НПС с меткой !</div>
-    <div id="lootChip" class="loot-chip">✦ Лут на земле <b id="lootCount">0</b> · подойдите или нажмите «Взаим.»</div>
+    <button id="btnLoot" class="loot-chip">✦ Забрать лут <b id="lootCount">0</b> · нажмите</button>
     <canvas id="minimap" width="132" height="132" aria-label="Мини-карта"></canvas>
     <div id="hint" class="hint"></div>
     <div id="toast" class="toast"></div>
@@ -56,6 +56,7 @@
       <button id="btnCamera" class="tool">↻ Камера</button>
       <button id="btnChar" class="tool">♛ Герой</button>
       <button id="btnBag" class="tool">▣ Сумка <i id="bagCount" class="cnt">0</i></button>
+      <button id="btnEquip" class="tool">⚔ Снаряжение <i id="equipCount" class="cnt">0</i></button>
       <button id="btnMarket" class="tool">▤ Рынок <i id="marketCount" class="cnt">0</i></button>
       <button id="btnPlayers" class="tool">♟ Игроки</button>
       <button id="btnQuests" class="tool">❖ Квесты</button>
@@ -81,9 +82,9 @@
   <!-- ============================ СТАРТ ============================ -->
   <div id="startScreen" class="overlay">
     <div class="sheet">
-      <div class="logo"><span class="beacon"></span><h1>АРКЕОН</h1><p>ПЕПЕЛ ЗАВЕТА · G2.1 МИР ЗАВЕТА</p></div>
+      <div class="logo"><span class="beacon"></span><h1>АРКЕОН</h1><p>ПЕПЕЛ ЗАВЕТА · G2.2 МИР ЗАВЕТА</p></div>
       <p class="tagline">«Мир не погиб. Он перестал держать слово.»</p>
-      <div class="g21-chip">G2.1 · ЗВУК · ЛУТ · РЫНОК · ТОРГОВЛЯ 1:1 · ВСЕ 6 КЛАССОВ</div>
+      <div class="g21-chip">G2.2 · ИНВЕНТАРЬ · СНАРЯЖЕНИЕ · БЕЗ ЛАГОВ · ЛУТ ВСЕГДА ПОДБИРАЕТСЯ</div>
       <h2 class="section-title">Выбери Возжённого · 6 классов канона</h2>
       <div class="class-grid">
         <button class="class-card selected" data-class="warrior"><b>⚔ ВОИН</b><small>Ярость · танк · BREAK</small></button>

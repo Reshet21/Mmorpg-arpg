@@ -245,7 +245,7 @@ for token in ("js/audio.js", "js/market.js", "btnMarket", "btnPlayers", "bagCoun
     check(token in html_g2, f"G2.1: mobile/index.html подключает {token}")
 for token in ("js/audio.js", "js/market.js"):
     check(token in sw_js, f"G2.1: service worker кэширует {token}")
-check("arkeon-g21" in sw_js, "G2.1: версия офлайн-кэша обновлена")
+check("arkeon-g22-v1" in sw_js, "G2.2: версия офлайн-кэша обновлена")
 for token in ("market_list", "market_buy", "trade_invite", "trade_confirm", "whisper", "emote",
               "syncInitial", "broadcastRoster", "broadcastMarket", "idempotent"):
     check(token in sim_js, f"G2.1: авторитетный сервер поддерживает {token}")
@@ -258,6 +258,47 @@ for f in ("js/audio.js", "js/market.js"):
           f"mobile/{f}: без внешних CDN и сетевых зависимостей")
 check("0 силовых" not in audio_js and "buy_gold" not in market_js.lower(),
       "P3: новый функционал не добавляет силовых SKU / Pay-To-Win")
+
+# --- 8d. G2.2 «инвентарь · снаряжение · анти-лаг · надёжный лут» ---
+rpg_js2 = (MOB / "js/rpg.js").read_text(encoding="utf-8")
+render_js2 = (MOB / "js/render.js").read_text(encoding="utf-8")
+main_js2 = (MOB / "js/main.js").read_text(encoding="utf-8")
+net_js2 = (MOB / "js/net.js").read_text(encoding="utf-8")
+css_g2 = (MOB / "css/g2.css").read_text(encoding="utf-8")
+html2 = (MOB / "index.html").read_text(encoding="utf-8")
+for token in ("magnetLoot", "collectNearby", "walkableDropPos", "freeBagSlot", "unequip", "equipBest"):
+    check(token in rpg_js2, f"G2.2: rpg.js реализует {token}")
+check("pickR+0.4" in rpg_js2, "G2.2: люфт радиуса подбора (дроп не зависает на границе)")
+check("d.picked=true" in rpg_js2 or "d.picked = true" in rpg_js2,
+      "G2.2: явный флаг подобранного предмета")
+check("autoSalvage" in rpg_js2 and "lootFilter:'all'" in main_js2,
+      "G2.2: весь лут подбирается, полная сумка не теряет дроп")
+check("A2.RPG.magnetLoot(G,dt)" in main_js2, "G2.2: магнит вызывается каждый тик симуляции")
+check("A2.RPG.collectNearby(G,7.5)" in main_js2, "G2.2: «Взаим.» забирает весь лут рядом")
+check("flushItems" in net_js2 and "700" in net_js2,
+      "G2.2: реестр предметов в WS троттлится (нет спама при сборе лута)")
+check("setQuality" in render_js2 and "waterCache" in render_js2 and "miniCache" in render_js2,
+      "G2.2: адаптивное качество, кэш воды и подложки мини-карты")
+check("dropsVisible" in render_js2 and "dropCap" in render_js2,
+      "G2.2: отсечение и лимит отрисовки лута")
+check("fpsAvg" in main_js2 and "G.perf='low'" in main_js2,
+      "G2.2: автоматический переход в экономный режим при просадке FPS")
+check("openModal('equip')" in main_js2 and "openModal('slot',s)" in main_js2,
+      "G2.2: отдельные панели снаряжения и слота")
+check('data-act="slot"' in main_js2 and 'data-act="equipSlot"' in main_js2,
+      "G2.2: слоты и предметы кликабельны, экипировка меняется из UI")
+check('data-act="pickAll"' in main_js2 and "btnLoot" in html2,
+      "G2.2: кнопки «Забрать лут» в панели и на HUD")
+check("btnEquip" in html2 and "pAvatar" in html2 and "equipCount" in html2,
+      "G2.2: доступ к снаряжению из тулбара и по тапу на портрет")
+check(".equip-grid" in css_g2 and ".slot-card" in css_g2 and ".loot-chip.show" in css_g2,
+      "G2.2: стили сетки слотов и visibility-чина лута")
+check("bottom:calc(var(--safe-b) + 172px)" in css_g2,
+      "G2.2: тулбар поднят над блоком управления — кнопки не перекрыты джойстиком")
+check("A2.Render.minimap" in main_js2 and "G.uiT>0.2" in main_js2,
+      "G2.2: обновление HUD и мини-карты реже для плавности")
+check("G2.2" in html2 and "G2.2" in (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8"),
+      "G2.2: версия зафиксирована в клиенте и спецификации студии")
 
 # --- 9. Отчёт ---
 passed = sum(1 for ok, _ in results if ok)

@@ -68,18 +68,18 @@ button{border:0;background:none;cursor:pointer}
   background:rgba(13,24,33,.92);border:1px solid var(--gold);border-radius:18px;padding:5px 13px;
   font-size:10px;color:var(--gold2);white-space:nowrap;opacity:0;transition:.25s;max-width:92vw;overflow:hidden}
 .hint.show{opacity:1}
-.toast{position:absolute;left:50%;bottom:calc(var(--safe-b) + 196px);transform:translateX(-50%);
+.toast{position:absolute;left:50%;bottom:calc(var(--safe-b) + 258px);transform:translateX(-50%);
   background:rgba(20,32,40,.94);border:1px solid var(--line);border-radius:18px;padding:6px 14px;
   font-size:11px;opacity:0;transition:.25s;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
 .toast.show{opacity:1}
-.chat-log{position:absolute;left:calc(var(--safe-l) + 8px);bottom:calc(var(--safe-b) + 178px);
+.chat-log{position:absolute;left:calc(var(--safe-l) + 8px);bottom:calc(var(--safe-b) + 206px);
   width:min(52vw,290px);height:78px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;
   font-size:9px;line-height:1.35;text-shadow:0 1px 3px #000}
 .chat-line{opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ------------------------------ панельки ------------------------------ */
 .toolbar{position:absolute;left:calc(var(--safe-l) + 8px);right:calc(var(--safe-r) + 8px);
-  bottom:calc(var(--safe-b) + 152px);display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;
+  bottom:calc(var(--safe-b) + 172px);display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;z-index:4;
   padding-bottom:2px;-webkit-overflow-scrolling:touch}
 .toolbar::-webkit-scrollbar{display:none}
 .tool{flex:0 0 auto;min-height:30px;padding:5px 9px;border-radius:9px;font-size:9px;
@@ -200,14 +200,15 @@ h4{font-size:10.5px;letter-spacing:1.2px;color:var(--cyan);margin:14px 0 7px;tex
   #minimap{width:96px;height:96px;top:calc(var(--safe-t) + 76px)}
   .joy{width:112px;height:112px;flex-basis:112px}.joy-ring{width:100px;height:100px;left:6px;top:6px}.joy-knob{width:42px;height:42px}
   .skill-zone{width:196px;height:132px;flex-basis:196px}.skill.ult{width:46px;height:46px}.skill.dodge{width:52px;height:52px}
-  .toolbar{bottom:calc(var(--safe-b) + 132px)}.chat-log{bottom:calc(var(--safe-b) + 150px);height:52px}
-  .toast{bottom:calc(var(--safe-b) + 162px)}
+  .toolbar{bottom:calc(var(--safe-b) + 146px)}.chat-log{bottom:calc(var(--safe-b) + 180px);height:46px}
+  .toast{bottom:calc(var(--safe-b) + 214px)}
 }
 @media (orientation:portrait){
   .skill-zone{width:202px;height:152px;flex-basis:202px}.skills{padding:5px 46px 5px 4px;gap:5px}
   .skill.ult{width:47px;height:47px}.skill.dodge{width:54px;height:54px}
   #minimap{width:110px;height:110px}.chat-log{width:min(56vw,260px)}
 }
+@media (orientation:landscape) and (max-height:520px){ .loot-chip{top:calc(var(--safe-t) + 118px)} }
 @media (max-width:380px){
   .pinfo{min-width:132px;padding:5px 7px}.avatar{width:28px;height:28px;flex-basis:28px;font-size:13px}
   .bar-t{font-size:7px}.zone{font-size:9px}
@@ -229,10 +230,15 @@ h4{font-size:10.5px;letter-spacing:1.2px;color:var(--cyan);margin:14px 0 7px;tex
 .cnt{font-style:normal;display:inline-grid;place-items:center;min-width:16px;height:15px;padding:0 3px;
   margin-left:3px;border-radius:8px;background:rgba(79,214,208,.18);color:var(--cyan);font-size:8px}
 .cnt.hot{background:rgba(232,178,92,.25);color:var(--gold2)}
-.loot-chip{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--safe-t) + 76px);
-  z-index:3;padding:5px 10px;border-radius:16px;font-size:8.5px;letter-spacing:.4px;color:var(--gold2);
-  background:rgba(24,22,12,.88);border:1px solid rgba(232,178,92,.45);white-space:nowrap;pointer-events:none}
-.loot-chip b{color:#fff}
+.loot-chip{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--safe-t) + 146px);
+  z-index:6;padding:8px 14px;border-radius:18px;font-size:10px;letter-spacing:.4px;color:var(--gold2);
+  background:linear-gradient(180deg,rgba(70,54,20,.96),rgba(30,24,12,.96));
+  border:1px solid rgba(232,178,92,.65);box-shadow:0 4px 18px rgba(0,0,0,.55);
+  white-space:nowrap;pointer-events:auto;min-height:34px;display:none}
+.loot-chip.show{display:block}
+.loot-chip b{color:#fff;font-size:11px}
+.avatar{cursor:pointer;pointer-events:auto}
+.avatar:active{transform:scale(.94)}
 .bagbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;font-size:9px;color:var(--muted);
   padding:7px 9px;margin-bottom:8px;border-radius:9px;background:rgba(12,22,30,.8);border:1px solid var(--line)}
 .bagbar b{color:var(--gold2)}
@@ -283,3 +289,22 @@ h4{font-size:10.5px;letter-spacing:1.2px;color:var(--cyan);margin:14px 0 7px;tex
 .btnrow button{flex:0 0 auto}
 @media (max-width:420px){ .grid40{grid-template-columns:repeat(4,minmax(0,1fr))} .tradebox{grid-template-columns:1fr} }
 .g21-modal{width:min(560px,100%)}
+
+
+/* ===================== G2.2 · снаряжение и анти-лаг ===================== */
+.equip-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:4px 0 10px}
+.slot-card{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:72px;
+  padding:8px 10px;border-radius:11px;text-align:left;
+  background:linear-gradient(160deg,rgba(28,42,50,.94),rgba(9,16,22,.96));border:1px solid var(--line)}
+.slot-card .sicon{font-size:16px;line-height:1;color:var(--gold2)}
+.slot-card b{font-size:9px;color:var(--cyan);letter-spacing:.4px}
+.slot-card small{font-size:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot-card em{font-size:8px;font-style:normal;color:var(--muted)}
+.slot-card.empty{opacity:.55}
+.slot-card.rare{border-color:#5fa8e8;box-shadow:inset 0 0 12px rgba(95,168,232,.2)}
+.slot-card.epic{border-color:#b07ae8;box-shadow:inset 0 0 14px rgba(176,122,232,.26)}
+.slot-card.legendary{border-color:#f0b45c;box-shadow:inset 0 0 16px rgba(240,180,92,.3)}
+.slot-card.mythic{border-color:#ff7a4d}.slot-card.unique{border-color:#4fd6d0}
+.slot-card:active{transform:scale(.97);border-color:var(--gold)}
+.detail.empty{opacity:.7}
+@media (min-width:560px){ .equip-grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
