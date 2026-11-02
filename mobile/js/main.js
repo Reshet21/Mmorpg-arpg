@@ -149,7 +149,7 @@
     else if(G.net.autoConnect()) G.log('Обнаружен сервер того же origin: подключаюсь к онлайну','#4fd6d0');
     const e=$('startScreen'); if(e && !saved) e.classList.remove('hidden');
     else { G.mode='playing'; const s=$('startScreen'); if(s) s.classList.add('hidden'); const h=$('hud'); if(h) h.classList.remove('hidden'); }
-    G.log('АРКЕОН · Мир Завета · G2.1','#f0d27a');
+    G.log('АРКЕОН · Мир Завета · G2.2','#f0d27a');
     G.log('Сервер не указан — активен офлайн-мир с союзниками-призраками','#9db0bd');
     if(/[?&]autostart=1/.test(q)) startGame();
     updateUI(true);
@@ -666,7 +666,7 @@
       html.push('<h4>Камера</h4>'+row('Зум',G.cam.zoom.toFixed(2))+row('Поворот',[0,90,180,270][G.cam.orient]+'°'));
       html.push('<div class="btnrow"><button data-act="filters">Фильтр лута и звук</button><button data-act="goplayers">Игроки</button>'+
         '<button data-act="reset">Новый персонаж</button><button data-act="save">Сохранить</button></div>');
-      html.push('<p class="note">G2.1 · '+CANON_SOURCE+' · '+(G.net?G.net.status().state:'offline')+' · 30 Гц тик / 60 Гц рендер · '+
+      html.push('<p class="note">G2.2 · '+CANON_SOURCE+' · '+(G.net?G.net.status().state:'offline')+' · 30 Гц тик / 60 Гц рендер · '+
         (A2.Audio.state().running?'звук активен':'звук ожидает касания')+'</p>');
     } else if(mode==='dialogue'){
       const npc=data, d=A2.RPG.dialogue(G,npc);
@@ -1044,7 +1044,7 @@
 
   /* ------------------------------ тестовый API ------------------------------ */
   window.ARKEON_G2 = {
-    version:'G2.1', state:G,
+    version:'G2.2', state:G,
     get source(){return CANON_SOURCE;},
     boot, startGame, step, cast, dodge, useUlt, setZone, interact, openModal, closeModal,
     target, meta, updateUI, render:(dt)=>A2.Render.frame(G.world,G,dt||1/60),

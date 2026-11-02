@@ -104,7 +104,7 @@ async function run(useCanon) {
   const API=env.window.ARKEON_G2, A2=env.window.A2;
   ok(!!API,'window.ARKEON_G2 определён');
   if(!API) return;
-  ok(API.version==='G2.1','версия G2.1');
+  ok(API.version==='G2.2','версия G2.2');
   ok(API.source===(useCanon?'canon':'fallback'),'источник навыков: '+(useCanon?'canon':'fallback'));
   if(useCanon) {
     const m=API.meta('Клинок Рубежа');
