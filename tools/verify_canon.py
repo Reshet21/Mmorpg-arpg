@@ -339,6 +339,10 @@ check("safeCircles" in world_js3 and "isSafe" in world_js3,
       "G2.3: безопасная дозорная тропа у входа в Рощу")
 check("local.storyDone === false" in world_js3,
       "G2.3: мировые события не начинаются во время пролога")
+check("m.dummy && !W.dummiesActive" in world_js3 and "dummiesActive" in main_js3,
+      "G2.3: манекены не являются целью автоатаки до главы «Пробный удар»")
+check("modalOpen" in main_js3,
+      "G2.3: пока открыта книга сюжета, автоатака не убивает манекены со спавна")
 check("openModal('prologue')" in main_js3 and "openModal('story')" in main_js3,
       "G2.3: кинематографичный пролог и «Книга Завета»")
 check("updateStoryUI" in main_js3 and "storyTarget" in main_js3,

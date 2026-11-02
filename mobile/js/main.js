@@ -938,6 +938,10 @@
     const ch=G.char, p=G.player, cls=A2.CLASS(ch.classId);
     p.storyDone = !!(G.story && G.story.done);
     A2.RPG.storyCheckReach(G);
+    // Манекены становятся целью только в главе «Пробный удар»: до этого
+    // автоатака дальнобойного класса не должна убивать их со спавна.
+    const sc=A2.RPG.storyChapter(G);
+    G.world.dummiesActive = !!(sc && sc.objective.type==='kill');
     ch.playtime+=dt;
     if(ch.dead){ ch.hp=ch.stats.maxHp*0.6; ch.dead=false; p.x=12; p.y=16; G.toast('Возрождение у Светоча',2.5); }
     // ресурс и додж
@@ -961,7 +965,8 @@
     ch.x=p.x; ch.y=p.y;
     // автоатака
     G.autoCd-=dt;
-    if(G.autoCd<=0){
+    const modalOpen = G.modalMode==='prologue'||G.modalMode==='story';
+    if(G.autoCd<=0 && !modalOpen){
       const t=target();
       if(t && A2.dist(t.x,t.y,p.x,p.y)<=cls.range+0.8){
         A2.RPG.hit(G,t,1.05,cls.element);

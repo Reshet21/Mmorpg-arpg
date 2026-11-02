@@ -154,7 +154,7 @@
       id: z.id, zone: z, N, tiles, props: built.props, lights: built.lights, camps,
       npcs: A2.NPCS.filter(n => n.zone === z.id).map(n => ({ ...n, questMark: true })),
       portals: [], mobs: [], projectiles: [], drops: [], effects: [], events: [], time: 0, uid: 0,
-      eventTimer: 65, eventActive: null, bossAlive: false, bossRespawn: 0, kills: 0,
+      eventTimer: 65, eventActive: null, bossAlive: false, bossRespawn: 0, kills: 0, dummiesActive: false,
       seed: s, ground: null, groundKey: '', rnd: A2.rng(s + 9999)
     };
     // G2.3 · линейная цепочка зон с точкой прибытия (раньше был кольцевой
@@ -200,7 +200,7 @@
       // учебный двор: 4 неагрессивных манекена с быстрым респавном
       [[27.2,27.2],[29.6,27.2],[27.2,29.6],[29.6,29.6]].forEach((q,i)=>{
         const m = makeMob(W, 'maket', q[0], q[1], 1, { camp:{respawn:6}, ru:'Учебный манекен' });
-        m.aggro=0; m.dmg=0; m.speed=0; W.mobs.push(m);
+        m.aggro=0; m.dmg=0; m.speed=0; m.dummy=true; W.mobs.push(m);
       });
       W.events.push({ t:0, text:'✦ Пристань Завета · безопасная зона · здесь не нападают' });
     }
@@ -373,6 +373,7 @@
     const out = [];
     for (let i = 0; i < W.mobs.length; i++) {
       const m = W.mobs[i];
+      if (m.dummy && !W.dummiesActive) continue;   // манекены не цель до главы 5
       if (m.alive && A2.dist(m.x, m.y, x, y) <= r) out.push(m);
     }
     return out;

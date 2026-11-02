@@ -139,6 +139,10 @@ async function run(useCanon) {
   ok(A2.RPG.storyChapter(G).id==='c1','первая глава — «Пробуждение»');
   ok(Object.values(G.char.equip).filter(Boolean).length===1,'на старте только оружие — остальное выдаётся квестами');
   ok(A2.RPG.questAvailable(G,A2.QUEST('q1'))===false,'12 глав Завета заперты до конца пролога');
+  for(let i=0;i<20;i++) API.step(A2.C.TICK);
+  ok(A2.World.mobsNear(HW,G.player.x,G.player.y,40).length===0,
+     'до главы 5 манекены не являются целью: игра не начинается с боя');
+  ok(G.char.kills===0,'на старте пролога нет убийств');
   const earlyRars=[];
   for(let i=0;i<30;i++) earlyRars.push(A2.RPG.dropItem(G,{x:20,y:23,lvl:1},1).item.rarity);
   ok(earlyRars.every(r=>r==='common'||r==='rare'),'в прологе редкость дропа ограничена обычной/редкой');
@@ -162,6 +166,10 @@ async function run(useCanon) {
   const reward=G.char.inventory.find(it=>it.questReward);
   ok(A2.RPG.equip(G,reward)===true,'награда надевается через панель экипировки');
   ok(G.story.chapter===4,'глава 4 завершается надеванием предмета');
+  ok(A2.RPG.storyChapter(G).objective.type==='kill','глава 5 — пробный удар по манекенам');
+  API.step(A2.C.TICK);
+  ok(HW.dummiesActive===true && A2.World.mobsNear(HW,28.5,28,3).length>0,
+     'манекены становятся целью только в главе «Пробный удар»');
   HW.mobs.filter(m=>m.ai==='dummy').slice(0,3).forEach(m=>{
     m.alive=true; m.hp=m.maxHp;
     while(m.alive) A2.RPG.hit(G,m,50,'Физический');

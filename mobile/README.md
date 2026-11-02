@@ -143,7 +143,7 @@ python3 -m http.server 8000 --bind 0.0.0.0
 | `sw.js` | Офлайн-кэш `arkeon-g23-v1`, stale-while-revalidate |
 | `../docs/16-mobile.md` | Производственный документ студии: платформы, бюджеты, CI, roadmap G1→G5 |
 | `../tools/smoke_mobile.js` | 43 headless-проверки арены G1 |
-| `../tools/smoke_g2.js` | 347 headless-проверок: 6 классов, звук, инвентарь, экипировка, магнит лута, рынок, торговля, панели, перформанс |
+| `../tools/smoke_g2.js` | 355 headless-проверок: 6 классов, звук, инвентарь, экипировка, магнит лута, рынок, торговля, панели, перформанс |
 | `../tools/smoke_net.js` | 32 интеграционные проверка настоящего WebSocket-сервера |
 | `../tools/gen_mobile_icons.py` | Воспроизводимая генерация PNG-иконок |
 | `../server/` | Авторитетный сервер, Dockerfile, инструкция бесплатного деплоя |
@@ -155,11 +155,11 @@ python3 -m http.server 8000 --bind 0.0.0.0
 ```bash
 node --check mobile/js/game.js && node --check mobile/js/main.js
 node tools/smoke_mobile.js         # G1 · 43/43
-node tools/smoke_g2.js             # G2.3 · 347/347
+node tools/smoke_g2.js             # G2.3 · 355/355
 node tools/smoke_net.js            # онлайн · 32/32
 node server/server.js              # поднять настоящий мультиплеер на :8080
 python3 tools/gen_mobile_icons.py
-python3 tools/verify_canon.py --strict # 251/251
+python3 tools/verify_canon.py --strict # 253/253
 ```
 
 `smoke_mobile.js` проверяет арену G1. `smoke_g2.js` поднимает все 8 модулей G2.3 в `vm` с заглушками DOM/Canvas и проверяет мир, рендер, 16 убийств, дроп, уровни, экипировку, 1600 предметов, квестовую цепочку, НПС, навыки, смену зоны, выбор всех 6 классов, звук, инвентарь, рынок, торговлю, 16 панелей и сетевой контур. `smoke_net.js` запускает реальный сервер и трёх WebSocket-клиентов, включая общий order book и атомарный обмен.
