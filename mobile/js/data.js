@@ -8,7 +8,7 @@
   'use strict';
   const A2 = window.A2 || (window.A2 = {});
 
-  A2.VERSION = 'G2.2';
+  A2.VERSION = 'G2.3';
   A2.C = {
     TICK: 1 / 30, SNAPSHOT: 1 / 20, WEAPON_HIT: 21600,
     TILE_W: 64, TILE_H: 32, H_UNIT: 26,
@@ -70,32 +70,44 @@
 
   /* ------------------------------- 4 зоны ------------------------------- */
   A2.ZONES = [
+    { id:'haven', ru:'Пристань Завета', en:'Covenant Haven', lv:[1,6], weather:'leaves', time:0.18,
+      ground:['#3b3a30','#494634','#302f27'], accent:'#f0d27a', fog:'#2b2b22', sky:'#3f4236',
+      props:['house','stall','well','statue','lamp','banner','flower','tent'],
+      mobs:[], elite:null, boss:null, npc:[], safe:true,
+      next:'grove', prev:null, spawn:[20,23], backSpawn:[33,33],
+      music:'Пристань', desc:'Последний безопасный город. Здесь ещё держат слово.' },
     { id:'grove', ru:'Роща Завета', en:'Covenant Grove', lv:[1,15], weather:'leaves', time:0.28,
       ground:['#243b2c','#2d4a34','#1c3024'], accent:'#6fb26a', fog:'#14241c', sky:'#20352a',
       props:['oak','pine','boulder','grass','ruin','campfire','banner','flower'],
       mobs:['pepelnik','volk','drevny','shaman'], elite:'stareyshina', boss:'strazh',
-      npc:['eldara','borin','irina'], music:'Роща', desc:'Первый Светоч ещё теплится. Лес помнит клятву.' },
+      npc:[], next:'ash', prev:'haven', spawn:[6,6], backSpawn:[33,33],
+      campSpots:[[16,9],[27,9],[18,27],[29,28],[24,32],[33,17],[12,25],[25,5]],
+      music:'Роща', desc:'Первый Светоч ещё теплится. Лес помнит клятву.' },
     { id:'ash', ru:'Пепельная пустошь', en:'Ashen Waste', lv:[16,30], weather:'ash', time:0.52,
       ground:['#3a322c','#4a3a30','#2b2521'], accent:'#e08a4c', fog:'#2a201a', sky:'#3a2a22',
       props:['deadtree','boulder','ruin','campfire','crystal','bone','banner'],
       mobs:['pepelnik','golem','gryfon','kultist'], elite:'kapitan', boss:'pepelnyj',
-      npc:['serg','mira'], music:'Пустошь', desc:'Здесь сгорела первая армия Конклава.' },
+      npc:['serg','mira'], next:'frost', prev:'grove', spawn:[6,6], backSpawn:[33,33],
+      music:'Пустошь', desc:'Здесь сгорела первая армия Конклава.' },
     { id:'frost', ru:'Ледяной Рубеж', en:'Frostwall', lv:[31,45], weather:'snow', time:0.72,
       ground:['#2c3b48','#3b5060','#1e2c38'], accent:'#9fe8ff', fog:'#182a38', sky:'#1e3142',
       props:['pine','ice','boulder','ruin','campfire','bridge','banner'],
       mobs:['volk','ledyanoy','golem','prizrak'], elite:'voevoda', boss:'moroz',
-      npc:['hilda','tomas'], music:'Рубеж', desc:'Стена, где слово впервые предали.' },
+      npc:['hilda','tomas'], next:'rift', prev:'ash', spawn:[6,6], backSpawn:[33,33],
+      music:'Рубеж', desc:'Стена, где слово впервые предали.' },
     { id:'rift', ru:'Разлом', en:'The Rift', lv:[46,60], weather:'ember', time:0.90,
       ground:['#332433','#432b40','#241a28'], accent:'#c07bff', fog:'#1b1122', sky:'#2a1830',
       props:['crystal','deadtree','bone','ruin','campfire','obelisk','banner'],
       mobs:['kultist','demoon','prizrak','golem'], elite:'arhont', boss:'semoy',
-      npc:['vesper','kira'], music:'Разлом', desc:'Мир перестал держать слово. Отсюда он начал лгать.' }
+      npc:['vesper','kira'], next:null, prev:'frost', spawn:[6,6], backSpawn:[33,33],
+      music:'Разлом', desc:'Мир перестал держать слово. Отсюда он начал лгать.' }
   ];
   A2.ZONE = id => A2.ZONES.find(z => z.id === id) || A2.ZONES[0];
 
   /* ------------------------------- мобы ------------------------------- */
   // kind определяет процедурный спрайт; ai — поведение; loot — вес дропа.
   A2.MOBS = [
+    { id:'maket', ru:'Учебный манекен', kind:'dummy', hp:0.06, dmg:0, armor:0, speed:0, aggro:0, xp:0.25, loot:0.8, ai:'dummy', element:'Физический', color:'#c8a870' },
     { id:'pepelnik', ru:'Пепельник', kind:'imp',     hp:0.28, dmg:0.22, armor:0.5, speed:1.9, aggro:7,  xp:1.0, loot:1.0, ai:'chase',  element:'Огонь', color:'#d2724c' },
     { id:'volk',     ru:'Пепельный волк', kind:'wolf', hp:0.24, dmg:0.30, armor:0.4, speed:3.1, aggro:9,  xp:1.1, loot:0.9, ai:'pack',   element:'Физический', color:'#8e8172' },
     { id:'drevny',   ru:'Древень', kind:'treant',   hp:0.75, dmg:0.28, armor:1.3, speed:1.2, aggro:6,  xp:1.7, loot:1.3, ai:'guard',  element:'Физический', color:'#5d8a52' },
@@ -165,15 +177,33 @@
 
   /* -------------------------------- НПС -------------------------------- */
   A2.NPCS = [
-    { id:'eldara', ru:'Эльдара',   role:'Хранительница Светоча', zone:'grove', x:12, y:14, color:'#f0d27a',
-      lines:['Мир не погиб. Он перестал держать слово.','Присмотри за Рощей, Возжённый: Пепельники снова у корней.','Семь Светочей горели. Шесть ещё теплятся.'],
-      services:['quest','heal','portal'], quests:['q1','q2'] },
-    { id:'borin',  ru:'Борин',     role:'Кузнец', zone:'grove', x:17, y:12, color:'#e8b25c',
+    { id:'eldara', ru:'Эльдара',   role:'Хранительница Светоча', zone:'haven', x:20, y:18, color:'#f0d27a',
+      lines:['Мир не погиб. Он перестал держать слово.','Семь Светочей горели. Шесть ещё теплятся.','Сначала научись держать клятву — потом выходи за ворота.'],
+      services:['quest','heal'], quests:[], story:true },
+    { id:'borin',  ru:'Борин',     role:'Кузнец', zone:'haven', x:16, y:21, color:'#e8b25c',
       lines:['Сталь помнит каждый удар. Покажи, что принёс.','Заточка до +12. Выше — только клятва.'],
       services:['vendor','forge','salvage','market','trade'], quests:['q3'] },
-    { id:'irina',  ru:'Ирина',     role:'Наставница', zone:'grove', x:9,  y:18, color:'#4fd6d0',
+    { id:'irina',  ru:'Ирина',     role:'Наставница', zone:'haven', x:24, y:21, color:'#4fd6d0',
       lines:['Каждый класс держит свою клятву. Выбери свою.','Таланты можно перековать в городе раз в сутки.'],
       services:['trainer','respec'], quests:[] },
+    { id:'veya',   ru:'Вея',       role:'Лекарь Пристани', zone:'haven', x:17, y:25, color:'#8fd08a',
+      lines:['В городе не умирают. Здесь просто снова начинают.','Если устал — постой у Светоча.'],
+      services:['heal','vendor'], quests:[] },
+    { id:'orin',   ru:'Орин',      role:'Казначей гильдии', zone:'haven', x:23, y:25, color:'#f0b45c',
+      lines:['Комиссия в пять процентов сжигает Серебро. Так Завет держит цену.','Всё, что продаёшь, кто-то раньше нашёл.'],
+      services:['vendor','market','trade'], quests:[] },
+    { id:'dorn',   ru:'Дорн',      role:'Страж ворот', zone:'haven', x:31, y:31, color:'#9db0bd',
+      lines:['За воротами Роща. Сначала манекены, потом Пепельники.','Дорога к вратам выложена камнем — не собьёшься.'],
+      services:['quest','portal'], quests:[], story:true },
+    { id:'torin',  ru:'Торин',     role:'Наставник двора', zone:'haven', x:28, y:27, color:'#c8a870',
+      lines:['Три удара по манекену, и рука вспомнит, что умела.','Учебный двор безопасен: здесь даже сталь не отвечает.'],
+      services:['trainer','vendor'], quests:[] },
+    { id:'yaran',  ru:'Яран',      role:'Дозорный Рощи', zone:'grove', x:8, y:8, color:'#8fd08a',
+      lines:['Держись тропы: первые лагеря дальше, у корней.','Пепельники пришли с пеплом первой армии.'],
+      services:['quest','heal','vendor'], quests:['q1','q2'] },
+    { id:'lidia',  ru:'Лидия',     role:'Торговка у тропы', zone:'grove', x:12, y:16, color:'#8fd08a',
+      lines:['Держись тропы — я ставлю прилавок там, где ещё безопасно.','Лишнее разберу, нужное продам.'],
+      services:['vendor','salvage','market'], quests:[] },
     { id:'serg',   ru:'Серж',      role:'Капитан дозора', zone:'ash', x:20, y:20, color:'#ff9a5c',
       lines:['Пустошь не прощает пауз. Считай мёртвых, не удары.'], services:['quest','vendor'], quests:['q4','q5'] },
     { id:'mira',   ru:'Мира',      role:'Торговка реликвиями', zone:'ash', x:14, y:26, color:'#b07ae8',
@@ -193,9 +223,9 @@
   /* ------------------------------- квесты ------------------------------- */
   // type: kill | collect | talk | explore | elite | boss | event
   A2.QUESTS = [
-    { id:'q1', ru:'Первый пепел',     zone:'grove', npc:'eldara', type:'kill',    target:'pepelnik', need:8,
+    { id:'q1', ru:'Первый пепел',     zone:'grove', npc:'yaran', type:'kill',    target:'pepelnik', need:8,
       xp:1400, gold:320, rep:15, item:1, next:'q2', text:'Роща задыхается. Очисти корни от Пепельников.' },
-    { id:'q2', ru:'Корни помнят',    zone:'grove', npc:'eldara', type:'collect', target:'Древесина Завета', need:5,
+    { id:'q2', ru:'Корни помнят',    zone:'grove', npc:'yaran', type:'collect', target:'Древесина Завета', need:5,
       xp:2100, gold:480, rep:20, item:1, next:'q3', text:'Принеси древесину: из неё кузнец выкует оберег.' },
     { id:'q3', ru:'Сталь и клятва',  zone:'grove', npc:'borin',  type:'elite',   target:'stareyshina', need:1,
       xp:3600, gold:760, rep:30, item:2, next:'q4', text:'Старейшина Корней одичал. Останови его.' },
@@ -219,6 +249,68 @@
       xp:34000, gold:7200, rep:120, item:4, next:null, text:'Последний акт Завета. Оставь след в летописи.' }
   ];
   A2.QUEST = id => A2.QUESTS.find(q => q.id === id);
+
+  /* ------------------------- АКТ I · ПРОЛОГ ------------------------- */
+  // Девять глав ведут новичка от пробуждения в безопасном городе до ворот.
+  // Каждая глава выдаёт ровно одну вещь экипировки: снаряжение собирается
+  // постепенно, а не падает легендарками на первой секунде.
+  A2.STORY = [
+    { id:'c1', act:'АКТ I · ПРОЛОГ', ru:'Пробуждение', zone:'haven', npc:'eldara',
+      text:'Ты просыпаешься у последнего Светоча. Шесть остальных погасли, седьмой едва теплятся. Эльдара говорит, что мир не погиб — он просто перестал держать слово. Сначала надо вспомнить, как его держать.',
+      objective:{ type:'talk', target:'eldara', need:1, ru:'Поговорить с Эльдарой у Светоча' },
+      waypoint:{ zone:'haven', x:20, y:19.5 },
+      reward:{ xp:160, gold:90, ilvl:2, slot:'chest', rarity:'common', ru:'Походный плащ Завета' },
+      hint:'Подойдите к Эльдаре у центрального Светоча и нажмите «Взаим.' },
+    { id:'c2', act:'АКТ I · ПРОЛОГ', ru:'Голоса Пристани', zone:'haven', npc:'borin',
+      text:'В Пристани Завета ещё живут ремесло, торговля и память. Эльдара просит обойти мастеровых: кузнеца Борина, наставницу Ирину и лекаря Вею. Каждый хранит часть того, что мир забыл.',
+      objective:{ type:'meet', targets:['borin','irina','veya'], need:3, ru:'Познакомиться с 3 жителями Пристани' },
+      waypoint:{ zone:'haven', x:20, y:22 },
+      reward:{ xp:240, gold:130, ilvl:3, slot:'helm', rarity:'common', ru:'Капюшон Пристани' },
+      hint:'НПС отмечены жёлтым на мини-карте. Поговорите с Борином, Ириной и Веей.' },
+    { id:'c3', act:'АКТ I · ПРОЛОГ', ru:'Дорога к учебному двору', zone:'haven', npc:'torin',
+      text:'За площадью, по выложенной камнем дороге, лежит учебный двор. Там даже сталь не отвечает ударом — можно вспомнить руку без риска.',
+      objective:{ type:'reach', target:'yard', need:1, ru:'Дойти до учебного двора' },
+      waypoint:{ zone:'haven', x:28.5, y:28 },
+      reward:{ xp:320, gold:170, ilvl:4, slot:'boots', rarity:'common', ru:'Сапоги дозорного' },
+      hint:'Идите по каменной дороге на юго-восток, к манекенам. Цель отмечена на мини-карте.' },
+    { id:'c4', act:'АКТ I · ПРОЛОГ', ru:'Снаряжение', zone:'haven', npc:'irina',
+      text:'Плащ, выданный Эльдарой, лежит в сумке. Ирина напоминает: вещь ничего не значит, пока не надета. Открой «Снаряжение» и надень её сами — или доверься кнопке «Надеть лучшее».',
+      objective:{ type:'equip', target:'any', need:1, ru:'Надеть любой предмет из сумки' },
+      waypoint:null,
+      reward:{ xp:420, gold:210, ilvl:5, slot:'gloves', rarity:'rare', ru:'Перчатки первой клятвы' },
+      hint:'Нажмите «⚔ Снаряжение» в нижней панели (или тап по портрету) и наденьте предмет.' },
+    { id:'c5', act:'АКТ I · ПРОЛОГ', ru:'Пробный удар', zone:'haven', npc:'torin',
+      text:'Три удара по манекенам — и рука вспомнит, что умела. Манекены не атакуют и быстро восстанавливаются: это не бой, это память тела.',
+      objective:{ type:'kill', target:'maket', need:3, ru:'Разбить 3 учебных манекена' },
+      waypoint:{ zone:'haven', x:28.5, y:28 },
+      reward:{ xp:560, gold:270, ilvl:6, slot:'amulet', rarity:'rare', ru:'Оберег Светоча', mats:4 },
+      hint:'Подойдите к манекенам: автоатака включится сама. Лут подберётся магнитом.' },
+    { id:'c6', act:'АКТ I · ПРОЛОГ', ru:'Первая добыча', zone:'haven', npc:'orin',
+      text:'Даже с манекена что-то остаётся. Орин учит считать добычу: вещи поднимаются сами, а всё лишнее можно продать или разобрать.',
+      objective:{ type:'loot', target:'any', need:3, ru:'Подобрать 3 предмета' },
+      waypoint:null,
+      reward:{ xp:680, gold:310, ilvl:7, slot:'ring', rarity:'rare', ru:'Кольцо Пристани' },
+      hint:'Добейте ещё манекенов или нажмите «✦ Забрать лут», если вещи лежат рядом.' },
+    { id:'c7', act:'АКТ I · ПРОЛОГ', ru:'Сталь и клятва', zone:'haven', npc:'borin',
+      text:'Борин берёт первый осколок и закаляет вещь. «Заточка до +12, — говорит он. — Выше — только клятва».',
+      objective:{ type:'enchant', target:'any', need:1, ru:'Заточить предмет в кузнице' },
+      waypoint:{ zone:'haven', x:16, y:21 },
+      reward:{ xp:820, gold:400, ilvl:8, slot:'weapon', rarity:'rare', ru:'Клинок Пристани', mats:3 },
+      hint:'Поговорите с Борином → «Кузница», либо откройте Снаряжение → «Заточить всё».' },
+    { id:'c8', act:'АКТ I · ПРОЛОГ', ru:'Прилавок', zone:'haven', npc:'orin',
+      text:'Казначей объясняет закон города: пять процентов комиссии сжигают Серебро, чтобы цена не расползалась. Продайте или выставьте одну лишнюю вещь.',
+      objective:{ type:'sell', target:'any', need:1, ru:'Продать или выставить предмет' },
+      waypoint:{ zone:'haven', x:23, y:25 },
+      reward:{ xp:960, gold:520, ilvl:9, slot:'offhand', rarity:'rare', ru:'Печать Завета' },
+      hint:'Сумка → предмет → «Продать» или «На рынок». Можно сразу у Орина.' },
+    { id:'c9', act:'АКТ I · ПРОЛОГ', ru:'За ворота', zone:'haven', npc:'dorn',
+      text:'Дорн отпирает ворота. За ними — Роща, первые лагеря и длинная цепочка Завета из двенадцати глав. Пристань останется позади, но вернуться можно всегда.',
+      objective:{ type:'gate', target:'grove', need:1, ru:'Пройти через ворота в Рощу Завета' },
+      waypoint:{ zone:'haven', x:35, y:35 },
+      reward:{ xp:1300, gold:750, ilvl:12, slot:'chest', rarity:'epic', ru:'Доспех Возжённого', mats:5 },
+      hint:'Идите к воротам на юго-востоке и нажмите «Взаим.» у портала.' }
+  ];
+  A2.STORY_COUNT = A2.STORY.length;
 
   /* ------------------------------ таланты ------------------------------ */
   A2.TALENTS = [

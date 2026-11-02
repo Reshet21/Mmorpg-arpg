@@ -142,6 +142,7 @@
 
   /* --------------------------- фоновый амбиент --------------------------- */
   const ZONE_TONES = {
+    haven:  { root:131, notes:[262,330], type:'sine',     wind:700,  q:0.8 },
     grove:  { root:110, notes:[220,277], type:'sine',     wind:520,  q:0.7 },
     ash:    { root:82,  notes:[164,196], type:'triangle', wind:340,  q:0.5 },
     frost:  { root:98,  notes:[196,247], type:'sine',     wind:1100, q:1.4 },

@@ -21,8 +21,9 @@
       quests: {}, pity: 0, ult: 0, dodgeCharges: C.DODGE_CHARGES, dodgeCd: 0,
       achievements: [], playtime: 0, dead: false, gearRarity: 'common', stats: {}
     };
-    // стартовый набор: обычное оружие и нагрудник
-    ['weapon','chest'].forEach(s => { const it = rollItem(1, 'grove', { slot:s, rarity:'common' }); ch.equip[s] = it; });
+    // G2.3 · стартуем только с оружием: остальные 7 слотов выдаются
+    // постепенно как награды за главы пролога.
+    ch.equip.weapon = rollItem(1, 'grove', { slot:'weapon', rarity:'common' });
     recompute(ch); ch.hp = ch.maxHp;
     return ch;
   }
@@ -189,7 +190,14 @@
     ch.pity++;
     let rarity = null;
     if (ch.pity >= C.PITY) { rarity = 'legendary'; ch.pity = 0; }
-    const it = rollItem(mob.lvl, z.id, rarity ? {rarity} : {});
+    let it = rollItem(mob.lvl, z.id, rarity ? {rarity} : {});
+    // G2.3 · в прологе редкость дропа растёт вместе с сюжетом:
+    // никаких легендарок на первой минуте и никакого «сразу эпик».
+    if (!rarity && G.story && !G.story.done) {
+      const maxIdx = G.story.chapter < 5 ? 1 : 2;
+      const idx = A2.RARITIES.findIndex(r=>r.id===it.rarity);
+      if (idx > maxIdx) it = rollItem(it.ilvl, z.id, { slot:it.slot, rarity:A2.RARITIES[maxIdx].id });
+    }
     if (it.rarity !== 'common' && it.rarity !== 'rare') ch.pity = 0;
     const px = at ? at.x : mob.x, py = at ? at.y : mob.y;
     const pos = walkableDropPos(G,
@@ -240,6 +248,7 @@
       if (G.market) G.market.newItems++;
       if (A2.Audio) A2.Audio.play('loot', d.item.rarity);
       G.onPickup && G.onPickup(d.item);
+      storyEvent(G,'loot',d.item.rarity,1);
     }
     if (d.gold) grantGold(G,d.gold);
     d.picked=true; d.t=-999;
@@ -308,6 +317,7 @@
     const v=Math.max(1,Math.round(it.price*0.42));
     grantGold(G,v);
     G.log && G.log('Продано: '+itemName(it)+' · +'+v+' S','#f0d27a');
+    storyEvent(G,'sell',it.slot,1);
     return true;
   }
   function autoPickupAllowed(G, item) {
@@ -324,6 +334,7 @@
     if(old) ch.inventory.push(old);
     ch.equip[it.slot]=it; recompute(ch);
     G.log('Надето: '+itemName(it), A2.RARITY(it.rarity).color);
+    storyEvent(G,'equip',it.slot,1);
     return true;
   }
   function salvage(G, it) {
@@ -340,7 +351,8 @@
     const cost=120*(it.plus+1);
     if(ch.gold<cost) return false;
     ch.gold-=cost; it.plus++; recompute(ch);
-    G.log('Заточка: '+itemName(it), it.plus>=10?'#ff7a4d':'#f0d27a'); return true;
+    G.log('Заточка: '+itemName(it), it.plus>=10?'#ff7a4d':'#f0d27a');
+    storyEvent(G,'enchant',slot,1); return true;
   }
   function reroll(G, slot) {
     const ch=G.char, it=ch.equip[slot]; if(!it||!it.affixes||!it.affixes.length) return false;
@@ -357,6 +369,8 @@
   /* ------------------------------- квесты ------------------------------- */
   function questAvailable(G, q) {
     const ch=G.char;
+    // G2.3 · 12 глав Завета открываются только после пролога в городе
+    if (q.id.charAt(0) === 'q' && G.story && !G.story.done) return false;
     if (ch.quests[q.id] && (ch.quests[q.id].done || ch.quests[q.id].active)) return false;
     const prev=A2.QUESTS.find(p=>p.next===q.id);
     return !prev || (ch.quests[prev.id] && ch.quests[prev.id].done);
@@ -401,6 +415,12 @@
   /* ------------------------------- НПС ------------------------------- */
   function dialogue(G, npc) {
     const lines=npc.lines.slice(), options=[];
+    // G2.3 · у НПС, который ведёт текущую главу, первым идёт сюжетная реплика
+    const sc=storyChapter(G);
+    if(sc && sc.npc===npc.id) {
+      lines.unshift('«'+sc.ru+'» · '+sc.text.slice(0,140)+'…');
+      options.push({text:'✦ '+sc.ru+' · '+sc.objective.ru, action:'story'});
+    }
     const qs=questsFor(G,npc);
     qs.forEach(q=>{
       const st=G.char.quests[q.id];
@@ -453,6 +473,7 @@
       const type = mob.boss?'boss':mob.elite?'elite':'kill';
       const key = mob.boss ? G.world.zone.boss : mob.elite ? G.world.zone.elite : mob.id;
       questProgress(G,type,key,1);
+      storyEvent(G,'kill',mob.id,1);
       // дроп
       const rolls = mob.boss?6:mob.elite?3:(Math.random()<0.62?2:1);
       dropItem(G,mob,rolls);   // лут падает с каждого моба, как в Diablo/PoE
@@ -491,6 +512,7 @@
   }
   function hurtPlayer(G, amount, mob) {
     const ch=G.char;
+    if(A2.World.isSafe && A2.World.isSafe(G.world,G.player.x,G.player.y)) return false;
     if(ch.dead || ch.iframe>0) return false;
     const red=1-(ch.stats.armor/(ch.stats.armor+C.K_DEF))*0.62;
     const dmg=Math.max(1,Math.round(amount*red*(1-ch.stats.aoeDR*0.5)));
@@ -507,6 +529,76 @@
     return true;
   }
 
+  /* --------------------------- АКТ I · ПРОЛОГ --------------------------- */
+  function storyChapter(G) { return G.story && !G.story.done ? (A2.STORY[G.story.chapter] || null) : null; }
+  function storyNpc(G) { const c=storyChapter(G); return c ? c.npc : null; }
+  function storyWaypoint(G) {
+    const c=storyChapter(G);
+    if(!c || !c.waypoint) return null;
+    return { zone:c.waypoint.zone, x:c.waypoint.x, y:c.waypoint.y, npc:c.npc, label:c.ru };
+  }
+  function storyEvent(G, type, target, amount) {
+    const st=G.story;
+    if(!st || st.done) return false;
+    const ch=A2.STORY[st.chapter]; if(!ch) return false;
+    const ob=ch.objective;
+    let hit=false;
+    if(ob.type==='meet' && type==='talk') {
+      if((ob.targets||[]).indexOf(target)>=0 && !st.met[target]) { st.met[target]=1; hit=true; }
+    } else if(ob.type===type) {
+      if((type==='kill'||type==='gate'||type==='talk') && ob.target!==target) return false;
+      hit=true;
+    }
+    if(!hit) return false;
+    st.progress = ob.type==='meet' ? Object.keys(st.met).length : st.progress+(amount||1);
+    G.onStory && G.onStory(ch,'progress',st.progress,ob.need);
+    if(st.progress>=ob.need) storyComplete(G);
+    return true;
+  }
+  function storyCheckReach(G) {
+    const st=G.story; if(!st || st.done) return false;
+    const ch=A2.STORY[st.chapter];
+    if(!ch || ch.objective.type!=='reach' || !ch.waypoint) return false;
+    if(G.world.id!==ch.waypoint.zone) return false;
+    if(A2.dist(G.player.x,G.player.y,ch.waypoint.x,ch.waypoint.y)>2.6) return false;
+    return storyEvent(G,'reach',ch.objective.target,1);
+  }
+  function storyComplete(G) {
+    const st=G.story, ch=A2.STORY[st.chapter];
+    if(!ch) return false;
+    const rw=ch.reward;
+    grantXP(G,rw.xp); grantGold(G,rw.gold);
+    if(rw.mats) for(let i=0;i<rw.mats;i++){ const m=A2.pick(A2.MATS); G.char.mats[m]=(G.char.mats[m]||0)+1; }
+    if(rw.slot){
+      const it=rollItem(rw.ilvl,ch.zone,{slot:rw.slot,rarity:rw.rarity});
+      it.name=rw.ru; it.questReward=true;
+      G.char.inventory.push(it);
+      G.log('✦ Награда главы: '+itemName(it), A2.RARITY(it.rarity).color);
+      if(G.market) G.market.newItems++;
+    }
+    st.log.push(ch.id); st.chapter++; st.progress=0; st.met={};
+    G.log('◆ Глава завершена: «'+ch.ru+'»','#4fd6d0');
+    G.onStory && G.onStory(ch,'complete');
+    if(st.chapter>=A2.STORY.length){
+      st.done=true; st.unlocked=true;
+      G.log('◆ АКТ I завершён · открыта цепочка Завета (12 глав)','#f0d27a');
+      G.onStory && G.onStory(null,'act');
+    } else {
+      const nx=A2.STORY[st.chapter];
+      G.log('◆ Глава '+(st.chapter+1)+'/'+A2.STORY.length+': «'+nx.ru+'» — '+nx.objective.ru,'#f0d27a');
+      G.onStory && G.onStory(nx,'start');
+    }
+    save(G);
+    return true;
+  }
+  function storySkip(G) {
+    const st=G.story; if(!st) return false;
+    st.chapter=A2.STORY.length; st.done=true; st.unlocked=true; st.progress=0;
+    G.log('Пролог пропущен · открыта полная цепочка Завета','#9db0bd');
+    G.onStory && G.onStory(null,'skip');
+    save(G); return true;
+  }
+
   /* ------------------------------ сохранение ------------------------------ */
   function save(G) {
     if (typeof localStorage==='undefined') return;
@@ -516,7 +608,9 @@
         v:2, classId:ch.classId,name:ch.name,level:ch.level,xp:ch.xp,gold:ch.gold,
         inventory:ch.inventory,equip:ch.equip,mats:ch.mats,rep:ch.rep,kills:ch.kills,
         talents:ch.talents,talentPoints:ch.talentPoints,quests:ch.quests,pity:ch.pity,
-        achievements:ch.achievements,playtime:ch.playtime,zone:G.world.id,x:ch.x,y:ch.y
+        achievements:ch.achievements,playtime:ch.playtime,zone:G.world.id,x:ch.x,y:ch.y,
+        story:G.story?{chapter:G.story.chapter,done:G.story.done,met:G.story.met,
+          progress:G.story.progress,log:G.story.log,unlocked:G.story.unlocked}:null
       }));
     } catch(e) {}
   }
@@ -533,7 +627,12 @@
       talentPoints:data.talentPoints||0,quests:data.quests||{},pity:data.pity||0,
       achievements:data.achievements||[],playtime:data.playtime||0});
     G.char=ch; recompute(ch); ch.hp=ch.stats.maxHp;
-    G.pendingZone=data.zone||'grove'; G.pendingPos={x:data.x||12,y:data.y||16};
+    G.pendingZone=data.zone||'haven'; G.pendingPos={x:data.x||20,y:data.y||23};
+    if (G.story) {
+      const s=data.story;
+      if (s) G.story={ chapter:A2.clamp(s.chapter||0,0,A2.STORY.length), done:!!s.done,
+        met:s.met||{}, progress:s.progress||0, log:s.log||[], unlocked:!!s.unlocked };
+    }
     return true;
   }
 
@@ -542,5 +641,6 @@
     questAvailable, questsFor, startQuest, questProgress, completeQuest, activeQuests, sell, autoPickupAllowed,
     magnetLoot, collectNearby, unequip, equipBest, walkableDropPos, freeBagSlot,
     dialogue, mitigation, hit, elementColor, applyElement, spawnParticles, hurtPlayer,
-    save, load, restore };
+    save, load, restore,
+    storyChapter, storyNpc, storyWaypoint, storyEvent, storyCheckReach, storyComplete, storySkip };
 })();

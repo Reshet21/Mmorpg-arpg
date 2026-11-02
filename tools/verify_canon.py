@@ -216,8 +216,8 @@ sfx = re.findall(r"^\s{4}([a-z]+):\s*\(", audio_js, re.M)
 check(len(sfx) >= 24, f"G2.1: >=24 SFX в банке звуков ({len(sfx)})")
 check("AudioContext" in audio_js and "A2.Audio =" in audio_js and "master" in audio_js,
       "G2.1: WebAudio, master/sfx/music-шины и публичный API")
-check(len(re.findall(r"^\s{4}(grove|ash|frost|rift):", audio_js, re.M)) == 4,
-      "G2.1: амбиент всех 4 биомов")
+check(len(re.findall(r"^\s{4}(haven|grove|ash|frost|rift):", audio_js, re.M)) == 5,
+      "G2.3: амбиент 5 биомов, включая безопасный город")
 check("A2.RARITIES.indexOf" in audio_js or "A2.RARITY(rarity)" in audio_js,
       "G2.1: лутовые арпеджио зависят от редкости")
 check((MOB / "js/market.js").is_file() and len(market_js) > 5000,
@@ -245,7 +245,7 @@ for token in ("js/audio.js", "js/market.js", "btnMarket", "btnPlayers", "bagCoun
     check(token in html_g2, f"G2.1: mobile/index.html подключает {token}")
 for token in ("js/audio.js", "js/market.js"):
     check(token in sw_js, f"G2.1: service worker кэширует {token}")
-check("arkeon-g22-v1" in sw_js, "G2.2: версия офлайн-кэша обновлена")
+check("arkeon-g23-v1" in sw_js, "G2.3: версия офлайн-кэша обновлена")
 for token in ("market_list", "market_buy", "trade_invite", "trade_confirm", "whisper", "emote",
               "syncInitial", "broadcastRoster", "broadcastMarket", "idempotent"):
     check(token in sim_js, f"G2.1: авторитетный сервер поддерживает {token}")
@@ -297,8 +297,68 @@ check("bottom:calc(var(--safe-b) + 172px)" in css_g2,
       "G2.2: тулбар поднят над блоком управления — кнопки не перекрыты джойстиком")
 check("A2.Render.minimap" in main_js2 and "G.uiT>0.2" in main_js2,
       "G2.2: обновление HUD и мини-карты реже для плавности")
-check("G2.2" in html2 and "G2.2" in (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8"),
+check(("G2.2" in html2 or "G2.3" in html2) and "G2.2" in (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8"),
       "G2.2: версия зафиксирована в клиенте и спецификации студии")
+
+# --- 8e. G2.3 «Пристань Завета»: город, пролог, постепенная экипировка ---
+data_js3 = (MOB / "js/data.js").read_text(encoding="utf-8")
+world_js3 = (MOB / "js/world.js").read_text(encoding="utf-8")
+rpg_js3 = (MOB / "js/rpg.js").read_text(encoding="utf-8")
+main_js3 = (MOB / "js/main.js").read_text(encoding="utf-8")
+render_js3 = (MOB / "js/render.js").read_text(encoding="utf-8")
+html3 = (MOB / "index.html").read_text(encoding="utf-8")
+css3 = (MOB / "css/g2.css").read_text(encoding="utf-8")
+doc3 = (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8")
+check("id:'haven'" in data_js3 and "safe:true" in data_js3,
+      "G2.3: безопасный город Пристань Завета есть в каноне зон")
+check(data_js3.count("next:'") >= 4 and "prev:null" in data_js3 and "backSpawn" in data_js3,
+      "G2.3: линейная цепочка зон вместо кольцевого перехода")
+check("A2.STORY = [" in data_js3 and data_js3.count("act:'АКТ I · ПРОЛОГ'") == 9,
+      "G2.3: пролог из 9 глав с актами и текстом")
+check(data_js3.count("reward:{") >= 9 and "questReward" in rpg_js3,
+      "G2.3: за каждую главу выдаётся предмет экипировки")
+for token in ("storyChapter", "storyEvent", "storyComplete", "storyCheckReach", "storySkip"):
+    check(token in rpg_js3, f"G2.3: rpg.js реализует {token}")
+check("G.story && !G.story.done) return false" in rpg_js3,
+      "G2.3: 12 квестов Завета открываются только после пролога")
+check("G.story.chapter < 5 ? 1 : 2" in rpg_js3,
+      "G2.3: редкость дропа растёт вместе с сюжетом, без легендарок на старте")
+check("ch.equip.weapon = rollItem" in rpg_js3,
+      "G2.3: старт только с оружием, остальные слоты выдаются квестами")
+check("story:G.story?" in rpg_js3 and "data.story" in rpg_js3,
+      "G2.3: прогресс пролога сохраняется и восстанавливается")
+check("W.safe = !!z.safe" in world_js3 and "W.eventTimer = W.safe ? Infinity : 65" in world_js3,
+      "G2.3: в городе отключены лагеря, босс и Волны Разлома")
+check("ai === 'dummy'" in world_js3 and "'maket'" in world_js3,
+      "G2.3: учебные манекены не двигаются и не атакуют")
+check("buildCity" in world_js3 and "'house'" in world_js3 and "'lamp'" in world_js3,
+      "G2.3: городская застройка — дома, прилавки, фонари, статуя")
+check("ZONE_SEEDS" in world_js3,
+      "G2.3: добавление города не ломает рельеф и коллизии боевых зон")
+check("safeCircles" in world_js3 and "isSafe" in world_js3,
+      "G2.3: безопасная дозорная тропа у входа в Рощу")
+check("local.storyDone === false" in world_js3,
+      "G2.3: мировые события не начинаются во время пролога")
+check("openModal('prologue')" in main_js3 and "openModal('story')" in main_js3,
+      "G2.3: кинематографичный пролог и «Книга Завета»")
+check("updateStoryUI" in main_js3 and "storyTarget" in main_js3,
+      "G2.3: текущая цель видна в HUD и на мини-карте")
+check("A2.RPG.storyEvent(G,'talk',npc.id" in main_js3 and
+      "A2.RPG.storyEvent(G,'gate',p.to" in main_js3,
+      "G2.3: разговор с НПС и выход через ворота продвигают сюжет")
+check("p.arrival" in main_js3, "G2.3: переход между зонами сохраняет точку прибытия")
+check("case 'dummy'" in render_js3 and "case 'house'" in render_js3 and "case 'statue'" in render_js3,
+      "G2.3: спрайты манекенов и городских объектов")
+check("if(miniCache.cv) g.drawImage(miniCache.cv,0,0);" in render_js3,
+      "G2.3: кэш подложки мини-карты реально используется")
+check("G.storyTarget" in render_js3 and "✦ СЮЖЕТ" in render_js3,
+      "G2.3: НПС текущей главы и путевая точка помечены в мире")
+check("btnStory" in html3 and "storyBar" in html3 and ".story-bar" in css3 and ".prologue" in css3,
+      "G2.3: кнопка сюжета, баннер главы и оформление книги")
+check("G2.3" in html3 and "G2.3" in doc3 and "16.24" in doc3,
+      "G2.3: версия зафиксирована в клиенте и спецификации студии")
+check("'haven'" in (ROOT / "server/sim.js").read_text(encoding="utf-8"),
+      "G2.3: авторитетный сервер знает безопасный город")
 
 # --- 9. Отчёт ---
 passed = sum(1 for ok, _ in results if ok)

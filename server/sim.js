@@ -46,7 +46,7 @@ function log(text) { events.push({t:Date.now(),text}); if(events.length>60) even
 
 function addPlayer(ws, hello) {
   const uid = 'p' + (++uidSeq).toString(36) + Date.now().toString(36).slice(-4);
-  const zone = worlds.has(hello.zone) ? hello.zone : 'grove';
+  const zone = worlds.has(hello.zone) ? hello.zone : 'haven';
   const p = {
     uid, ws, name:String(hello.name||'Возжённый').slice(0,16),
     classId:A2.CLASS(hello.classId).id, level:A2.clamp(parseInt(hello.level,10)||1,1,60),
@@ -366,12 +366,12 @@ function tick(dt) {
       onMobHit:(m,tgt,dmg)=>{
         const p=players.get(tgt&&tgt.uid); if(!p) return;
         p.hp=Math.round(p.hp-dmg*0.35);
-        if(p.hp<=0){ p.hp=p.maxHp; p.x=12; p.y=16; send(p.ws,{t:'event',text:'Возрождение у Светоча'}); }
+        if(p.hp<=0){ const sp=A2.ZONE(p.zone).spawn; p.hp=p.maxHp; p.x=sp[0]; p.y=sp[1]; send(p.ws,{t:'event',text:'Возрождение у Светоча'}); }
       },
       onTelegraph:(m,tg)=>{
         for(const p of zonePlayers(zone)) if(A2.dist(p.x,p.y,tg.x,tg.y)<tg.radius) {
           p.hp=Math.max(0,Math.round(p.hp-m.dmg*0.8));
-          if(p.hp<=0){ p.hp=p.maxHp; p.x=12; p.y=16; send(p.ws,{t:'event',text:'Возрождение у Светоча'}); }
+          if(p.hp<=0){ const sp=A2.ZONE(p.zone).spawn; p.hp=p.maxHp; p.x=sp[0]; p.y=sp[1]; send(p.ws,{t:'event',text:'Возрождение у Светоча'}); }
         }
       },
       onPhase:(m,ph)=>{ for(const p of zonePlayers(zone)) send(p.ws,{t:'event',text:'ФАЗА '+ph+' · '+m.nameOverride}); },
@@ -407,7 +407,7 @@ function start() {
 }
 
 function stats() {
-  return { version:'G2.1', tickHz:30, snapshotHz:20, aoi:C.AOI,
+  return { version:'G2.3', tickHz:30, snapshotHz:20, aoi:C.AOI,
     players:players.size, zones:worlds.size,
     mobs:Array.from(worlds.values()).reduce((a,W)=>a+W.mobs.filter(m=>m.alive).length,0),
     parties:parties.size, orders:orders.size, trades:trades.size, ledger:ledger.length,

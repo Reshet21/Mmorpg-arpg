@@ -7,8 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="АРКЕОН: Пепел Завета — G2.2 «Мир Завета». 6 классов, инвентарь, экипировка, лут без потерь, рынок и онлайн.">
-<title>АРКЕОН · Мир Завета · G2.2</title>
+<meta name="description" content="АРКЕОН: Пепел Завета — G2.3 «Пристань Завета». Безопасный город, сюжетный пролог, постепенная экипировка и онлайн.">
+<title>АРКЕОН · Мир Завета · G2.3</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -44,6 +44,7 @@
       </div>
     </div>
 
+    <button id="storyBar" class="story-bar"><b id="storyTitle">✦ АКТ I · ПРОЛОГ</b><span id="storyObj">Поговорите с Эльдарой</span></button>
     <div id="questTracker" class="quest-tracker">▸ Квесты у НПС с меткой !</div>
     <button id="btnLoot" class="loot-chip">✦ Забрать лут <b id="lootCount">0</b> · нажмите</button>
     <canvas id="minimap" width="132" height="132" aria-label="Мини-карта"></canvas>
@@ -59,6 +60,7 @@
       <button id="btnEquip" class="tool">⚔ Снаряжение <i id="equipCount" class="cnt">0</i></button>
       <button id="btnMarket" class="tool">▤ Рынок <i id="marketCount" class="cnt">0</i></button>
       <button id="btnPlayers" class="tool">♟ Игроки</button>
+      <button id="btnStory" class="tool">✦ Сюжет</button>
       <button id="btnQuests" class="tool">❖ Квесты</button>
       <button id="btnChat" class="tool">✉ Чат</button>
       <button id="btnParty" class="tool">⚑ Группа</button>
@@ -82,9 +84,9 @@
   <!-- ============================ СТАРТ ============================ -->
   <div id="startScreen" class="overlay">
     <div class="sheet">
-      <div class="logo"><span class="beacon"></span><h1>АРКЕОН</h1><p>ПЕПЕЛ ЗАВЕТА · G2.2 МИР ЗАВЕТА</p></div>
+      <div class="logo"><span class="beacon"></span><h1>АРКЕОН</h1><p>ПЕПЕЛ ЗАВЕТА · G2.3 ПРИСТАНЬ ЗАВЕТА</p></div>
       <p class="tagline">«Мир не погиб. Он перестал держать слово.»</p>
-      <div class="g21-chip">G2.2 · ИНВЕНТАРЬ · СНАРЯЖЕНИЕ · БЕЗ ЛАГОВ · ЛУТ ВСЕГДА ПОДБИРАЕТСЯ</div>
+      <div class="g21-chip">G2.3 · ГОРОД · ПРОЛОГ ИЗ 9 ГЛАВ · ПОСТЕПЕННАЯ ЭКИПИРОВКА</div>
       <h2 class="section-title">Выбери Возжённого · 6 классов канона</h2>
       <div class="class-grid">
         <button class="class-card selected" data-class="warrior"><b>⚔ ВОИН</b><small>Ярость · танк · BREAK</small></button>
@@ -98,7 +100,9 @@
       <div class="how">
         <div><b>◉</b> Джойстик — движение по открытому миру, свайп — додж с i-frames</div>
         <div><b>✦</b> 6 навыков, автоатака по цели, ультимейт на 100% Заряда Искры</div>
-        <div><b>❖</b> НПС с «!», 12 квестов, 4 зоны, порталы, мировой босс и Волны Разлома</div>
+        <div><b>✦</b> Пролог из 9 глав в безопасном городе: сначала сюжет и НПС, потом бой</div>
+        <div><b>⚔</b> За каждую главу — часть экипировки; 12 квестов Завета откроются после ворот</div>
+        <div><b>❖</b> НПС с «!», 5 зон, порталы, мировой босс и Волны Разлома</div>
         <div><b>⚑</b> Онлайн: укажи адрес wss-сервера; без него — союзники-призраки</div>
         <div><b>▤</b> Инвентарь 40 слотов, лучи редкости, рынок с комиссией 5%, торговля 1:1 и шёпот</div>
       </div>

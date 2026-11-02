@@ -86,6 +86,7 @@
       if (online()) { if (G.net.syncItems) G.net.syncItems(); netSend({ t:'market_list', order, key:key() }); }
       else M.orders.push(order);
       M.ledger.push({ type:'fee', amount:-f, t:Date.now(), text:'Комиссия рынка 5%' });
+    if (A2.RPG && A2.RPG.storyEvent) A2.RPG.storyEvent(G,'sell',it.slot,1);
       M.history.push({ t:Date.now(), text:'Выставлен '+A2.RPG.itemName(it)+' за '+price+' S' });
       G.log && G.log('▣ Лот выставлен: '+A2.RPG.itemName(it)+' · '+price+' S · комиссия '+f+' S','#f0d27a');
       snd('market'); return true;

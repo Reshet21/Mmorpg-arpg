@@ -10,6 +10,9 @@
   const C = A2.C, N = C.ZONE_N;
 
   const T = { GROUND:0, PATH:1, WATER:2, ROCK:3, WALL:4, BRIDGE:5 };
+  // Фиксированные сиды по идентификатору зоны: добавление города не должно
+  // менять рельеф и коллизии уже существующих боевых зон.
+  const ZONE_SEEDS = { haven:4242, grove:1337, ash:9054, frost:16771, rift:24488 };
 
   function noise(x, y, s, seed) {
     const xi = Math.floor(x / s), yi = Math.floor(y / s);
@@ -25,6 +28,15 @@
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       const n = noise(x, y, 7, seed), n2 = noise(x, y, 2.3, seed + 91);
       let v = T.GROUND;
+      // G2.3 · безопасный город: плаза, мощёная площадь и дорога к воротам
+      if (z.safe) {
+        if (x >= 14 && x <= 27 && y >= 16 && y <= 28) v = T.PATH;
+        if (A2.dist(x, y, 28.5, 28) < 4.2) v = T.PATH;
+        if (x >= 26 && y >= 26 && Math.abs((x - 26) - (y - 26)) < 2.2 && x < N - 2 && y < N - 2) v = T.PATH;
+        if (x < 1 || y < 1 || x > N - 2 || y > N - 2) v = T.WALL;
+        t[y * N + x] = v;
+        continue;
+      }
       // главная дорога: плавная диагональ через всю зону
       const road = Math.abs((x * 0.78 + Math.sin(y * 0.28) * 3.2) - y * 0.92 - 2);
       if (road < 1.7) v = T.PATH;
@@ -43,6 +55,9 @@
     const props = [], lights = [];
     const rnd = A2.rng(seed + 777);
     const kinds = z.props;
+    // G2.3 · Пристань Завета: рукотворная планировка вместо случайного леса.
+    if (z.safe) return buildCity(z, props, lights);
+
     for (let y = 2; y < N - 2; y++) for (let x = 2; x < N - 2; x++) {
       const tile = tiles[y * N + x];
       const h = A2.hash(x, y, seed + 13);
@@ -69,9 +84,33 @@
     return { props, lights };
   }
 
+  function buildCity(z, props, lights) {
+    const add=(x,y,kind,size,block,variant)=>props.push({x:x+0.5,y:y+0.5,kind,variant:variant||0,
+      size:size||1,seed:Math.floor(A2.hash(x,y,77)*1e6),block:!!block});
+    // дома по периметру площади (вне проходимой зоны)
+    [[11,14,1.25],[28,14,1.15],[11,29,1.2],[30,22,1.1],[16,11,1.0],[24,11,1.0],[31,30,1.05]].forEach((h,i)=>add(h[0],h[1],'house',h[2],true,i%3));
+    // прилавки, колодец, статуя Светоча
+    [[15,23],[25,23],[15,18],[25,18]].forEach((q,i)=>add(q[0],q[1],'stall',0.9,false,i%2));
+    add(20,15,'well',1.05,false); add(20,20,'statue',1.3,false);
+    // фонари: тёплый свет города
+    [[14,17],[26,17],[14,27],[26,27],[30,30],[33,33],[12,22],[28,22]].forEach(q=>{
+      add(q[0],q[1],'lamp',0.9,false);
+      lights.push({x:q[0]+0.5,y:q[1]+0.5,color:'#ffcf8a',r:6.4,pulse:A2.hash(q[0],q[1],5)*6});
+    });
+    // знамёна, палатки, цветы, низкие стены
+    [[18,16],[22,16],[18,28],[22,28]].forEach(q=>add(q[0],q[1],'banner',1.05,false));
+    [[17,27],[23,27]].forEach((q,i)=>add(q[0],q[1],'tent',1.0,false,i));
+    [[19,17],[21,17],[19,24],[21,24],[13,20],[27,20]].forEach(q=>add(q[0],q[1],'flower',0.8,false));
+    [[9,18],[9,19],[9,20],[9,21],[30,17],[30,18],[30,19]].forEach(q=>add(q[0],q[1],'wall',0.9,false));
+    add(27,26,'target',0.95,false);   // мишень учебного двора
+    lights.push({x:20.5,y:20.5,color:'#ffe6a8',r:9,pulse:0});
+    return { props, lights };
+  }
+
   function buildCamps(z, seed) {
+    if (z.safe) return [];
     const camps = [], rnd = A2.rng(seed + 4242);
-    const spots = [[8, 8], [27, 9], [10, 27], [29, 28], [20, 32], [33, 17], [6, 19], [24, 5]];
+    const spots = z.campSpots || [[8, 8], [27, 9], [10, 27], [29, 28], [20, 32], [33, 17], [6, 19], [24, 5]];
     spots.forEach((s, i) => {
       const lvl = Math.round(A2.lerp(z.lv[0], z.lv[1], (i + 0.5) / spots.length));
       camps.push({ x: s[0] + 0.5, y: s[1] + 0.5, r: 4.2, lvl, count: 3 + Math.floor(rnd() * 3),
@@ -107,7 +146,7 @@
   }
 
   function create(zoneId, seed) {
-    const z = A2.ZONE(zoneId), s = (seed | 0) || 1337;
+    const z = A2.ZONE(zoneId), s = ZONE_SEEDS[z.id] || ((seed | 0) || 1337);
     const tiles = buildTiles(z, s);
     const built = buildProps(z, tiles, s);
     const camps = buildCamps(z, s);
@@ -118,33 +157,53 @@
       eventTimer: 65, eventActive: null, bossAlive: false, bossRespawn: 0, kills: 0,
       seed: s, ground: null, groundKey: '', rnd: A2.rng(s + 9999)
     };
-    // порталы: к следующей зоне — на дальней границе
+    // G2.3 · линейная цепочка зон с точкой прибытия (раньше был кольцевой
+    // переход: из Разлома игрок попадал обратно в Рощу).
     const idx = A2.ZONES.indexOf(z);
-    const next = A2.ZONES[(idx + 1) % A2.ZONES.length];
-    W.portals.push({ x: N - 4.5, y: N - 4.5, to: next.id, label: '→ ' + next.ru, r: 1.8 });
-    if (idx > 0) {
-      const prev = A2.ZONES[idx - 1];
-      W.portals.push({ x: 3.5, y: 3.5, to: prev.id, label: '← ' + prev.ru, r: 1.8 });
+    const nextId = z.next || (idx < A2.ZONES.length - 1 ? A2.ZONES[idx + 1].id : null);
+    const prevId = z.prev || (idx > 0 ? A2.ZONES[idx - 1].id : null);
+    if (nextId) {
+      const dest = A2.ZONE(nextId);
+      W.portals.push({ x: N - 4.5, y: N - 4.5, to: nextId, label: '→ ' + dest.ru, r: 2.2,
+        arrival: { x: dest.spawn[0], y: dest.spawn[1] } });
     }
-    // босс в центре дальней поляны
-    const bd = A2.BOSSES[z.boss];
-    W.bossSpot = { x: N / 2, y: 8.5, def: A2.MOB(z.mobs[z.mobs.length - 1]), ru: bd.ru };
-    // начальное заселение лагерей
-    camps.forEach(c => {
-      for (let i = 0; i < c.count; i++) {
-        const id = c.ids[Math.floor(W.rnd() * c.ids.length)];
-        const a = W.rnd() * Math.PI * 2, r = W.rnd() * c.r;
-        const m = makeMob(W, id, A2.clamp(c.x + Math.cos(a) * r, 2, N - 3), A2.clamp(c.y + Math.sin(a) * r, 2, N - 3), c.lvl, { camp: c });
-        W.mobs.push(m); c.mobs.push(m.uid);
-      }
-      if (c.elite) {
-        const ed = A2.ELITES[z.elite], em = A2.MOB(ed.mob);
-        const m = makeMob(W, em, c.x + 1.4, c.y - 1.2, c.lvl + 2, { elite: true, ru: ed.ru, color: ed.color, camp: c });
-        m.hp = m.maxHp = Math.round(m.maxHp * (ed.hp / 6.5)); m.dmg = Math.round(m.dmg * (ed.dmg / 1.8));
-        W.mobs.push(m); c.mobs.push(m.uid);
-      }
-    });
-    spawnBoss(W);
+    if (prevId) {
+      const dest = A2.ZONE(prevId);
+      W.portals.push({ x: 3.5, y: 3.5, to: prevId, label: '← ' + dest.ru, r: 2.2,
+        arrival: { x: dest.backSpawn[0], y: dest.backSpawn[1] } });
+    }
+    // безопасная зона: ни лагерей, ни элит, ни босса, ни Волн Разлома
+    W.safe = !!z.safe;
+    W.safeCircles = z.id === 'grove' ? [{ x: 5.5, y: 5.5, r: 9 }] : [];
+    W.eventTimer = W.safe ? Infinity : 65;
+    if (z.boss) {
+      const bd = A2.BOSSES[z.boss];
+      W.bossSpot = { x: N / 2, y: 8.5, def: A2.MOB(z.mobs[z.mobs.length - 1]), ru: bd.ru };
+    } else W.bossSpot = null;
+    if (!W.safe) {
+      camps.forEach(c => {
+        for (let i = 0; i < c.count; i++) {
+          const id = c.ids[Math.floor(W.rnd() * c.ids.length)];
+          const a = W.rnd() * Math.PI * 2, r = W.rnd() * c.r;
+          const m = makeMob(W, id, A2.clamp(c.x + Math.cos(a) * r, 2, N - 3), A2.clamp(c.y + Math.sin(a) * r, 2, N - 3), c.lvl, { camp: c });
+          W.mobs.push(m); c.mobs.push(m.uid);
+        }
+        if (c.elite) {
+          const ed = A2.ELITES[z.elite], em = A2.MOB(ed.mob);
+          const m = makeMob(W, em, c.x + 1.4, c.y - 1.2, c.lvl + 2, { elite: true, ru: ed.ru, color: ed.color, camp: c });
+          m.hp = m.maxHp = Math.round(m.maxHp * (ed.hp / 6.5)); m.dmg = Math.round(m.dmg * (ed.dmg / 1.8));
+          W.mobs.push(m); c.mobs.push(m.uid);
+        }
+      });
+      spawnBoss(W);
+    } else {
+      // учебный двор: 4 неагрессивных манекена с быстрым респавном
+      [[27.2,27.2],[29.6,27.2],[27.2,29.6],[29.6,29.6]].forEach((q,i)=>{
+        const m = makeMob(W, 'maket', q[0], q[1], 1, { camp:{respawn:6}, ru:'Учебный манекен' });
+        m.aggro=0; m.dmg=0; m.speed=0; W.mobs.push(m);
+      });
+      W.events.push({ t:0, text:'✦ Пристань Завета · безопасная зона · здесь не нападают' });
+    }
     return W;
   }
 
@@ -196,6 +255,12 @@
       return;
     }
     m.anim += dt; m.hitFlash = Math.max(0, m.hitFlash - dt * 3);
+    // манекены никогда не двигаются и не атакуют
+    if (m.ai === 'dummy') { m.state = 'idle'; m.target = null; return; }
+    // дозорная тропа у входа в Рощу: мобы внутри не агрессируют
+    if (W.safeCircles && W.safeCircles.some(c => A2.dist(m.x, m.y, c.x, c.y) < c.r)) {
+      m.state = 'idle'; m.target = null; return;
+    }
     m.atkCd -= dt; m.castCd -= dt;
     m.statuses = m.statuses.filter(s => s.until > W.time);
     const target = nearestPlayer(W, players, m.x, m.y, m.aggro * (m.boss ? 1.4 : 1));
@@ -268,6 +333,9 @@
 
   function startEvent(W, players) {
     const p = players[0]; if (!p) return;
+    if (W.safe) return;                                      // в городе нет Волн Разлома
+    const local = players.find(q => q.uid === 'local') || players[0];
+    if (local && local.storyDone === false) return;          // пролог ещё идёт
     const id = 'wave_' + Math.floor(W.time);
     W.eventActive = { id, ru:'Волна Разлома', t:0, dur:75, need:14, killed:0, x:p.x, y:p.y };
     for (let i = 0; i < 12; i++) {
@@ -284,8 +352,8 @@
     W.time += dt;
     for (let i = 0; i < W.mobs.length; i++) updateMob(W, W.mobs[i], dt, players, hooks);
     // респавн босса
-    if (!W.bossAlive && W.time > W.bossRespawn) { spawnBoss(W); W.events.push({t:W.time,text:'Мировой босс вернулся на поляну'}); }
-    // мировое событие
+    if (!W.safe && !W.bossAlive && W.time > W.bossRespawn) { spawnBoss(W); W.events.push({t:W.time,text:'Мировой босс вернулся на поляну'}); }
+    // мировое событие (в безопасной зоне таймер = Infinity)
     W.eventTimer -= dt;
     if (W.eventTimer <= 0 && !W.eventActive) { startEvent(W, players); W.eventTimer = 150; }
     if (W.eventActive) {
@@ -310,7 +378,8 @@
     return out;
   }
   function kill(W, m) {
-    m.alive = false; m.hp = 0; m.respawnAt = W.time + (m.boss ? 180 : (m.camp ? m.camp.respawn : 30));
+    m.alive = false; m.hp = 0;
+    m.respawnAt = W.time + (m.ai === 'dummy' ? 6 : (m.boss ? 180 : (m.camp ? m.camp.respawn : 30)));
     if (m.boss) { W.bossAlive = false; W.bossRespawn = W.time + 180; }
     W.kills++;
     if (W.eventActive && m.event === W.eventActive.id) W.eventActive.killed++;
@@ -323,6 +392,11 @@
     return W.npcs.find(n => A2.dist(n.x, n.y, x, y) < (r || 2.2)) || null;
   }
 
+  function isSafe(W, x, y) {
+    if (!W) return false;
+    if (W.safe) return true;
+    return !!(W.safeCircles && W.safeCircles.some(c => A2.dist(x, y, c.x, c.y) < c.r));
+  }
   A2.World = { T, create, update, kill, mobsNear, canMove, blocked, portalAt, npcAt,
-    makeMob, spawnBoss, startEvent, mobStats, noise };
+    makeMob, spawnBoss, startEvent, mobStats, noise, isSafe };
 })();

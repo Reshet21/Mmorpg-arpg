@@ -64,7 +64,7 @@ button{border:0;background:none;cursor:pointer}
 #minimap{position:absolute;top:calc(var(--safe-t) + 90px);right:calc(var(--safe-r) + 8px);
   width:118px;height:118px;border-radius:12px;border:1px solid var(--line);
   box-shadow:0 6px 20px rgba(0,0,0,.5);background:#0b1720}
-.hint{position:absolute;left:50%;top:calc(var(--safe-t) + 112px);transform:translateX(-50%);
+.hint{position:absolute;left:50%;top:calc(var(--safe-t) + 152px);transform:translateX(-50%);
   background:rgba(13,24,33,.92);border:1px solid var(--gold);border-radius:18px;padding:5px 13px;
   font-size:10px;color:var(--gold2);white-space:nowrap;opacity:0;transition:.25s;max-width:92vw;overflow:hidden}
 .hint.show{opacity:1}
@@ -208,7 +208,6 @@ h4{font-size:10.5px;letter-spacing:1.2px;color:var(--cyan);margin:14px 0 7px;tex
   .skill.ult{width:47px;height:47px}.skill.dodge{width:54px;height:54px}
   #minimap{width:110px;height:110px}.chat-log{width:min(56vw,260px)}
 }
-@media (orientation:landscape) and (max-height:520px){ .loot-chip{top:calc(var(--safe-t) + 118px)} }
 @media (max-width:380px){
   .pinfo{min-width:132px;padding:5px 7px}.avatar{width:28px;height:28px;flex-basis:28px;font-size:13px}
   .bar-t{font-size:7px}.zone{font-size:9px}
@@ -230,7 +229,7 @@ h4{font-size:10.5px;letter-spacing:1.2px;color:var(--cyan);margin:14px 0 7px;tex
 .cnt{font-style:normal;display:inline-grid;place-items:center;min-width:16px;height:15px;padding:0 3px;
   margin-left:3px;border-radius:8px;background:rgba(79,214,208,.18);color:var(--cyan);font-size:8px}
 .cnt.hot{background:rgba(232,178,92,.25);color:var(--gold2)}
-.loot-chip{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--safe-t) + 146px);
+.loot-chip{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--safe-t) + 186px);
   z-index:6;padding:8px 14px;border-radius:18px;font-size:10px;letter-spacing:.4px;color:var(--gold2);
   background:linear-gradient(180deg,rgba(70,54,20,.96),rgba(30,24,12,.96));
   border:1px solid rgba(232,178,92,.65);box-shadow:0 4px 18px rgba(0,0,0,.55);
@@ -308,3 +307,38 @@ h4{font-size:10.5px;letter-spacing:1.2px;color:var(--cyan);margin:14px 0 7px;tex
 .slot-card:active{transform:scale(.97);border-color:var(--gold)}
 .detail.empty{opacity:.7}
 @media (min-width:560px){ .equip-grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
+
+/* ===================== G2.3 · город и сюжетный пролог ===================== */
+.story-bar{position:absolute;left:calc(var(--safe-l) + 8px);top:calc(var(--safe-t) + 92px);
+  z-index:5;display:none;flex-direction:column;gap:1px;align-items:flex-start;text-align:left;
+  max-width:min(56vw,290px);min-width:min(52vw,240px);padding:6px 12px;border-radius:12px;
+  background:linear-gradient(180deg,rgba(16,44,48,.94),rgba(8,24,28,.96));
+  border:1px solid rgba(79,214,208,.6);box-shadow:0 4px 20px rgba(0,0,0,.5);
+  color:var(--cyan);pointer-events:auto;touch-action:manipulation}
+.story-bar.show{display:flex}
+.quest-tracker.story-hidden{display:none}
+.story-bar.flash{animation:storyPulse .8s ease-out 2}
+.story-bar b{font-size:9px;letter-spacing:.7px;color:#8fe8e2}
+.story-bar span{font-size:10px;color:#e9efed;white-space:normal;line-height:1.35;max-width:100%}
+@keyframes storyPulse{0%{box-shadow:0 0 0 rgba(79,214,208,0)}50%{box-shadow:0 0 24px rgba(79,214,208,.85)}100%{box-shadow:0 0 0 rgba(79,214,208,0)}}
+.prologue{text-align:left;background:linear-gradient(160deg,rgba(22,40,46,.85),rgba(8,16,22,.9));
+  border:1px solid rgba(79,214,208,.35);border-radius:14px;padding:12px 14px;margin:6px 0 10px}
+.prologue .pchapter{font-size:8px;letter-spacing:1.6px;color:var(--cyan);margin-bottom:5px}
+.prologue h3{margin:2px 0 8px;font-size:15px;color:var(--gold2);letter-spacing:.5px}
+.prologue p{margin:0 0 9px;font-size:11px;line-height:1.65;color:#d7e3e4}
+.prologue .pnote{font-size:9.5px;line-height:1.55;color:var(--muted);
+  border-left:2px solid rgba(79,214,208,.5);padding:4px 0 4px 9px;margin:6px 0}
+.prologue .pnote b{color:var(--gold2)}
+.pgoal{display:flex;flex-direction:column;gap:4px;background:rgba(6,14,18,.7);
+  border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin:8px 0}
+.pgoal>b{font-size:8px;letter-spacing:1.4px;color:var(--gold2)}
+.pgoal>span{font-size:11px;color:#e9efed}
+.pgoal>small{font-size:9px;color:var(--cyan)}
+.pgoal .qbar{height:5px;border-radius:5px;background:rgba(255,255,255,.09);overflow:hidden}
+.pgoal .qbar i{display:block;height:100%;background:linear-gradient(90deg,#4fd6d0,#f0d27a)}
+@media (orientation:landscape) and (max-height:520px){
+  .story-bar{top:calc(var(--safe-t) + 76px);padding:4px 10px;max-width:min(48vw,290px)}
+  .prologue p{font-size:10px;line-height:1.45}
+  .hint{top:calc(var(--safe-t) + 120px)}
+  .loot-chip{top:calc(var(--safe-t) + 152px)}
+}

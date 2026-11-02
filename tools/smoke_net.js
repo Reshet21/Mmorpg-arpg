@@ -219,7 +219,7 @@ class WSClient {
   const health=JSON.parse((await get('http://127.0.0.1:'+PORT+'/health')).body);
   ok(health.players===3,'/health: 3 игрока');
   ok(health.tickHz===30 && health.snapshotHz===20,'/health: 30 Гц тик / 20 Гц снапшоты');
-  ok(health.zones===4 && health.mobs>20,'/health: 4 зоны, '+health.mobs+' мобов');
+  ok(health.zones===5 && health.mobs>20,'/health: 5 зон (город + 4 боевые), '+health.mobs+' мобов');
 
   // отключение
   Cc.close(); await sleep(800);

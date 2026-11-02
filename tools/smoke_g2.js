@@ -104,7 +104,7 @@ async function run(useCanon) {
   const API=env.window.ARKEON_G2, A2=env.window.A2;
   ok(!!API,'window.ARKEON_G2 определён');
   if(!API) return;
-  ok(API.version==='G2.2','версия G2.2');
+  ok(API.version==='G2.3','версия G2.3');
   ok(API.source===(useCanon?'canon':'fallback'),'источник навыков: '+(useCanon?'canon':'fallback'));
   if(useCanon) {
     const m=API.meta('Клинок Рубежа');
@@ -115,9 +115,81 @@ async function run(useCanon) {
   ok(G.mode==='playing','старт: режим playing');
   ok(G.char.classId==='warrior','класс по умолчанию: Воин');
 
+  // ---- G2.3 · ГОРОД, ПРОЛОГ И ПОСТЕПЕННАЯ ЭКИПИРОВКА ----
+  const HW=G.world;
+  ok(HW.id==='haven','стартовый мир — безопасный город Пристань Завета');
+  ok(HW.safe===true,'город помечен как safe-зона');
+  ok(HW.camps.length===0 && HW.bossAlive===false,'в городе нет лагерей спавна и мирового босса');
+  ok(HW.mobs.length===4 && HW.mobs.every(m=>m.ai==='dummy'),'в городе только 4 учебных манекена');
+  ok(HW.mobs.every(m=>m.dmg===0 && m.aggro===0),'манекены не атакуют и не агрятся');
+  ok(HW.eventTimer===Infinity,'Волны Разлома в городе отключены');
+  ok(HW.npcs.length>=7,'в городе >=7 НПС ('+HW.npcs.length+')');
+  ok(HW.props.length>=25,'рукотворная застройка: '+HW.props.length+' объектов');
+  ok(HW.lights.length>=6,'город освещён фонарями: '+HW.lights.length);
+  ok(HW.props.some(p=>p.kind==='house') && HW.props.some(p=>p.kind==='stall') &&
+     HW.props.some(p=>p.kind==='statue') && HW.props.some(p=>p.kind==='lamp'),
+     'есть дома, прилавки, статуя Светоча и фонари');
+  ok(A2.World.isSafe(HW,20,23)===true,'isSafe(): центр города безопасен');
+  ok(HW.portals.length===1 && HW.portals[0].to==='grove','из города один выход — в Рощу Завета');
+  ok(!!HW.portals[0].arrival && HW.portals[0].arrival.x===A2.ZONE('grove').spawn[0],
+     'портал знает точку прибытия в Рощу');
+  ok(A2.STORY.length===9,'пролог состоит из 9 глав');
+  ok(new Set(A2.STORY.map(c=>c.reward.slot)).size===8,'за главы выдаются все 8 слотов экипировки');
+  ok(G.story.chapter===0 && G.story.done===false,'сюжет стартует с главы 1');
+  ok(A2.RPG.storyChapter(G).id==='c1','первая глава — «Пробуждение»');
+  ok(Object.values(G.char.equip).filter(Boolean).length===1,'на старте только оружие — остальное выдаётся квестами');
+  ok(A2.RPG.questAvailable(G,A2.QUEST('q1'))===false,'12 глав Завета заперты до конца пролога');
+  const earlyRars=[];
+  for(let i=0;i<30;i++) earlyRars.push(A2.RPG.dropItem(G,{x:20,y:23,lvl:1},1).item.rarity);
+  ok(earlyRars.every(r=>r==='common'||r==='rare'),'в прологе редкость дропа ограничена обычной/редкой');
+  HW.drops.length=0;
+  let cityErr=null;
+  try { for(let i=0;i<4;i++) API.render(1/60);
+        A2.Render.minimap(HW,G,env.document.getElementById('minimap')); } catch(e){ cityErr=e; }
+  ok(!cityErr,'рендер города и мини-карта без исключений'+(cityErr?': '+cityErr.message:''));
+  // проходим 9 глав: разговор → площадь → двор → надевание → манекены → лут → кузница → продажа → ворота
+  API.story({type:'talk',target:'eldara'});
+  ok(G.story.chapter===1,'глава 1 завершается разговором с Эльдарой');
+  ok(G.char.inventory.some(it=>it.questReward),'за главу выдана вещь экипировки');
+  API.story({type:'talk',target:'borin'});
+  API.story({type:'talk',target:'irina'});
+  API.story({type:'talk',target:'irina'});
+  ok(G.story.chapter===1 && G.story.progress===2,'знакомство считает только уникальных НПС');
+  API.story({type:'talk',target:'veya'});
+  ok(G.story.chapter===2,'глава 2 завершена после трёх жителей');
+  G.player.x=28.5; G.player.y=28; API.step(A2.C.TICK);
+  ok(G.story.chapter===3,'глава 3 завершается достижением учебного двора');
+  const reward=G.char.inventory.find(it=>it.questReward);
+  ok(A2.RPG.equip(G,reward)===true,'награда надевается через панель экипировки');
+  ok(G.story.chapter===4,'глава 4 завершается надеванием предмета');
+  HW.mobs.filter(m=>m.ai==='dummy').slice(0,3).forEach(m=>{
+    m.alive=true; m.hp=m.maxHp;
+    while(m.alive) A2.RPG.hit(G,m,50,'Физический');
+  });
+  ok(G.story.chapter===5,'глава 5 завершается тремя учебными манекенами');
+  for(let i=0;i<3;i++){
+    const it=A2.RPG.rollItem(5,'haven',{rarity:'common'});
+    A2.RPG.pickup(G,{uid:'story'+i,x:20,y:23,t:HW.time+1,item:it,gold:0,owner:null,picked:false,magnet:0,rar:'common',spin:0});
+  }
+  ok(G.story.chapter===6,'глава 6 завершается подбором трёх предметов');
+  ok(A2.RPG.enchant(G,'weapon')===true,'заточка доступна на награде главы');
+  ok(G.story.chapter===7,'глава 7 завершается заточкой');
+  let junk=G.char.inventory.find(it=>!it.questReward);
+  if(!junk){ junk=A2.RPG.rollItem(5,'haven',{rarity:'common'}); G.char.inventory.push(junk); }
+  ok(A2.RPG.sell(G,junk)===true,'продажа лишней вещи работает');
+  ok(G.story.chapter===8,'глава 8 завершается продажей/выставлением');
+  API.story({type:'gate',target:'grove'});
+  ok(G.story.done===true && G.story.chapter===9,'глава 9 завершает АКТ I');
+  ok(A2.RPG.questAvailable(G,A2.QUEST('q1'))===true,'после пролога открыта цепочка из 12 квестов');
+  ok(G.char.inventory.filter(it=>it.questReward).length>=8,'за пролог выдано >=8 вещей экипировки');
+  const enterWild=()=>{ API.setZone('grove',12,16); API.skipStory(); };
+  enterWild();
+  ok(A2.World.isSafe(G.world,5.5,5.5)===true,'у входа в Рощу есть безопасная дозорная тропа');
+  ok(A2.World.isSafe(G.world,20,20)===false,'в глубине Рощи мобы уже агрессивны');
+
   // ---- данные канона ----
   ok(A2.CLASSES.length===6,'6 классов канона');
-  ok(A2.ZONES.length===4,'4 зоны открытого мира');
+  ok(A2.ZONES.length===5,'5 зон: безопасный город + 4 боевые');
   ok(A2.QUESTS.length===12,'12 квестов');
   ok(A2.NPCS.length>=8,'НПС: '+A2.NPCS.length);
   ok(A2.MOBS.length>=10,'типов мобов: '+A2.MOBS.length);
@@ -174,12 +246,13 @@ async function run(useCanon) {
   env.cards.forEach(c=>c.classList.toggle('selected', c.dataset.class==='warrior'));
   API.startGame();
   ok(G.char.classId==='warrior','возврат к Воину после выбора других классов');
+  enterWild();   // каждый startGame() создаёт новый прolog в городе
 
   // ---- G2.1 · ЗВУК ----
   ok(!!A2.Audio && typeof A2.Audio.play==='function','модуль A2.Audio подключён');
   ok(Object.keys(A2.Audio.BANK).length>=24,'процедурная библиотека SFX: '+Object.keys(A2.Audio.BANK).length);
   ok(typeof A2.Audio.loot==='function' && typeof A2.Audio.ambient==='function',
-     'лутовые арпеджио по редкости и амбиент 4 биомов');
+     'лутовые арпеджио по редкости и амбиент 5 биомов');
   ok(A2.Audio.state().ctx===false,'в Node без WebAudio модуль безопасно молчит (нет исключений)');
   ok(typeof G.onHit==='function' && typeof G.onKill==='function' && typeof G.onLevel==='function',
      'звуковые хуки боя/уровня привязаны к симуляции');
