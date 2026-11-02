@@ -8,19 +8,23 @@
 
 ## Как открыть на телефоне
 
-**Вариант 0 — постоянная ссылка (GitHub Pages, бесплатно).**
+**Вариант 0 — постоянная ссылка (GitHub Pages, бесплатно, уже работает).**
 
 ```
 https://reshet21.github.io/Mmorpg-arpg/mobile/
 ```
 
-Хостинг включается один раз владельцем репозитория: <https://github.com/Reshet21/Mmorpg-arpg/settings/pages> → **Deploy from a branch** → `arena/bfc40927-mmorpg-arpg` → `/(root)` → **Save**. Подробности — в [`README.md`](../README.md) раздел «Публикация».
+Pages включён и собран из ветки `arena/bfc40927-mmorpg-arpg`, папка `/(root)`, Jekyll отключён файлом `.nojekyll`. Ярлыки в бой: `?class=warrior&autostart=1` и `?class=mage&autostart=1`. Подробности — в [`README.md`](../README.md), раздел «Публикация».
 
-**Вариант 1 — предпросмотр Arena (работает сразу, без настройки).** Возьмите выданный адрес живого предпросмотра и добавьте `/mobile/`:
+**Вариант 1 — зеркало без зависимости от Pages (jsDelivr CDN).**
 
 ```
-https://<порт>-<идентификатор>.e2b.app/mobile/
+https://cdn.jsdelivr.net/gh/Reshet21/Mmorpg-arpg@arena/bfc40927-mmorpg-arpg/mobile/index.html
 ```
+
+CDN отдаёт файлы напрямую из GitHub-ветки по HTTPS с открытым CORS, всегда актуальную версию. Установка PWA и офлайн-кэш доступны на основном адресе Pages.
+
+> Внутреннее превью Arena (`https://<порт>-<sandbox>.e2b.app/mobile/`) **с телефона не откроется**: E2B требует заголовок `e2b-traffic-access-token` и отвечает `403 Missing traffic access token`. Это адрес только для вкладки Preview в интерфейсе Arena.
 
 **Вариант 2 — локально в той же сети Wi-Fi.** Из корня репозитория:
 

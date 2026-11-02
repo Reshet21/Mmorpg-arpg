@@ -59,14 +59,21 @@ python3 tools/verify_canon.py --strict   # 121 проверка согласов
 
 Игра полностью статическая (Canvas 2D + WebAudio, без сборки и бэкенда), поэтому разворачивается на **GitHub Pages** бесплатно и по HTTPS — это обязательное условие для service worker и установки PWA на телефон.
 
+**Сайт уже включён и собран.** Источник: ветка `arena/bfc40927-mmorpg-arpg`, папка `/(root)`; `.nojekyll` отключает Jekyll. Каждый `push` в ветку пересобирает сайт за 1–2 минуты, статус можно проверить через `gh api repos/Reshet21/Mmorpg-arpg/pages/builds/latest`.
+
 | Что | Адрес |
 |---|---|
-| **Игра** | <https://reshet21.github.io/Mmorpg-arpg/mobile/> |
-| Хаб дизайн-библии | <https://reshet21.github.io/Mmorpg-arpg/> |
+| **Игра** | **https://reshet21.github.io/Mmorpg-arpg/mobile/** |
+| Воин сразу в бой | `https://reshet21.github.io/Mmorpg-arpg/mobile/index.html?class=warrior&autostart=1` |
+| Маг сразу в бой | `https://reshet21.github.io/Mmorpg-arpg/mobile/index.html?class=mage&autostart=1` |
+| Хаб дизайн-библии | https://reshet21.github.io/Mmorpg-arpg/ |
+| Зеркало (jsDelivr, всегда свежая ветка) | https://cdn.jsdelivr.net/gh/Reshet21/Mmorpg-arpg@arena/bfc40927-mmorpg-arpg/mobile/index.html |
 
-**Однократное включение** (делает владелец репозитория в браузере, без паролей и токенов): откройте <https://github.com/Reshet21/Mmorpg-arpg/settings/pages> → **Source: Deploy from a branch** → ветка `arena/bfc40927-mmorpg-arpg` → папка `/(root)` → **Save**. Через 1–2 минуты ссылки выше начинают работать; `.nojekyll` уже лежит в корне, поэтому Jekyll не тронет PWA-ассеты. Каждый `push` в ветку автоматически обновляет сайт.
+Проверено внешним запросом: `mobile/index.html`, `css/style.css`, `js/game.js`, `manifest.webmanifest`, `sw.js`, `data/classes.json` и иконки отдаются с публичного хоста; Pages API возвращает `status: built`.
 
-Альтернатива — источник «GitHub Actions» и ручной запуск [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml). Токены интеграций (GitHub App), включая выданные песочнице Arena и `GITHUB_TOKEN` в Actions, не могут создать Pages site через REST API — GitHub отвечает `403 Resource not accessible by integration`. Поэтому первичное включение страницы — единственный шаг, который требует человека; весь контент, манифест, иконки и офлайн-кэш уже закоммичены и проверены.
+> ⚠️ **Внутреннее превью Arena — не публичная ссылка.** Адрес вида `https://<порт>-<sandbox>.e2b.app/mobile/` доступен только во вкладке Preview интерфейса Arena: E2B требует заголовок `e2b-traffic-access-token` и извне отвечает `403 Forbidden · Missing traffic access token`. Для телефона используйте адреса из таблицы выше. Локальный `python3 -m http.server 8000` нужен только для разработки.
+
+Первичное включение Pages сделано владельцем репозитория в <https://github.com/Reshet21/Mmorpg-arpg/settings/pages>: автоматически это сделать нельзя, GitHub отвечает `403 Resource not accessible by integration` токенам GitHub App (проверено и через REST `POST /repos/.../pages`, и через `actions/configure-pages`). [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) оставлен как ручная альтернатива на случай источника «GitHub Actions».
 
 ---
 
