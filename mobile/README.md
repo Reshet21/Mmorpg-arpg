@@ -19,10 +19,10 @@ Pages включён и собран из ветки `arena/bfc40927-mmorpg-arpg
 **Вариант 1 — зеркало без зависимости от Pages (jsDelivr, закреплено за коммитом).**
 
 ```
-https://cdn.jsdelivr.net/gh/Reshet21/Mmorpg-arpg@a5c427e6bdcc90b8bd5e2f30e428e790041ee6e3/mobile/index.html
+https://cdn.jsdelivr.net/gh/Reshet21/Mmorpg-arpg@8e569f6f8ac2ddcae5defc4761b4a2a56542d99b/mobile/index.html
 ```
 
-CDN отдаёт файлы напрямую из GitHub по HTTPS с открытым CORS. Ссылка закреплена за коммитом `a5c427e`: версия неизменна и не зависит от кэша ветки (ветка на jsDelivr может отставать до 12 часов). Установка PWA и офлайн-кэш доступны на основном адресе Pages.
+CDN отдаёт файлы напрямую из GitHub по HTTPS с открытым CORS. Ссылка закреплена за коммитом `8e569f6`: версия неизменна и не зависит от кэша ветки (ветка на jsDelivr может отставать до 12 часов). Установка PWA и офлайн-кэш доступны на основном адресе Pages.
 
 > Внутреннее превью Arena (`https://<порт>-<sandbox>.e2b.app/mobile/`) **с телефона не откроется**: E2B требует заголовок `e2b-traffic-access-token` и отвечает `403 Missing traffic access token`. Это адрес только для вкладки Preview в интерфейсе Arena.
 
