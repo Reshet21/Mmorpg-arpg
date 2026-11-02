@@ -245,7 +245,7 @@ for token in ("js/audio.js", "js/market.js", "btnMarket", "btnPlayers", "bagCoun
     check(token in html_g2, f"G2.1: mobile/index.html подключает {token}")
 for token in ("js/audio.js", "js/market.js"):
     check(token in sw_js, f"G2.1: service worker кэширует {token}")
-check("arkeon-g23-v1" in sw_js, "G2.3: версия офлайн-кэша обновлена")
+check("arkeon-g24-v1" in sw_js, "G2.4: версия офлайн-кэша обновлена")
 for token in ("market_list", "market_buy", "trade_invite", "trade_confirm", "whisper", "emote",
               "syncInitial", "broadcastRoster", "broadcastMarket", "idempotent"):
     check(token in sim_js, f"G2.1: авторитетный сервер поддерживает {token}")
@@ -297,7 +297,7 @@ check("bottom:calc(var(--safe-b) + 172px)" in css_g2,
       "G2.2: тулбар поднят над блоком управления — кнопки не перекрыты джойстиком")
 check("A2.Render.minimap" in main_js2 and "G.uiT>0.2" in main_js2,
       "G2.2: обновление HUD и мини-карты реже для плавности")
-check(("G2.2" in html2 or "G2.3" in html2) and "G2.2" in (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8"),
+check(("G2.2" in html2 or "G2.3" in html2 or "G2.4" in html2) and "G2.2" in (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8"),
       "G2.2: версия зафиксирована в клиенте и спецификации студии")
 
 # --- 8e. G2.3 «Пристань Завета»: город, пролог, постепенная экипировка ---
@@ -341,8 +341,8 @@ check("local.storyDone === false" in world_js3,
       "G2.3: мировые события не начинаются во время пролога")
 check("m.dummy && !W.dummiesActive" in world_js3 and "dummiesActive" in main_js3,
       "G2.3: манекены не являются целью автоатаки до главы «Пробный удар»")
-check("modalOpen" in main_js3,
-      "G2.3: пока открыта книга сюжета, автоатака не убивает манекены со спавна")
+check("G.attackHeld && G.atkCd<=0" in main_js3 and "autoCd" not in main_js3,
+      "G2.4: автоатака полностью удалена, удар только по явному вводу")
 check("openModal('prologue')" in main_js3 and "openModal('story')" in main_js3,
       "G2.3: кинематографичный пролог и «Книга Завета»")
 check("updateStoryUI" in main_js3 and "storyTarget" in main_js3,
@@ -359,10 +359,70 @@ check("G.storyTarget" in render_js3 and "✦ СЮЖЕТ" in render_js3,
       "G2.3: НПС текущей главы и путевая точка помечены в мире")
 check("btnStory" in html3 and "storyBar" in html3 and ".story-bar" in css3 and ".prologue" in css3,
       "G2.3: кнопка сюжета, баннер главы и оформление книги")
-check("G2.3" in html3 and "G2.3" in doc3 and "16.24" in doc3,
+check(("G2.3" in html3 or "G2.4" in html3) and "G2.3" in doc3 and "16.24" in doc3,
       "G2.3: версия зафиксирована в клиенте и спецификации студии")
 check("'haven'" in (ROOT / "server/sim.js").read_text(encoding="utf-8"),
       "G2.3: авторитетный сервер знает безопасный город")
+
+# --- 8f. G2.4 «Тихий старт»: сброс, ручной бой, мирные мобы, телепорты ---
+data_js4 = (MOB / "js/data.js").read_text(encoding="utf-8")
+world_js4 = (MOB / "js/world.js").read_text(encoding="utf-8")
+rpg_js4 = (MOB / "js/rpg.js").read_text(encoding="utf-8")
+main_js4 = (MOB / "js/main.js").read_text(encoding="utf-8")
+sim_js4 = (ROOT / "server/sim.js").read_text(encoding="utf-8")
+html4 = (MOB / "index.html").read_text(encoding="utf-8")
+css4 = (MOB / "css/g2.css").read_text(encoding="utf-8")
+doc4 = (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8")
+check("arkeon_g2_save_v4" in data_js4 and "SAVE_VERSION: 4" in data_js4,
+      "G2.4: новая версия сохранения — старый прогресс не воскресает")
+check("C.SAVE_VERSION" in rpg_js4 and "clearSave" in rpg_js4 and
+      "(d.v||0) < C.SAVE_VERSION" in rpg_js4,
+      "G2.4: старые сейвы отклоняются и удаляются")
+check("function resetGame()" in main_js4 and "A2.RPG.clearSave()" in main_js4,
+      "G2.4: «начать всё заново» работает без перезагрузки страницы")
+check("btnReset" in html4 and 'data-act="reset"' in main_js4,
+      "G2.4: кнопка полного сброса есть на старте и в настройках")
+check("ch.maxHp = st.maxHp" in rpg_js4,
+      "G2.4: исправлен баг 0 HP у нового героя")
+check("autoCd" not in main_js4 and "function basicAttack()" in main_js4,
+      "G2.4: автоатака удалена, удар ручной")
+check("btnAttack" in html4 and ".tool.attack" in css4,
+      "G2.4: кнопка «Удар» с удержанием и тап по врагу")
+check("G.attackHeld=true" in main_js4 and "basicAttack(); }" in main_js4,
+      "G2.4: удержание кнопки даёт серию ударов, но не пассивную автоатаку")
+check("provoked: false" in world_js4 and "function provoke(W, m)" in world_js4,
+      "G2.4: мобы мирные по умолчанию, провокация только после удара")
+check("const aggressive = m.provoked || !!m.event;" in world_js4,
+      "G2.4: моб атакует только после удара по нему (или событийная Волна)")
+check("if (A2.World.provoke) A2.World.provoke(G.world, mob);" in rpg_js4 and
+      "m.provoked=true; m.provokedAt=W.time" in sim_js4,
+      "G2.4: провокация выставляется и клиентом, и авторитетным сервером")
+check("W.noEvents" in world_js4 and "worldEvents:false" in main_js4,
+      "G2.4: Волны Разлома выключены по умолчанию, включаются в настройках")
+check("function setWorldEvents(W, on)" in world_js4 and 'data-set="worldEvents"' in main_js4,
+      "G2.4: переключатель событий применяется к текущему миру сразу")
+check("mode==='travel'" in main_js4 and 'data-act="travelTo"' in main_js4 and
+      "warpNpc" in main_js4,
+      "G2.4: карта с телепортами по 5 локациям и к НПС")
+check("function travelTo(zoneId, x, y)" in main_js4 and "btnTravel" in html4,
+      "G2.4: мгновенное путешествие и кнопка карты")
+check("case 'portal': openModal('travel'); break;" in main_js4,
+      "G2.4: порталы НПС открывают карту, а не слепо прыгают в первую зону")
+check("A2.World.setWorldEvents(G.world" in main_js4,
+      "G2.4: настройки мира применяются и при загрузке, и при смене зоны")
+check("const canvasOnly = ev =>" in main_js4 and "ev.target !== cv" in main_js4,
+      "G2.4: пинч-зум слушает только игровое поле, джойстик исключён")
+check("app.addEventListener('pointercancel',endPointer)" in main_js4,
+      "G2.4: отменённое касание больше не залипает и не ломает зум")
+check("if(d>8) G.pinch" in main_js4,
+      "G2.4: защита от деления на нулевую дистанцию пальцев")
+check("class=\"tool interact\"" in html4 and ".sheet .primary{width:100%" in css4 and
+      ".tool.primary{border-color" not in css4,
+      "G2.4: «Взаим.» больше не растягивается на весь экран")
+check("safeBadge" in html4 and ".safe-badge.show" in css4,
+      "G2.4: индикатор безопасной зоны виден в HUD")
+check("G2.4" in html4 and "16.25" in doc4,
+      "G2.4: версия зафиксирована в клиенте и спецификации студии")
 
 # --- 9. Отчёт ---
 passed = sum(1 for ok, _ in results if ok)

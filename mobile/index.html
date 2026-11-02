@@ -7,8 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="АРКЕОН: Пепел Завета — G2.3 «Пристань Завета». Безопасный город, сюжетный пролог, постепенная экипировка и онлайн.">
-<title>АРКЕОН · Мир Завета · G2.3</title>
+<meta name="description" content="АРКЕОН: Пепел Завета — G2.4 «Тихий старт». Безопасный город, сюжет, ручной бой без автоатаки, мирные мобы и телепорты.">
+<title>АРКЕОН · Мир Завета · G2.4</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -32,7 +32,8 @@
         </div>
       </div>
       <div class="mid-info">
-        <div id="zoneName" class="zone">Роща Завета</div>
+        <div id="zoneName" class="zone">Пристань Завета</div>
+        <div id="safeBadge" class="safe-badge">✦ БЕЗОПАСНАЯ ЗОНА</div>
         <div id="eventBanner" class="event"></div>
         <div id="targetName" class="target"></div>
       </div>
@@ -53,7 +54,8 @@
     <div id="chatLog" class="chat-log"></div>
 
     <div class="toolbar">
-      <button id="btnInteract" class="tool primary">✦ Взаим.</button>
+      <button id="btnInteract" class="tool interact">✦ Взаим.</button>
+      <button id="btnAttack" class="tool attack">⚔ Удар <small>зажать</small></button>
       <button id="btnCamera" class="tool">↻ Камера</button>
       <button id="btnChar" class="tool">♛ Герой</button>
       <button id="btnBag" class="tool">▣ Сумка <i id="bagCount" class="cnt">0</i></button>
@@ -61,6 +63,7 @@
       <button id="btnMarket" class="tool">▤ Рынок <i id="marketCount" class="cnt">0</i></button>
       <button id="btnPlayers" class="tool">♟ Игроки</button>
       <button id="btnStory" class="tool">✦ Сюжет</button>
+      <button id="btnTravel" class="tool">◈ Карта</button>
       <button id="btnQuests" class="tool">❖ Квесты</button>
       <button id="btnChat" class="tool">✉ Чат</button>
       <button id="btnParty" class="tool">⚑ Группа</button>
@@ -84,9 +87,9 @@
   <!-- ============================ СТАРТ ============================ -->
   <div id="startScreen" class="overlay">
     <div class="sheet">
-      <div class="logo"><span class="beacon"></span><h1>АРКЕОН</h1><p>ПЕПЕЛ ЗАВЕТА · G2.3 ПРИСТАНЬ ЗАВЕТА</p></div>
+      <div class="logo"><span class="beacon"></span><h1>АРКЕОН</h1><p>ПЕПЕЛ ЗАВЕТА · G2.4 ТИХИЙ СТАРТ</p></div>
       <p class="tagline">«Мир не погиб. Он перестал держать слово.»</p>
-      <div class="g21-chip">G2.3 · ГОРОД · ПРОЛОГ ИЗ 9 ГЛАВ · ПОСТЕПЕННАЯ ЭКИПИРОВКА</div>
+      <div class="g21-chip">G2.4 · ТИХИЙ СТАРТ · МИРНЫЕ МОБЫ · РУЧНОЙ БОЙ · ТЕЛЕПОРТЫ</div>
       <h2 class="section-title">Выбери Возжённого · 6 классов канона</h2>
       <div class="class-grid">
         <button class="class-card selected" data-class="warrior"><b>⚔ ВОИН</b><small>Ярость · танк · BREAK</small></button>
@@ -102,12 +105,15 @@
         <div><b>✦</b> 6 навыков, автоатака по цели, ультимейт на 100% Заряда Искры</div>
         <div><b>✦</b> Пролог из 9 глав в безопасном городе: сначала сюжет и НПС, потом бой</div>
         <div><b>⚔</b> За каждую главу — часть экипировки; 12 квестов Завета откроются после ворот</div>
-        <div><b>❖</b> НПС с «!», 5 зон, порталы, мировой босс и Волны Разлома</div>
+        <div><b>⚔</b> Автоатаки нет: тап по врагу, «Удар» (зажать) или F. Мобы отвечают только на ваш удар</div>
+        <div><b>◈</b> Карта и телепорты по 5 локациям и к НПС; Волны Разлома выключены по умолчанию</div>
+        <div><b>❖</b> НПС с «!», порталы, мировой босс, рынок и 12 квестов цепочки</div>
         <div><b>⚑</b> Онлайн: укажи адрес wss-сервера; без него — союзники-призраки</div>
         <div><b>▤</b> Инвентарь 40 слотов, лучи редкости, рынок с комиссией 5%, торговля 1:1 и шёпот</div>
       </div>
       <input id="serverInput" class="field" placeholder="wss://сервер/ws — необязательно">
       <button id="btnStart" class="primary">ВОЙТИ В МИР</button>
+      <button id="btnReset" class="secondary reset-btn">⟲ НАЧАТЬ ВСЁ ЗАНОВО · сбросить сохранение</button>
       <button id="btnConnect" class="linkbtn">Подключиться к серверу</button>
       <div class="foot-links">
         <a class="link" href="g1.html">Арена G1</a>

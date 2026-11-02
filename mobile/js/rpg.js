@@ -122,6 +122,7 @@
     };
     st.dmg = C.WEAPON_HIT * 1.34 * 1.298 * (1 + st.power/2600) * (1 + lv*0.018);
     ch.stats = st;
+    ch.maxHp = st.maxHp;      // G2.4 · раньше поле оставалось 0: новый герой стартовал с 0 HP
     ch.maxRes = cls.resMax;
     ch.gearRarity = bestRarity(ch);
     ch.hp = Math.min(ch.hp || st.maxHp, st.maxHp);
@@ -458,6 +459,8 @@
     dmg *= 0.92 + Math.random()*0.16;
     dmg = Math.max(1,Math.round(dmg));
     mob.hp -= dmg; mob.hitFlash = 1;
+    // G2.4 · моб отвечает только тому, кто его ударил; сам по себе не агрессит
+    if (A2.World.provoke) A2.World.provoke(G.world, mob);
     G.damageDealt += dmg;
     G.numbers.push({x:mob.x+(Math.random()-.5),y:mob.y,z:1.4,text:(crit?'✦ ':'')+A2.fmt(dmg),color:crit?'#ffe27a':'#e9efed',life:1,max:1});
     spawnParticles(G,mob.x,mob.y,crit?14:7,elementColor(element||cls.element),1.5);
@@ -605,7 +608,7 @@
     try {
       const ch=G.char;
       localStorage.setItem(C.SAVE_KEY, JSON.stringify({
-        v:2, classId:ch.classId,name:ch.name,level:ch.level,xp:ch.xp,gold:ch.gold,
+        v:C.SAVE_VERSION, classId:ch.classId,name:ch.name,level:ch.level,xp:ch.xp,gold:ch.gold,
         inventory:ch.inventory,equip:ch.equip,mats:ch.mats,rep:ch.rep,kills:ch.kills,
         talents:ch.talents,talentPoints:ch.talentPoints,quests:ch.quests,pity:ch.pity,
         achievements:ch.achievements,playtime:ch.playtime,zone:G.world.id,x:ch.x,y:ch.y,
@@ -616,7 +619,24 @@
   }
   function load() {
     if (typeof localStorage==='undefined') return null;
-    try { const s=localStorage.getItem(C.SAVE_KEY); return s?JSON.parse(s):null; } catch(e){ return null; }
+    try {
+      const s=localStorage.getItem(C.SAVE_KEY); if(!s) return null;
+      const d=JSON.parse(s);
+      // G2.4 · старые сохранения (до города и пролога) больше не восстанавливаются:
+      // иначе игрок «продолжал с того же места» в Роще и не видел Пристань.
+      if(!d || (d.v||0) < C.SAVE_VERSION) { clearSave(); return null; }
+      return d;
+    } catch(e){ return null; }
+  }
+  function clearSave() {
+    if (typeof localStorage==='undefined') return false;
+    try {
+      // подчищаем и ключи прошлых версий, чтобы ни один из них не воскрес
+      ['arkeon_g2_save_v1','arkeon_g2_save_v2','arkeon_g2_save_v3','arkeon_g2_save_v4']
+        .forEach(k=>localStorage.removeItem(k));
+      localStorage.removeItem(C.SAVE_KEY);
+    } catch(e){}
+    return true;
   }
   function restore(G, data) {
     if(!data) return false;
@@ -641,6 +661,6 @@
     questAvailable, questsFor, startQuest, questProgress, completeQuest, activeQuests, sell, autoPickupAllowed,
     magnetLoot, collectNearby, unequip, equipBest, walkableDropPos, freeBagSlot,
     dialogue, mitigation, hit, elementColor, applyElement, spawnParticles, hurtPlayer,
-    save, load, restore,
+    save, load, restore, clearSave,
     storyChapter, storyNpc, storyWaypoint, storyEvent, storyCheckReach, storyComplete, storySkip };
 })();

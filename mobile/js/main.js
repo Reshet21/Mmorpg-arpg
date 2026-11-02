@@ -26,11 +26,12 @@
     keys:{}, pointers:new Map(), pinch:null, skillButtons:[], logLines:[],
     damageDealt:0, damageTaken:0, dps:0, dmgWindow:[], reactions:0, kills:0,
     toastText:'', toastUntil:0, flash:0, eventBannerUntil:0, saveT:0, uiT:0,
-    cooldowns:{}, autoCd:0, buffs:{}, settings:{motion:true,sound:true,vibration:true,quality:'auto'},
+    cooldowns:{}, atkCd:0, attackHeld:false, buffs:{},
     hooks:{}, pendingZone:null, pendingPos:null, modalMode:null, modalData:null,
     market:null, corpses:[], selectedItem:null, selectedPlayer:null, lastStep:0,
     story:{chapter:0,done:false,met:{},progress:0,log:[],unlocked:false}, storyTarget:null, storyBannerUntil:0,
-    settings:{motion:true,sound:true,vibration:true,quality:'auto',lootFilter:'all',autoSalvage:true,volume:0.8,music:0.45},
+    settings:{motion:true,sound:true,vibration:true,quality:'auto',lootFilter:'all',autoSalvage:true,
+      worldEvents:false,volume:0.8,music:0.45},
     lowFps:0, lastFrame:0, started:false, perf:'high', fpsAvg:60, fpsLowT:0, fpsHighT:0, itemFlushT:0
   };
 
@@ -93,6 +94,7 @@
   function setZone(id, x, y) {
     const z=A2.ZONE(id);
     G.world=A2.World.create(z.id, 1337 + A2.ZONES.indexOf(z)*7717);
+    A2.World.setWorldEvents(G.world, !!G.settings.worldEvents);
     if(x===undefined){ x=z.spawn[0]; y=z.spawn[1]; }
     G.player.x=A2.clamp(x,2,C.ZONE_N-3); G.player.y=A2.clamp(y,2,C.ZONE_N-3);
     G.target=null; G.pets=[]; G.particles=[]; G.numbers=[]; G.corpses=[];
@@ -129,6 +131,8 @@
   function boot() {
     if(G.started) return; G.started=true;
     A2.Render.init($('game'));
+    const q0=(typeof location!=='undefined'&&location.search)||'';
+    if(/[?&]reset=1/.test(q0)) A2.RPG.clearSave();
     const saved=A2.RPG.load();
     G.char=A2.RPG.createCharacter((saved&&saved.classId)||'warrior',saved&&saved.name);
     if(saved) A2.RPG.restore(G,saved);
@@ -136,6 +140,7 @@
     const sz = A2.ZONE(startZone);
     G.player=makePlayer(G.char,sz.spawn[0],sz.spawn[1]);
     G.world=A2.World.create(startZone,1337 + A2.ZONES.indexOf(sz)*7717);
+    A2.World.setWorldEvents(G.world, !!G.settings.worldEvents);
     if(saved){ G.player.x=A2.clamp(saved.x||sz.spawn[0],2,C.ZONE_N-3); G.player.y=A2.clamp(saved.y||sz.spawn[1],2,C.ZONE_N-3); }
     G.entities=[G.player];
     G.net=A2.Net.create(G);
@@ -157,10 +162,14 @@
     else if(G.net.autoConnect()) G.log('Обнаружен сервер того же origin: подключаюсь к онлайну','#4fd6d0');
     const e=$('startScreen'); if(e && !saved) e.classList.remove('hidden');
     else { G.mode='playing'; const s=$('startScreen'); if(s) s.classList.add('hidden'); const h=$('hud'); if(h) h.classList.remove('hidden'); }
-    G.log('АРКЕОН · Мир Завета · G2.3','#f0d27a');
+    G.log('АРКЕОН · Мир Завета · G2.4','#f0d27a');
     G.log('Сервер не указан — активен офлайн-мир с союзниками-призраками','#9db0bd');
     if(A2.Audio) A2.Audio.ambient(G.world.id);
     if(/[?&]autostart=1/.test(q)) startGame();
+    const zm=/[?&]zone=([a-z]+)/.exec(q);
+    if(zm && A2.ZONE(zm[1]).id===zm[1] && G.mode==='playing') {
+      const z=A2.ZONE(zm[1]); setZone(z.id,z.spawn[0],z.spawn[1]);
+    }
     updateUI(true);
     if(typeof requestAnimationFrame==='function') requestAnimationFrame(frame);
   }
@@ -311,28 +320,61 @@
       G.joy.dx=dx; G.joy.dy=dy;
       const k=$('joyKnob'); if(k&&k.style) k.style.transform='translate('+(dx*38)+'px,'+(dy*38)+'px)';
     }
-    const app=$('app');
+    const app=$('app'), cv=$('game');
     if(app&&app.addEventListener){
+      // G2.4 · ПИНЧ ТОЛЬКО ДВУМЯ ПАЛЬЦАМИ НА ИГРОВОМ ПОЛЕ.
+      // Раньше палец на джойстике попадал в общий список pointer'ов:
+      // второе касание включало зум, и вождение джойстика масштабировало камеру.
+      const canvasOnly = ev => {
+        if(!ev || !ev.target) return false;
+        if(ev.pointerId === G.joy.id) return false;
+        if(cv && ev.target !== cv) return false;   // HUD, джойстик, кнопки, мини-карта — мимо
+        if(ev.target.closest && ev.target.closest('button, .joy, .controls, .toolbar, .overlay')) return false;
+        return true;
+      };
       app.addEventListener('pointerdown',ev=>{
-        if(ev.target&&ev.target.closest&&ev.target.closest('button')) return;
+        if(!canvasOnly(ev)) return;
         G.pointers.set(ev.pointerId,{x:ev.clientX,y:ev.clientY,t:performance.now()});
         G.joy.sx=ev.clientX; G.joy.sy=ev.clientY; G.joy.st=performance.now();
-        if(G.pointers.size===2){ const p=Array.from(G.pointers.values()); G.pinch={d:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y),zoom:G.cam.zoom}; }
+        if(G.pointers.size===2){
+          const p=Array.from(G.pointers.values());
+          const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+          if(d>8) G.pinch={d,zoom:G.cam.zoom};
+        }
         tapTarget(ev.clientX,ev.clientY);
       });
       app.addEventListener('pointermove',ev=>{
+        // касания уже отфильтрованы на pointerdown; implicit capture у touch
+        // сохраняет target, поэтому дополнительная проверка здесь не нужна
         if(!G.pointers.has(ev.pointerId)) return;
         G.pointers.set(ev.pointerId,{x:ev.clientX,y:ev.clientY,t:performance.now()});
-        if(G.pointers.size===2&&G.pinch){ const p=Array.from(G.pointers.values()); const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y); G.cam.zoom=A2.clamp(G.pinch.zoom*d/G.pinch.d,0.6,2.2); }
+        if(G.pointers.size===2&&G.pinch&&G.pinch.d>8){
+          const p=Array.from(G.pointers.values());
+          const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+          G.cam.zoom=A2.clamp(G.pinch.zoom*d/G.pinch.d,0.6,2.2);
+        }
       });
-      app.addEventListener('pointerup',ev=>{
-        const p=G.pointers.get(ev.pointerId); G.pointers.delete(ev.pointerId);
+      const endPointer=ev=>{
+        const p=G.pointers.get(ev.pointerId);
+        G.pointers.delete(ev.pointerId);
         if(G.pointers.size<2) G.pinch=null;
+        if(G.pointers.size===0){ G.pointers.clear(); G.pinch=null; }
         if(p&&performance.now()-G.joy.st<260 && Math.hypot(ev.clientX-G.joy.sx,ev.clientY-G.joy.sy)>52){
           const w=screenToWorld((ev.clientX-G.joy.sx),(ev.clientY-G.joy.sy)); dodge(w.x,w.y);
         }
-      });
+      };
+      app.addEventListener('pointerup',endPointer);
+      app.addEventListener('pointercancel',endPointer);   // иначе «залипший» палец ломал зум
+      document.addEventListener('visibilitychange',()=>{ G.pointers.clear(); G.pinch=null; G.attackHeld=false; });
     }
+    // Кнопка удара: одно касание = один удар, удержание = серия (но НЕ автоатака).
+    const atk=$('btnAttack');
+    if(atk&&atk.addEventListener){
+      atk.addEventListener('pointerdown',ev=>{ ev.preventDefault&&ev.preventDefault(); G.attackHeld=true; basicAttack(); });
+      ['pointerup','pointercancel','pointerleave'].forEach(t=>atk.addEventListener(t,()=>{ G.attackHeld=false; }));
+    }
+    document.addEventListener('pointerup',()=>{ G.attackHeld=false; });
+    document.addEventListener('pointercancel',()=>{ G.attackHeld=false; });
     const on=(id,fn)=>{ const e=$(id); if(e&&e.addEventListener) e.addEventListener('pointerdown',ev=>{ev.preventDefault&&ev.preventDefault();fn();}); };
     on('btnDodge',()=>dodge(-Math.cos(G.player.facing),-Math.sin(G.player.facing)));
     on('btnUlt',useUlt);
@@ -348,6 +390,8 @@
     on('btnMarket',()=>openModal('market')); on('btnPlayers',()=>openModal('players'));
     on('modalClose',closeModal);
     on('btnStart',startGame);
+    on('btnReset',resetGame);
+    on('btnTravel',()=>openModal('travel'));
     on('btnConnect',()=>{ const e=$('serverInput'); if(e&&e.value) G.net.connect(e.value.trim()); });
     on('btnChatSend',()=>{ const e=$('chatInput'); if(e&&e.value){ G.net.chat(e.value.trim()); e.value=''; } });
     document.addEventListener('keydown',ev=>{
@@ -360,6 +404,8 @@
       if(ev.key==='i'||ev.key==='I'||ev.key==='b'||ev.key==='B') openModal('bag');
       if(ev.key==='g'||ev.key==='G') openModal('equip');
       if(ev.key==='j'||ev.key==='J') openModal('story');
+      if(ev.key==='t'||ev.key==='T') openModal('travel');
+      if(ev.key==='f'||ev.key==='F') basicAttack();
       if(ev.key==='Escape') closeModal();
     });
     document.addEventListener('keyup',ev=>{ G.keys[ev.key]=false; });
@@ -390,18 +436,24 @@
       if(d<bd){bd=d;best={player:true,uid:e.uid,name:e.name||'Игрок',level:e.level||1,classId:e.classId||'warrior'};}
     }
     if(best&&best.player){ G.selectedPlayer=best; openModal('player',best); return; }
-    if(best){ G.target=best; G.toast('Цель: '+(best.nameOverride||best.ru),1.2); }
+    if(best){ G.target=best; G.toast('Цель: '+(best.nameOverride||best.ru),1.2); basicAttack(); }
   }
   function startGame() {
     const pick=(typeof document!=='undefined'&&document.querySelector)?document.querySelector('.class-card.selected'):null;
     const id=pick&&pick.dataset?pick.dataset.class:'warrior';
     const nameEl=$('charName');
+    A2.RPG.clearSave();
     G.char=A2.RPG.createCharacter(id,nameEl&&nameEl.value?nameEl.value.trim().slice(0,16):undefined);
     G.story={chapter:0,done:false,met:{},progress:0,log:[],unlocked:false};
+    G.target=null; G.atkCd=0; G.attackHeld=false; G.cooldowns={};
+    G.damageDealt=0; G.damageTaken=0; G.kills=0; G.dps=0; G.dmgWindow=[];
+    G.particles=[]; G.numbers=[]; G.corpses=[]; G.pets=[]; G.logLines=[];
     const z0=A2.ZONE('haven');
     G.player=makePlayer(G.char,z0.spawn[0],z0.spawn[1]);
+    G.char.x=G.player.x; G.char.y=G.player.y;
     G.entities=[G.player]; G.world=A2.World.create('haven',1337);
-    G.net.startGhosts(); G.market.seed(); buildSkillButtons();
+    A2.World.setWorldEvents(G.world, !!G.settings.worldEvents);
+    G.net.startGhosts(); G.market=A2.Market.create(G); G.market.seed(); buildSkillButtons();
     if(A2.Audio){A2.Audio.unlock();A2.Audio.ambient('haven');A2.Audio.play('portal');}
     if(G.net.state==='online') G.net.send({t:'hello',name:G.char.name,classId:G.char.classId,
       level:G.char.level,zone:'haven',x:G.player.x,y:G.player.y,gold:Math.round(G.char.gold),
@@ -411,6 +463,7 @@
     const h=$('hud'); if(h) h.classList.remove('hidden');
     G.toast('✦ Пристань Завета · безопасный город. Начните с Эльдары у Светоча',4.5);
     G.log('✦ АКТ I · ПРОЛОГ: 9 глав, каждая даёт часть снаряжения','#4fd6d0');
+    G.log('✦ Мобы мирные: нападут только в ответ на ваш удар. Автоатаки нет — жмите «Удар»','#8fd08a');
     G.log('Возжённый: '+G.char.name+' · '+A2.CLASS(id).ru,'#f0d27a');
     if($('serverInput')&&$('serverInput').value) G.net.connect($('serverInput').value.trim());
     updateStoryUI();
@@ -418,6 +471,81 @@
     if(!G.story.done) openModal('prologue');
   }
   G.startGame=startGame;
+
+  /* --------------------- G2.4 · ручной удар и сброс --------------------- */
+  function basicAttack() {
+    if(G.mode!=='playing'||G.char.dead||G.atkCd>0) return false;
+    const cls=A2.CLASS(G.char.classId), t=target();
+    if(!t || A2.dist(t.x,t.y,G.player.x,G.player.y)>cls.range+1.4){
+      if(G.time-(G.lastNoTarget||0)>2){ G.toast('Подойдите ближе или коснитесь цели',1.2); G.lastNoTarget=G.time; }
+      G.atkCd=0.28; return false;
+    }
+    A2.RPG.hit(G,t,1.05,cls.element);
+    G.char.res=A2.clamp(G.char.res+8,0,G.char.maxRes);
+    G.char.ult=A2.clamp(G.char.ult+2,0,100);
+    G.player.attackAnim=1;
+    G.atkCd=1/(1.15*(1+G.char.stats.haste))*(1-G.char.stats.cdr*0.2);
+    return true;
+  }
+  function currentClass() {
+    const pick=(typeof document!=='undefined'&&document.querySelector)?document.querySelector('.class-card.selected'):null;
+    return pick&&pick.dataset&&pick.dataset.class&&A2.CLASS(pick.dataset.class).id===pick.dataset.class
+      ? pick.dataset.class : G.char.classId;
+  }
+  function currentName() {
+    const e=$('charName');
+    return e&&e.value?e.value.trim().slice(0,16):undefined;
+  }
+  // Полный «начать заново» без перезагрузки страницы: чистим ВСЕ старые
+  // сохранения, пересоздаём персонажа, рынок, мир и сюжет в безопасном городе.
+  function resetGame() {
+    A2.RPG.clearSave();
+    closeModal();
+    const id=currentClass(), name=currentName();
+    G.char=A2.RPG.createCharacter(id,name);
+    G.story={chapter:0,done:false,met:{},progress:0,log:[],unlocked:false};
+    G.storyTarget=null; G.storyBannerUntil=0;
+    G.target=null; G.atkCd=0; G.attackHeld=false; G.cooldowns={};
+    G.damageDealt=0; G.damageTaken=0; G.kills=0; G.dps=0; G.dmgWindow=[];
+    G.particles=[]; G.numbers=[]; G.corpses=[]; G.pets=[]; G.logLines=[];
+    G.time=0; G.tick=0; G.accum=0; G.saveT=0; G.toastUntil=0; G.flash=0;
+    G.pointers.clear(); G.pinch=null; G.joy.id=null; G.joy.dx=0; G.joy.dy=0;
+    G.cam.zoom=1; G.cam.shake=0;
+    const z0=A2.ZONE('haven');
+    G.player=makePlayer(G.char,z0.spawn[0],z0.spawn[1]);
+    G.char.x=G.player.x; G.char.y=G.player.y;
+    G.entities=[G.player];
+    G.world=A2.World.create('haven',1337);
+    A2.World.setWorldEvents(G.world, !!G.settings.worldEvents);
+    A2.Render.makeGround(G.world,G.cam.orient|0);
+    G.market=A2.Market.create(G); G.market.seed();
+    G.net.startGhosts(); buildSkillButtons();
+    if(A2.Audio){ A2.Audio.unlock(); A2.Audio.ambient('haven'); A2.Audio.play('portal'); }
+    if(G.net.state==='online') G.net.send({t:'hello',name:G.char.name,classId:G.char.classId,
+      level:1,zone:'haven',x:G.player.x,y:G.player.y,gold:Math.round(G.char.gold),itemUids:[]});
+    G.mode='playing';
+    const ss=$('startScreen'); if(ss) ss.classList.add('hidden');
+    const hud=$('hud'); if(hud) hud.classList.remove('hidden');
+    G.log('⟲ НОВАЯ ИГРА · Пристань Завета · АКТ I, глава 1','#f0d27a');
+    G.log('✦ Мобы мирные, автоатаки нет, Волны Разлома выключены','#8fd08a');
+    G.toast('Начали заново · Пристань Завета',3.5);
+    updateStoryUI(); updateUI(true);
+    openModal('prologue');
+    A2.RPG.save(G);
+    return true;
+  }
+  function travelTo(zoneId, x, y) {
+    const z=A2.ZONE(zoneId);
+    if(z.id!==zoneId) return false;
+    const tx = Number.isFinite(x)?x:z.spawn[0], ty = Number.isFinite(y)?y:z.spawn[1];
+    setZone(z.id,tx,ty);
+    G.target=null; G.atkCd=0; G.attackHeld=false;
+    closeModal();
+    G.toast('◈ '+z.ru+(z.safe?' · безопасная зона':''),2.6);
+    A2.RPG.save(G);
+    return true;
+  }
+  G.basicAttack=basicAttack; G.resetGame=resetGame; G.travelTo=travelTo;
 
   /* ------------------------------ НПС и порталы ------------------------------ */
   function interact() {
@@ -528,7 +656,28 @@
     const row=(a,b)=>'<div class="mrow"><b>'+a+'</b><span>'+b+'</span></div>';
     const back='<div class="btnrow"><button data-act="backbag">← К сумке</button></div>';
 
-    if(mode==='prologue'){
+    if(mode==='travel'){
+      h('◈ Карта Завета · быстрые путешествия');
+      html.push('<p class="note">Мгновенный переход между локациями и к НПС. В Пристани Завета безопасно: мобы не нападают.</p>');
+      html.push('<div class="travel-grid">');
+      A2.ZONES.forEach(z=>{
+        const here=G.world&&G.world.id===z.id;
+        html.push('<button class="zone-card'+(here?' here':'')+(z.safe?' safe':'')+'" '+
+          'data-act="travelTo" data-v="'+z.id+'">'+
+          '<b>'+(z.safe?'✦ ':'◈ ')+z.ru+'</b>'+
+          '<small>'+(z.safe?'БЕЗОПАСНАЯ ЗОНА':'ур. '+z.lv[0]+'–'+z.lv[1])+'</small>'+
+          '<em>'+(here?'вы здесь':z.desc.slice(0,42)+'…')+'</em></button>');
+      });
+      html.push('</div>');
+      html.push('<div class="btnrow"><button data-act="home">✦ Вернуться в Пристань</button>'+
+        '<button data-act="goStoryWaypoint">◎ К цели сюжета</button></div>');
+      const npcs=G.world?G.world.npcs:[];
+      html.push('<h4>НПС в «'+(G.world?G.world.zone.ru:'—')+'» · переход к персонажу</h4>');
+      html.push('<div class="travel-npcs">');
+      npcs.forEach(n=>html.push('<button data-act="warpNpc" data-v="'+n.id+'">'+n.ru+' <small>'+n.role+'</small></button>'));
+      html.push('</div>');
+      html.push('<p class="note">Порталы НПС тоже открывают эту карту. Клавиша <b>T</b> — быстрый вызов.</p>');
+    } else if(mode==='prologue'){
       h('АРКЕОН · АКТ I · ПРОЛОГ');
       html.push('<div class="prologue"><div class="pchapter">ГЛАВА 1 / '+A2.STORY.length+'</div>');
       html.push('<h3>«'+A2.STORY[0].ru+'»</h3><p>'+A2.STORY[0].text+'</p>');
@@ -641,6 +790,8 @@
       html.push('<label class="range">Музыка <input type="range" data-range="music" min="0" max="100" value="'+Math.round(G.settings.music*100)+'"></label>');
       html.push('<label class="range">Эффекты <input type="range" data-range="sfx" min="0" max="100" value="90"></label>');
       html.push('<label class="check"><input type="checkbox" data-set="autoSalvage" '+(G.settings.autoSalvage?'checked':'')+'> Авторазбор обычного при полной сумке</label>');
+      html.push('<label class="check"><input type="checkbox" data-set="worldEvents" '+(G.settings.worldEvents?'checked':'')+'> Волны Разлома (агрессивные события)</label>');
+      html.push('<p class="note">Бой полностью ручной: тап по врагу, кнопка «Удар» или клавиша F. Мобы мирные и отвечают только на ваш удар; через 12 с успокаиваются.</p>');
       html.push('<div class="btnrow"><button data-act="testSound">Проверить звук</button><button data-act="backbag">← К сумке</button></div>');
     } else if(mode==='market'){
       G.market.seed();
@@ -711,15 +862,20 @@
       html.push('<label class="check"><input type="checkbox" data-set="sound" '+(G.settings.sound?'checked':'')+'> Звук и музыка биома</label>');
       html.push('<label class="check"><input type="checkbox" data-set="vibration" '+(G.settings.vibration?'checked':'')+'> Вибрация</label>');
       html.push('<label class="check"><input type="checkbox" data-set="autoSalvage" '+(G.settings.autoSalvage?'checked':'')+'> Авторазбор обычного при полной сумке</label>');
+      html.push('<label class="check"><input type="checkbox" data-set="worldEvents" '+(G.settings.worldEvents?'checked':'')+'> Волны Разлома (агрессивные события)</label>');
+      html.push('<p class="note">Бой полностью ручной: тап по врагу, кнопка «Удар» или клавиша F. Мобы мирные и отвечают только на ваш удар; через 12 с успокаиваются.</p>');
       html.push('<h4>Графика · сейчас '+(G.perf==='low'?'экономный':'полный')+' режим · '+Math.round(G.fpsAvg)+' FPS</h4>');
       [['auto','Авто (по FPS)'],['high','Полная детализация'],['low','Экономная · без лагов']].forEach(q=>
         html.push('<button class="wide" data-act="quality" data-v="'+q[0]+'" '+(G.settings.quality===q[0]?'style="border-color:#4fd6d0"':'')+'>'+
           (G.settings.quality===q[0]?'✓ ':'')+q[1]+'</button>'));
       html.push('<div class="btnrow"><button data-act="pickAll">✦ Забрать весь лут рядом</button></div>');
       html.push('<h4>Камера</h4>'+row('Зум',G.cam.zoom.toFixed(2))+row('Поворот',[0,90,180,270][G.cam.orient]+'°'));
+      html.push('<div class="btnrow"><button data-act="goTravel">◈ Карта и телепорты</button><button data-act="home">✦ В Пристань</button></div>');
       html.push('<div class="btnrow"><button data-act="filters">Фильтр лута и звук</button><button data-act="goplayers">Игроки</button>'+
-        '<button data-act="reset">Новый персонаж</button><button data-act="save">Сохранить</button></div>');
-      html.push('<p class="note">G2.2 · '+CANON_SOURCE+' · '+(G.net?G.net.status().state:'offline')+' · 30 Гц тик / 60 Гц рендер · '+
+        '<button data-act="save">Сохранить</button></div>');
+      html.push('<h4>Начать заново</h4><p class="note">Удалит весь прогресс и начнёт АКТ I с первой главы в Пристани Завета.</p>');
+      html.push('<div class="btnrow"><button data-act="reset">⟲ НАЧАТЬ ВСЁ ЗАНОВО</button></div>');
+      html.push('<p class="note">G2.4 · '+CANON_SOURCE+' · '+(G.net?G.net.status().state:'offline')+' · 30 Гц тик / 60 Гц рендер · '+
         (A2.Audio.state().running?'звук активен':'звук ожидает касания')+'</p>');
     } else if(mode==='dialogue'){
       const npc=data, d=A2.RPG.dialogue(G,npc);
@@ -759,7 +915,10 @@
       if(r==='sfx') A2.Audio.setSfx(n);
       A2.Audio.play('ui');
     }
-    if(v){ G.settings[v]=!!el.checked; if(v==='sound') A2.Audio.setEnabled(!!el.checked); A2.Audio.play('ui'); }
+    if(v){ G.settings[v]=!!el.checked;
+      if(v==='sound') A2.Audio.setEnabled(!!el.checked);
+      if(v==='worldEvents') A2.World.setWorldEvents(G.world,!!el.checked);
+      A2.Audio.play('ui'); }
   }
   function modalClick(ev) {
     const el=ev.target; if(!el||!el.getAttribute) return;
@@ -900,7 +1059,24 @@
       case 'say': { const inp=$('modalChatInput'); if(inp&&inp.value){G.net.chat(inp.value.trim());inp.value='';openModal('chat');} break; }
       case 'connect': { const inp=$('modalServerInput'); if(inp&&inp.value){G.net.connect(inp.value.trim());G.toast('Подключение…',2);closeModal();} break; }
       case 'save': A2.RPG.save(G); G.toast('Сохранено',1.5); break;
-      case 'reset': if(typeof localStorage!=='undefined'){try{localStorage.removeItem(C.SAVE_KEY);}catch(e){}} G.toast('Перезапустите страницу для нового героя',3); break;
+      case 'reset': resetGame(); break;
+      case 'goTravel': openModal('travel'); break;
+      case 'home': travelTo('haven'); break;
+      case 'travelTo': travelTo(v); break;
+      case 'goStoryWaypoint': {
+        const wp=G.storyTarget;
+        if(!wp){ G.toast('Пролог завершён — целей нет',2); break; }
+        if(G.world.id!==wp.zone) travelTo(wp.zone,wp.x,wp.y);
+        else { G.player.x=A2.clamp(wp.x+1.2,2,C.ZONE_N-3); G.player.y=A2.clamp(wp.y+1.2,2,C.ZONE_N-3);
+          closeModal(); G.toast('Вы у цели · нажмите «Взаим.»',2.5); }
+        break;
+      }
+      case 'warpNpc': {
+        const n=G.world&&G.world.npcs.find(x=>x.id===v);
+        if(!n){ G.toast('НПС не найден',1.5); break; }
+        G.player.x=A2.clamp(n.x+1.1,2,C.ZONE_N-3); G.player.y=A2.clamp(n.y+1.1,2,C.ZONE_N-3);
+        closeModal(); G.toast('✦ '+n.ru+' · нажмите «Взаим.»',2.5); break;
+      }
       case 'dlg': {
         const o=G.modalOptions&&G.modalOptions[i]; if(!o) break;
         switch(o.action){
@@ -914,9 +1090,7 @@
           case 'salvage': { const it=ch.inventory[0]; if(it)A2.RPG.salvage(G,it); G.toast(it?'Разобрано: '+A2.RPG.itemName(it):'Сумка пуста',2); break; }
           case 'talents': openModal('talents'); break;
           case 'respec': G.toast(A2.RPG.respec(G)?'Таланты сброшены':'Нужно 500 S',2); break;
-          case 'portal': { const p=G.world.portals.find(q=>q.to!==G.world.id)||G.world.portals[0];
-            if(p){ const a=p.arrival||{x:A2.ZONE(p.to).spawn[0],y:A2.ZONE(p.to).spawn[1]};
-              A2.RPG.storyEvent(G,'gate',p.to,1); setZone(p.to,a.x,a.y); closeModal(); } break; }
+          case 'portal': openModal('travel'); break;
           case 'story': openModal('story'); break;
           case 'map': G.toast('Лагеря отмечены на мини-карте',2); break;
           case 'gamble': { if(ch.gold>=800){ch.gold-=800;const it=A2.RPG.rollItem(ch.level,G.world.id,{rarity:'legendary'});ch.inventory.push(it);G.toast('Реликвия: '+A2.RPG.itemName(it),3);A2.Audio.play('loot','legendary');} else G.toast('Нужно 800 S',2); break; }
@@ -963,23 +1137,14 @@
       p.facing=Math.atan2(w.y,w.x);
     }
     ch.x=p.x; ch.y=p.y;
-    // автоатака
-    G.autoCd-=dt;
-    const modalOpen = G.modalMode==='prologue'||G.modalMode==='story';
-    if(G.autoCd<=0 && !modalOpen){
-      const t=target();
-      if(t && A2.dist(t.x,t.y,p.x,p.y)<=cls.range+0.8){
-        A2.RPG.hit(G,t,1.05,cls.element);
-        ch.res=A2.clamp(ch.res+8,0,ch.maxRes);
-        ch.ult=A2.clamp(ch.ult+2,0,100);
-        p.attackAnim=1;
-      }
-      G.autoCd=1/(1.15*(1+ch.stats.haste))*(1-ch.stats.cdr*0.2);
-    }
+    // G2.4 · АВТОАТАКИ НЕТ. Удар наносится только по явному вводу:
+    // тап по врагу, кнопка «Удар» или удержание этой кнопки.
+    G.atkCd=Math.max(0,G.atkCd-dt);
+    if(G.attackHeld && G.atkCd<=0) basicAttack();
     // питомцы
     for(const pet of G.pets){
       pet.life-=dt; pet.cd-=dt;
-      const t=A2.World.mobsNear(G.world,pet.x,pet.y,7)[0];
+      const t=(G.target && G.target.alive && A2.dist(pet.x,pet.y,G.target.x,G.target.y)<7) ? G.target : null;
       if(t){ const a=Math.atan2(t.y-pet.y,t.x-pet.x); const nx=pet.x+Math.cos(a)*dt*2.4,ny=pet.y+Math.sin(a)*dt*2.4;
         if(A2.World.canMove(G.world,nx,ny)){pet.x=nx;pet.y=ny;}
         if(pet.cd<=0&&A2.dist(pet.x,pet.y,t.x,t.y)<2.2){pet.cd=1.2;t.hp-=pet.dmg;t.hitFlash=1;
@@ -1106,6 +1271,8 @@
     set('pResText',Math.round(ch.res)+' / '+ch.maxRes+' '+cls.res);
     set('pXpText',ch.xp+' / '+A2.xpNext(ch.level)+' XP');
     set('zoneName',G.world?G.world.zone.ru:'—');
+    const sb=$('safeBadge'); if(sb){ const safe=!!(G.world&&G.world.safe);
+      sb.textContent=safe?'✦ БЕЗОПАСНАЯ ЗОНА':''; sb.classList&&sb.classList.toggle('show',safe); }
     set('dpsText',A2.fmt(G.dps)); set('killsText',String(ch.kills)); set('goldText',A2.fmt(ch.gold));
     set('onlineBadge',net.state==='online'?'ОНЛАЙН · '+net.count+' игр. · '+net.ping+' мс':'ОФЛАЙН-МИР · '+net.count+' союзников');
     const q=A2.RPG.activeQuests(G)[0];
@@ -1149,7 +1316,7 @@
 
   /* ------------------------------ тестовый API ------------------------------ */
   window.ARKEON_G2 = {
-    version:'G2.3', state:G,
+    version:'G2.4', state:G,
     get source(){return CANON_SOURCE;},
     boot, startGame, step, cast, dodge, useUlt, setZone, interact, openModal, closeModal,
     target, meta, updateUI, render:(dt)=>A2.Render.frame(G.world,G,dt||1/60),
@@ -1157,6 +1324,7 @@
     skills:()=>SKILLS,
     giveXP:n=>A2.RPG.grantXP(G,n),
     story:n=>A2.RPG.storyEvent(G,n.type,n.target,n.amount||1),
+    basicAttack, resetGame, travelTo, provoke:(m)=>A2.World.provoke(G.world,m),
     skipStory:()=>A2.RPG.storySkip(G),
     storyState:()=>G.story,
     killNearest:()=>{ const t=target(); if(t){ while(t.alive) A2.RPG.hit(G,t,50,'Физический'); return t; } return null; },

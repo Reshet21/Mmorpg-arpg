@@ -104,7 +104,7 @@ async function run(useCanon) {
   const API=env.window.ARKEON_G2, A2=env.window.A2;
   ok(!!API,'window.ARKEON_G2 определён');
   if(!API) return;
-  ok(API.version==='G2.3','версия G2.3');
+  ok(API.version==='G2.4','версия G2.4');
   ok(API.source===(useCanon?'canon':'fallback'),'источник навыков: '+(useCanon?'canon':'fallback'));
   if(useCanon) {
     const m=API.meta('Клинок Рубежа');
@@ -118,6 +118,27 @@ async function run(useCanon) {
   ok(G.modalMode==='prologue','после старта открывается кинематографичный пролог');
   ok(intro.indexOf('НАЧАТЬ ПРОЛОГ')>=0 && intro.indexOf('Пристань Завета')>=0,
      'пролог содержит лор города и кнопку начала');
+
+  // ---- G2.4 · ТИХИЙ СТАРТ: свежее сохранение и отсутствие автоатаки ----
+  ok(A2.C.SAVE_KEY==='arkeon_g2_save_v4' && A2.C.SAVE_VERSION===4,
+     'G2.4: новая версия сохранения — старый прогресс не подхватывается');
+  ok(typeof A2.RPG.clearSave==='function' && typeof API.resetGame==='function',
+     'G2.4: полный сброс прогресса доступен без перезагрузки');
+  env.localStorage.setItem(A2.C.SAVE_KEY, JSON.stringify({v:2,zone:'grove',classId:'mage',level:40}));
+  ok(A2.RPG.load()===null,'G2.4: сохранение G2.2/G2.3 отклоняется и удаляется');
+  ok(!env.localStorage.getItem(A2.C.SAVE_KEY),'G2.4: битый сейв вычищен из localStorage');
+  ok(G.world.id==='haven' && G.story.chapter===0,'G2.4: всегда свежий старт в Пристани, глава 1');
+  ok(G.settings.worldEvents===false && G.world.noEvents===true,
+     'G2.4: Волны Разлома выключены по умолчанию');
+  ok(G.world.mobs.every(m=>m.provoked===false),'G2.4: все мобы изначально мирные');
+  ok(typeof API.basicAttack==='function','G2.4: ручной удар реализован');
+  const beforeDmg=G.damageDealt, beforeKills=G.char.kills;
+  for(let i=0;i<120;i++) API.step(A2.C.TICK);
+  ok(G.damageDealt===beforeDmg && G.char.kills===beforeKills,
+     'G2.4: 120 тиков без ввода — ни одного удара, автоатаки нет');
+  ok(G.char.hp>0 && !G.char.dead,'G2.4: в безопасном городе здоровье не падает');
+  ok(G.char.hp===G.char.stats.maxHp && G.char.maxHp===G.char.stats.maxHp,
+     'G2.4: найден и исправлен баг 0 HP на старте — герой с полным здоровьем');
 
   // ---- G2.3 · ГОРОД, ПРОЛОГ И ПОСТЕПЕННАЯ ЭКИПИРОВКА ----
   const HW=G.world;
@@ -198,6 +219,35 @@ async function run(useCanon) {
   enterWild();
   ok(A2.World.isSafe(G.world,5.5,5.5)===true,'у входа в Рощу есть безопасная дозорная тропа');
   ok(A2.World.isSafe(G.world,20,20)===false,'в глубине Рощи мобы уже агрессивны');
+
+  // ---- G2.4 · МИРНЫЕ МОБЫ, РЕТАЛИАЦИЯ, КАРТА И ТЕЛЕПОРТЫ ----
+  const GW=G.world;
+  const mob=GW.mobs.find(m=>m.alive && !m.boss && A2.dist(m.x,m.y,5.5,5.5)>11);
+  ok(!!mob && mob.provoked===false,'G2.4: боевой моб в глубине зоны не агрессивен');
+  if(mob){
+    G.player.x=mob.x+0.7; G.player.y=mob.y+0.7;
+    const hp0=G.char.hp;
+    for(let i=0;i<60;i++) API.step(A2.C.TICK);
+    ok(G.char.hp>=hp0-1,'G2.4: вплотную к мирному мобу игрок не получает урона');
+    G.target=mob; G.atkCd=0;
+    ok(API.basicAttack()===true,'G2.4: ручной удар срабатывает по выбранной цели');
+    ok(mob.provoked===true,'G2.4: моб отвечает только после удара по нему');
+    mob.provokedAt=GW.time-13;
+    A2.World.update(GW,1/30,[{uid:'local',x:G.player.x,y:G.player.y,dead:false}],{});
+    ok(mob.provoked===false,'G2.4: через 12 с без боя моб успокаивается');
+  }
+  API.openModal('travel');
+  const travelHtml=env.document.getElementById('modalBody').innerHTML;
+  ok((travelHtml.match(/data-act="travelTo"/g)||[]).length===5,
+     'G2.4: карта предлагает телепорт во все 5 локаций');
+  ok(travelHtml.indexOf('warpNpc')>=0,'G2.4: есть быстрый переход к НПС');
+  ok(API.travelTo('haven')===true && G.world.id==='haven',
+     'G2.4: телепорт в безопасный город работает');
+  ok(API.travelTo('grove',12,16)===true && G.world.id==='grove',
+     'G2.4: телепорт в боевую зону с координатами работает');
+  ok(G.settings.worldEvents===false && G.world.noEvents===true,
+     'G2.4: после телепорта Волны Разлома остаются выключенными');
+  API.closeModal();
 
   // ---- данные канона ----
   ok(A2.CLASSES.length===6,'6 классов канона');
@@ -528,6 +578,23 @@ async function run(useCanon) {
   try{ for(let i=0;i<150;i++){API.step(A2.C.TICK); if(i%10===0)API.render(1/60);} }catch(e){ferr=e;}
   ok(!ferr,'150 тиков + рендер после всех операций'+(ferr?': '+ferr.message:''));
   ok(Number.isFinite(G.player.x)&&Number.isFinite(G.char.hp)&&Number.isFinite(G.dps),'финальное состояние без NaN');
+
+  // ---- G2.4 · полный сброс «начать всё заново» ----
+  G.char.level=47; G.char.kills=999; G.story.done=true; G.story.chapter=9;
+  A2.RPG.save(G);
+  ok(API.resetGame()===true,'G2.4: resetGame() выполняется без исключений');
+  ok(G.world.id==='haven' && G.world.safe===true,'G2.4: после сброса — безопасный город');
+  ok(G.char.level===1 && G.char.kills===0,'G2.4: после сброса новый герой 1-го уровня');
+  ok(G.story.chapter===0 && G.story.done===false && G.story.log.length===0,
+     'G2.4: после сброса пролог начинается с главы 1');
+  ok(G.char.hp===G.char.stats.maxHp,'G2.4: после сброса полное здоровье');
+  ok(G.modalMode==='prologue','G2.4: после сброса открывается вступительная глава');
+  ok(G.target===null && G.attackHeld===false && G.pointers.size===0,
+     'G2.4: после сброса нет цели, залипшего удара и зависших pointer-касаний');
+  const fresh=A2.RPG.load();
+  ok(!!fresh && fresh.v===A2.C.SAVE_VERSION && fresh.story && fresh.story.chapter===0,
+     'G2.4: новое сохранение сразу пишет чистый пролог');
+  API.closeModal();
 }
 
 (async()=>{

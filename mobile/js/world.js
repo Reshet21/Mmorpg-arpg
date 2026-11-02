@@ -141,7 +141,8 @@
       elite, boss, alive: true, respawnAt: 0, state: 'idle', target: null, atkCd: 0, castCd: 0,
       statuses: [], phase: 1, enrageAt: boss ? A2.BOSSES[W.zone.boss].enrage : 0,
       facing: 0, anim: 0, hitFlash: 0, loot: null, lootOwner: null, camp: opts.camp || null,
-      telegraph: null, wanderT: 0, wx: x, wy: y, nameOverride: opts.ru || null, spawnAt: W.time, event: opts.event || null
+      telegraph: null, wanderT: 0, wx: x, wy: y, nameOverride: opts.ru || null, spawnAt: W.time, event: opts.event || null,
+      provoked: false, provokedAt: 0, peaceful: true
     };
   }
 
@@ -263,7 +264,16 @@
     }
     m.atkCd -= dt; m.castCd -= dt;
     m.statuses = m.statuses.filter(s => s.until > W.time);
-    const target = nearestPlayer(W, players, m.x, m.y, m.aggro * (m.boss ? 1.4 : 1));
+    // G2.4 · мобы МИРНЫЕ по умолчанию: вступают в бой только после удара
+    // по ним (retaliation) или если это моб событийной Волны. Через 12 с
+    // без боя провокация остывает, и зверь возвращается к патрулю.
+    if (m.provoked && W.time - m.provokedAt > 12) {
+      m.provoked = false; m.target = null; m.telegraph = null;
+    }
+    const aggressive = m.provoked || !!m.event;
+    const target = aggressive
+      ? nearestPlayer(W, players, m.x, m.y, m.aggro * 2.2 * (m.boss ? 1.4 : 1))
+      : null;
     if (m.telegraph) {
       const tg = m.telegraph; tg.t += dt;
       if (!tg.resolved && tg.t >= tg.dur) {
@@ -333,7 +343,7 @@
 
   function startEvent(W, players) {
     const p = players[0]; if (!p) return;
-    if (W.safe) return;                                      // в городе нет Волн Разлома
+    if (W.safe || W.noEvents) return;                                      // в городе нет Волн Разлома
     const local = players.find(q => q.uid === 'local') || players[0];
     if (local && local.storyDone === false) return;          // пролог ещё идёт
     const id = 'wave_' + Math.floor(W.time);
@@ -342,7 +352,7 @@
       const a = W.rnd() * 6.28, r = 6 + W.rnd() * 6;
       const m = makeMob(W, W.zone.mobs[Math.floor(W.rnd()*W.zone.mobs.length)],
         A2.clamp(p.x + Math.cos(a)*r, 2, N-3), A2.clamp(p.y + Math.sin(a)*r, 2, N-3), W.zone.lv[1], { event:id });
-      m.aggro = 18; W.mobs.push(m);
+      m.aggro = 18; m.provoked = true; m.provokedAt = W.time; W.mobs.push(m);
       if (W.eventActive) W.eventActive.mobs = (W.eventActive.mobs || []).concat(m.uid);
     }
     W.events.push({ t:W.time, text:'⚠ ВОЛНА РАЗЛОМА · 14 мобов · бонус опыта и лута' });
@@ -353,9 +363,9 @@
     for (let i = 0; i < W.mobs.length; i++) updateMob(W, W.mobs[i], dt, players, hooks);
     // респавн босса
     if (!W.safe && !W.bossAlive && W.time > W.bossRespawn) { spawnBoss(W); W.events.push({t:W.time,text:'Мировой босс вернулся на поляну'}); }
-    // мировое событие (в безопасной зоне таймер = Infinity)
+    // G2.4 · Волны Разлома выключены по умолчанию: их включает игрок в настройках
     W.eventTimer -= dt;
-    if (W.eventTimer <= 0 && !W.eventActive) { startEvent(W, players); W.eventTimer = 150; }
+    if (!W.noEvents && W.eventTimer <= 0 && !W.eventActive) { startEvent(W, players); W.eventTimer = 150; }
     if (W.eventActive) {
       const e = W.eventActive; e.t += dt;
       if (e.killed >= e.need || e.t > e.dur) {
@@ -393,11 +403,21 @@
     return W.npcs.find(n => A2.dist(n.x, n.y, x, y) < (r || 2.2)) || null;
   }
 
+  function provoke(W, m) {
+    if (!m || m.ai === 'dummy') return;
+    m.provoked = true; m.provokedAt = W.time;
+  }
+  function setWorldEvents(W, on) {
+    if (!W) return;
+    W.noEvents = !on;
+    W.eventTimer = (!on || W.safe) ? Infinity : 65;
+    if (!on) W.eventActive = null;
+  }
   function isSafe(W, x, y) {
     if (!W) return false;
     if (W.safe) return true;
     return !!(W.safeCircles && W.safeCircles.some(c => A2.dist(x, y, c.x, c.y) < c.r));
   }
   A2.World = { T, create, update, kill, mobsNear, canMove, blocked, portalAt, npcAt,
-    makeMob, spawnBoss, startEvent, mobStats, noise, isSafe };
+    makeMob, spawnBoss, startEvent, mobStats, noise, isSafe, provoke, setWorldEvents };
 })();

@@ -8,7 +8,7 @@
   'use strict';
   const A2 = window.A2 || (window.A2 = {});
 
-  A2.VERSION = 'G2.3';
+  A2.VERSION = 'G2.4';
   A2.C = {
     TICK: 1 / 30, SNAPSHOT: 1 / 20, WEAPON_HIT: 21600,
     TILE_W: 64, TILE_H: 32, H_UNIT: 26,
@@ -17,7 +17,7 @@
     DODGE_IFRAME: 0.30, DODGE_CD: 5.5, DODGE_CHARGES: 2,
     XP_BASE: 900, XP_GROWTH: 1.31, MAX_LEVEL: 60,
     AOI: 120, MAX_PLAYERS: 200, PITY: 40,
-    SAVE_KEY: 'arkeon_g2_save_v1'
+    SAVE_KEY: 'arkeon_g2_save_v4', SAVE_VERSION: 4
   };
   A2.ELEMENTS = ['Физический', 'Огонь', 'Лёд', 'Молния', 'Скверна', 'Свет', 'Тьма'];
   A2.REACTIONS = {

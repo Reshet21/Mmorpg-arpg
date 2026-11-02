@@ -39,7 +39,9 @@ let uidSeq = 0, lastTick = Date.now(), snapAcc = 0;
 
 for (let i=0;i<A2.ZONES.length;i++) {
   const z=A2.ZONES[i];
-  worlds.set(z.id, A2.World.create(z.id, 1337 + i*7717));
+  const W = A2.World.create(z.id, 1337 + i*7717);
+  A2.World.setWorldEvents(W, false);   // G2.4: мирные мобы и на сервере
+  worlds.set(z.id, W);
 }
 
 function log(text) { events.push({t:Date.now(),text}); if(events.length>60) events.shift(); }
@@ -172,6 +174,7 @@ function handle(p, msg) {
       for(const m of W.mobs) {
         if(!m.alive || A2.dist(m.x,m.y,cx,cy)>range) continue;
         m.hp-=dmg; m.hitFlash=1; hits++;
+        m.provoked=true; m.provokedAt=W.time;   // G2.4: отвечает только после удара
         if(m.hp<=0) {
           A2.World.kill(W,m);
           log(p.name+' поверг '+(m.nameOverride||m.ru));
@@ -407,7 +410,7 @@ function start() {
 }
 
 function stats() {
-  return { version:'G2.3', tickHz:30, snapshotHz:20, aoi:C.AOI,
+  return { version:'G2.4', tickHz:30, snapshotHz:20, aoi:C.AOI,
     players:players.size, zones:worlds.size,
     mobs:Array.from(worlds.values()).reduce((a,W)=>a+W.mobs.filter(m=>m.alive).length,0),
     parties:parties.size, orders:orders.size, trades:trades.size, ledger:ledger.length,
