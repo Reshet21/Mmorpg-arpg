@@ -138,7 +138,7 @@ button{font-family:inherit;cursor:pointer}
     <div class="side-foot">
       Источник истины: <code>data/canon.json</code><br>
       Проверка: <code>python3 tools/verify_canon.py</code><br>
-      Версия 1.0 · 2027-Q1 · 15 документов
+      Версия 1.1 · 2027-Q1 · 16 документов
     </div>
   </aside>
 
@@ -169,6 +169,7 @@ const DOCS=[
  {f:'13-budget.md',      t:'Оценка бюджета',          g:'Бизнес'},
  {f:'14-team.md',        t:'Состав команды',          g:'Бизнес'},
  {f:'15-launch.md',      t:'Запуск и продвижение',    g:'Бизнес'},
+ {f:'16-mobile.md',      t:'Мобильная версия (G1)',   g:'Мобильная'},
 ];
 const VIEWS=[
  {id:'overview', t:'Обзор', g:'Видение'},
@@ -178,7 +179,7 @@ const VIEWS=[
 ];
 const ALL=[...VIEWS,...DOCS.map(d=>({id:d.f,t:d.t,g:d.g}))];
 const nav=document.getElementById('nav');
-const groups=['Видение','Игра','Технологии','Бизнес'];
+const groups=['Видение','Игра','Технологии','Бизнес','Мобильная'];
 let active='overview';
 function buildNav(filter=''){
   nav.innerHTML='';
@@ -306,6 +307,7 @@ function viewOverview(){
         <button class="launch" onclick="go('map')"><b>Карта мира →</b><span>14 регионов, переключаемые слои</span></button>
         <button class="launch" onclick="go('classes')"><b>Классы →</b><span>6 классов / 18 спеков / 144 узла</span></button>
         <button class="launch" onclick="go('models')"><b>Модели →</b><span>Экономика, бой, бюджет</span></button>
+        <button class="launch" onclick="location.href='mobile/index.html'"><b>Играть G1 →</b><span>Телефонный срез боя · PWA</span></button>
       </div>
     </div>
     <div class="mapwrap" id="miniMap" style="max-height:330px;overflow:hidden"><div class="loader">Карта…</div></div>
@@ -322,6 +324,12 @@ function viewOverview(){
     <div class="kpi"><b>10M+</b><span>целевая аудитория MAU</span></div>
   </div>
 
+  <div class="card" style="border-color:rgba(255,170,90,.45)">
+    <h3>Мобильная версия · G1 «Рубеж» — уже играбельно</h3>
+    <p>Исполняемый телефонный вертикальный срез боя: сенсорный джойстик, свайп-додж с 0.30 с неуязвимости, 6 навыков и ультимейт, pinch-зум и поворот изометрии, Страж Рубежа с 4 фазами, телеграфами и окном BREAK, экран «Мир помнит». PWA на чистом Canvas 2D и WebAudio: без CDN, без сборки, без платежей, работает офлайн.</p>
+    <p style="margin-top:12px"><a href="mobile/index.html" class="launch" style="display:inline-block;text-decoration:none"><b>Открыть на телефоне →</b><span>тот же хост, путь /mobile/</span></a> · <a href="#16-mobile.md" onclick="go('16-mobile.md');return false">Документ 16 · спецификация студии →</a> · <a href="#11-roadmap.md" onclick="go('11-roadmap.md');return false">Этапы G1–G5 →</a></p>
+  </div>
+
   <div class="grid2">
     <div class="card"><h3>Три опоры дизайна</h3>
       <div class="pillars">
@@ -335,7 +343,7 @@ function viewOverview(){
       <p>От Creative Director до Community Manager — у каждой роли из брифа есть зона решений и KPI. Пик команды <b>252 FTE</b>, 7 отделов, RACI на 9 критических решений.</p>
       <p><a href="#14-team.md" onclick="go('14-team.md');return false">Открыть состав команды →</a></p>
       <h3 style="margin-top:18px">Статус канона</h3>
-      <p><span class="status"><i></i> Линтер: 83 проверки · PASS</span> — данные, документы, баланс и хартия согласованы (<code>tools/verify_canon.py</code>).</p>
+      <p><span class="status"><i></i> Линтер: 121 проверка · PASS</span> — данные, документы, баланс и хартия согласованы (<code>tools/verify_canon.py</code>).</p>
     </div>
   </div>
 
@@ -356,13 +364,13 @@ function viewOverview(){
   <div class="card"><h3>Дорожная карта · 54 месяца</h3>
     <div class="diagram" style="grid-template-columns:repeat(6,1fr)">
       <div class="dbox"><b>2027 Q1</b>G0 · дизайн-библия</div>
-      <div class="dbox"><b>M9</b>G1 · vertical slice</div>
+      <div class="dbox gold"><b>M9 · готово</b>G1 · мобильный срез боя, PWA</div>
       <div class="dbox"><b>M21</b>G2 · пайплайн</div>
       <div class="dbox"><b>M33</b>G3 · feature complete</div>
       <div class="dbox"><b>M42</b>G4 · софт-ланч</div>
       <div class="dbox gold"><b>2031 Q2</b>G5 · глобальный запуск</div>
     </div>
-    <p style="margin-top:12px"><a href="#11-roadmap.md" onclick="go('11-roadmap.md');return false">Полный roadmap →</a> · <a href="#13-budget.md" onclick="go('13-budget.md');return false">Бюджет →</a> · <a href="#15-launch.md" onclick="go('15-launch.md');return false">Go-to-Market →</a></p>
+    <p style="margin-top:12px"><a href="mobile/index.html">Играть G1 →</a> · <a href="#11-roadmap.md" onclick="go('11-roadmap.md');return false">Полный roadmap →</a> · <a href="#13-budget.md" onclick="go('13-budget.md');return false">Бюджет →</a> · <a href="#15-launch.md" onclick="go('15-launch.md');return false">Go-to-Market →</a></p>
   </div>`;
   fetchText('assets/world-map.svg').then(svg=>{
     const el=document.getElementById('miniMap');if(el)el.innerHTML=svg;
@@ -444,7 +452,7 @@ function viewModels(){
     <div class="kpi"><b>PASS</b><span>PI 98.79–100.43 за 30 дней</span></div>
     <div class="kpi"><b>PASS</b><span>sink/faucet 1.028–1.089</span></div>
     <div class="kpi"><b>PASS</b><span>DPS-разброс ±1.78%</span></div>
-    <div class="kpi"><b>PASS</b><span>83/83 проверок канона</span></div>
+    <div class="kpi"><b>PASS</b><span>121/121 проверка канона</span></div>
   </div>
   <div class="charts">
     <div class="chart" id="ecochart"><div class="loader">…</div></div>

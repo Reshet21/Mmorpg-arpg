@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#060c12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="ARKEON: Пепел Завета — мобильный вертикальный срез G1. Изометрический ARPG-бой с сенсорным управлением.">
+<title>ARKEON · Мобильный срез G1</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="game" aria-label="Игровое поле"></canvas>
+
+  <!-- ======================= HUD ======================= -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="panel player-panel">
+        <div class="avatar" id="pAvatar">В</div>
+        <div class="bars">
+          <div class="bar-line"><span id="pName">ВОИН</span><span id="pHpText">12000 / 12000</span></div>
+          <div class="bar hp"><i id="pHp" style="width:100%"></i></div>
+          <div class="bar res"><i id="pRes" style="width:100%"></i></div>
+          <div class="bar ult"><i id="pUlt" style="width:0%"></i></div>
+        </div>
+      </div>
+
+      <div class="panel boss-panel" id="bossPanel">
+        <div class="boss-head"><span id="bossName">СТРАЖ РУБЕЖА</span><span id="bossPhase">ФАЗА I</span><span id="bossTimer">00:00</span></div>
+        <div class="bar boss-hp"><i id="bossHp" style="width:100%"></i><u class="mark" style="left:75%"></u><u class="mark" style="left:50%"></u><u class="mark" style="left:25%"></u></div>
+        <div class="bar stagger"><i id="bossStagger" style="width:0%"></i></div>
+        <div class="boss-foot"><span id="bossHint">Стойкость ломается навыком «Разломный Удар»</span><span id="bossEnrage"></span></div>
+      </div>
+
+      <div class="hud-right">
+        <button id="btnPause" class="icon-btn" aria-label="Пауза">❚❚</button>
+        <div class="mini-stats"><b id="dpsText">0</b><span>DPS</span><b id="comboText">0</b><span>КОМБО</span></div>
+      </div>
+    </div>
+
+    <div id="hint" class="hint"></div>
+    <div id="toast" class="toast"></div>
+    <div id="reaction" class="reaction"></div>
+
+    <div class="controls">
+      <div id="joy" class="joy" aria-label="Джойстик движения">
+        <div class="joy-ring"><div class="joy-knob" id="joyKnob"></div></div>
+        <span class="joy-label">ДВИЖЕНИЕ · свайп = додж</span>
+      </div>
+      <div class="skill-zone">
+        <button id="btnUlt" class="skill ult" aria-label="Ультимейт"><span class="glyph">✦</span><span class="cd"></span><small>УЛЬТ</small></button>
+        <div id="skills" class="skills"></div>
+        <button id="btnDodge" class="skill dodge" aria-label="Уклонение"><span class="glyph">↝</span><span class="cd"></span><small>ДОДЖ <b id="dodgeCount">2</b></small></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= СТАРТ ======================= -->
+  <div id="startScreen" class="overlay">
+    <div class="sheet">
+      <div class="logo"><span class="beacon"></span><h1>АРКЕОН</h1><p>ПЕПЕЛ ЗАВЕТА · G1 МОБИЛЬНЫЙ СРЕЗ</p></div>
+      <p class="tagline">«Мир не погиб. Он перестал держать слово.»</p>
+      <h2 class="section-title">Выбери Возжённого</h2>
+      <div class="class-pick">
+        <button class="class-card selected" data-class="warrior">
+          <b>⚔ ВОИН</b><span>Хранитель Рубежа</span>
+          <small>Ярость · ближний бой · щит и BREAK-удар</small>
+        </button>
+        <button class="class-card" data-class="mage">
+          <b>✧ МАГ</b><span>Толкователь Эфира</span>
+          <small>Мана + заряды · стихии и реакции</small>
+        </button>
+      </div>
+      <div class="how">
+        <div><b>◉</b> Левый джойстик — движение, быстрый свайп — уклонение</div>
+        <div><b>✦</b> 6 навыков справа, тап по врагу — захват цели</div>
+        <div><b>◈</b> Два пальца — зум и поворот камеры на 90°</div>
+        <div><b>▲</b> Красные зоны — телеграфы босса: уходи за 1 с</div>
+      </div>
+      <label class="check"><input type="checkbox" id="optSlow"> Медленные телеграфы (+150 мс, доступность)</label>
+      <button id="btnStart" class="primary">НАЧАТЬ БОЙ</button>
+      <div class="foot-links">
+        <button id="btnInstall" class="link hidden">⬇ На главный экран</button>
+        <a class="link" href="../index.html">← Дизайн-библия</a>
+        <a class="link" href="README.md">О срезе</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= ПАУЗА ======================= -->
+  <div id="pauseScreen" class="overlay hidden">
+    <div class="sheet">
+      <h2 class="section-title">Пауза · Кодекс Возжённого</h2>
+      <div id="codex" class="codex"></div>
+      <div class="settings">
+        <label class="check"><input type="checkbox" id="setMotion"> Уменьшить тряску и частицы</label>
+        <label class="check"><input type="checkbox" id="setVib" checked> Вибрация</label>
+        <label class="check"><input type="checkbox" id="setSound" checked> Звук</label>
+        <label class="check"><input type="checkbox" id="setNumbers" checked> Цифры урона</label>
+        <label class="check"><input type="checkbox" id="setSlow"> Медленные телеграфы</label>
+      </div>
+      <div class="btn-row">
+        <button id="btnResume" class="primary">ПРОДОЛЖИТЬ</button>
+        <button id="btnRestart" class="secondary">ЗАНОВО</button>
+        <button id="btnMenu" class="secondary">КЛАССЫ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= ФИНАЛ ======================= -->
+  <div id="endScreen" class="overlay hidden">
+    <div class="sheet">
+      <h1 id="endTitle" class="end-title">СВЕТОЧ ЗАЖЖЁН</h1>
+      <p id="endSub" class="end-sub"></p>
+      <div id="endStats" class="stats"></div>
+      <div class="remembers">
+        <h3>МИР ПОМНИТ</h3>
+        <p id="remember1"></p><p id="remember2"></p><p id="remember3"></p>
+      </div>
+      <div class="btn-row">
+        <button id="btnRetry" class="primary">ЕЩЁ БОЙ</button>
+        <button id="btnEndMenu" class="secondary">КЛАССЫ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="rotateHint" class="rotate-hint">↻ Поверните телефон для большего обзора <button id="btnHideRotate">×</button></div>
+</div>
+<script src="js/game.js"></script>
+</body>
+</html>

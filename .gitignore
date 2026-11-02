@@ -1,0 +1,16 @@
+# Интерпретаторы и кэши
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Локальные артефакты редакторов и ОС
+.DS_Store
+Thumbs.db
+*.log
+
+# Сборки (в репозиторий попадают только исходники и сгенерированные данные)
+dist/
+build/
+node_modules/

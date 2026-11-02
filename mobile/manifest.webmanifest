@@ -1,0 +1,39 @@
+{
+  "id": "/mobile/",
+  "name": "АРКЕОН: Пепел Завета — Рубеж (G1)",
+  "short_name": "АРКЕОН G1",
+  "description": "Телефонный вертикальный срез боя АРКЕОН: изометрическая арена, сенсорное управление и Страж Рубежа.",
+  "lang": "ru-RU",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#060c12",
+  "theme_color": "#060c12",
+  "categories": ["games", "entertainment"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Бой: Воин",
+      "short_name": "Воин",
+      "description": "Начать арену за Воина",
+      "url": "./index.html?class=warrior&autostart=1",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Бой: Маг",
+      "short_name": "Маг",
+      "description": "Начать арену за Мага",
+      "url": "./index.html?class=mage&autostart=1",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -3,12 +3,13 @@
 
 Запуск: python3 tools/verify_canon.py [--strict]
 Проверки:
-  · 15 документов дизайн-библии на месте и непустые;
+  · 16 документов дизайн-библии на месте и непустые;
   · канон: редкости, шансы дропа, заточка, зоны закона, инфраструктура;
   · классы: 6 / 18 специализаций / 48 навыков / 144 узла и обязательные роли навыков;
   · мир: 14 регионов, 7 Светочей, биомы из брифа;
   · защита P3: в схемах нет конвертера DC→Silver, у косметики нет статов;
   · сгенерированные артефакты (бюджет, DPS, экономика, SVG) на месте;
+  · мобильный срез G1: PWA-оболочка, манифест, иконки, офлайн-кэш, канон, CI-тест;
   · сумма data/budget.csv == production.total_budget_usd из canon.json.
 
 Используется в CI (`09-client.md`, `11-roadmap.md`, `12-monetization.md`).
@@ -34,7 +35,7 @@ def check(ok: bool, msg: str) -> None:
 
 # --- 1. Документы ---
 docs = sorted((ROOT / "docs").glob("[0-9][0-9]-*.md"))
-check(len(docs) == 15, f"15 документов дизайн-библии (найдено {len(docs)})")
+check(len(docs) == 16, f"16 документов дизайн-библии (найдено {len(docs)})")
 for d in docs:
     text = d.read_text(encoding="utf-8")
     check(len(text) > 2500 and text.startswith("# "), f"{d.name}: заголовок + объём ({len(text)} симв.)")
@@ -108,10 +109,57 @@ if budget_csv.exists():
 
 # --- 7. Кросс-ссылки ключевых чисел в документах ---
 all_md = "\n".join(d.read_text(encoding="utf-8") for d in docs)
-for token in ("30 Гц", "4 000", "224 680 000", "200v200", "10 недель", "1.085", "9 200"):
+for token in ("30 Гц", "4 000", "224 680 000", "200v200", "10 недель", "1.085", "9 200", "G1"):
     check(token in all_md, f"в документах встречается каноническое число «{token}»")
 
-# --- 8. Отчёт ---
+# --- 8. Мобильный срез G1 ---
+MOB = ROOT / "mobile"
+for f in ("index.html", "css/style.css", "js/game.js", "manifest.webmanifest",
+          "icon.svg", "icon-192.png", "icon-512.png", "sw.js", "README.md"):
+    q = MOB / f
+    check(q.is_file() and q.stat().st_size > 100, f"mobile/{f}: файл на месте и непуст")
+
+man = json.loads((MOB / "manifest.webmanifest").read_text(encoding="utf-8"))
+check(man.get("display") == "standalone", "PWA: самостоятельный режим без строки браузера")
+check(man.get("start_url") == "./index.html" and man.get("scope") == "./", "PWA: корректные start_url и scope")
+check(any(i.get("purpose") == "maskable" for i in man.get("icons", [])), "PWA: есть maskable-иконка для Android")
+check(len(man.get("shortcuts", [])) == 2, "PWA: 2 ярлыка быстрого запуска")
+
+game_js = (MOB / "js/game.js").read_text(encoding="utf-8")
+check("TICK = 1 / 30" in game_js, "G1: фиксированный тик 30 Гц")
+check("WEAPON_HIT = 21600" in game_js and "BOSS_HP = 3600000" in game_js,
+      "G1: базовый урон и HP босса привязаны к канону")
+check("window.ARKEON" in game_js and "worldToScreenDelta" in game_js,
+      "G1: тестовый интерфейс и корректная обратная изометрия")
+check("'Физический+Лёд'" in game_js and "'Скверна+Свет'" in game_js,
+      "G1: ключи реакций согласованы с порядком стихий в каноне")
+check("loadCanon" in game_js and "../data/classes.json" in game_js,
+      "G1: коэффициенты навыков читаются из единого канона")
+
+sw = (MOB / "sw.js").read_text(encoding="utf-8")
+check("caches.open" in sw and "self.clients.claim" in sw, "G1: офлайн-кэш и версионирование")
+for f in ("index.html", "css/style.css", "js/game.js", "sw.js"):
+    t = (MOB / f).read_text(encoding="utf-8").lower()
+    check("https://" not in t and not re.search(r"(unpkg|jsdelivr|cdnjs|googleapis|cloudflare|fonts\.google)", t),
+          f"mobile/{f}: без внешних CDN и сетевых зависимостей")
+
+for size in (192, 512):
+    b = (MOB / f"icon-{size}.png").read_bytes()
+    check(b[:8] == b"\x89PNG\r\n\x1a\n" and int.from_bytes(b[16:20], "big") == size,
+          f"mobile/icon-{size}.png: валидный PNG нужного размера")
+
+mob_doc = (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8")
+for r in C["combat"]["reactions"]:
+    check(r in mob_doc, f"docs/16-mobile.md: реакция «{r}» названа как в каноне")
+check("силовых sku" in (MOB / "README.md").read_text(encoding="utf-8").lower(),
+      "mobile/README.md: хартия P3 — ноль силовых SKU")
+check((ROOT / "tools/smoke_mobile.js").is_file(), "tools/smoke_mobile.js: headless-тест боя")
+check("mobile/index.html" in (ROOT / "index.html").read_text(encoding="utf-8"),
+      "хаб дизайн-библии ссылается на мобильный срез")
+check("mobile/" in (ROOT / "README.md").read_text(encoding="utf-8"),
+      "README.md содержит инструкцию по мобильному срезу")
+
+# --- 9. Отчёт ---
 passed = sum(1 for ok, _ in results if ok)
 failed = [m for ok, m in results if not ok]
 print("=== ARKEON · verify_canon ===")
