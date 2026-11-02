@@ -70,7 +70,7 @@ python3 tools/verify_canon.py --strict   # 153 проверки согласов
 | Воин сразу в бой | `https://reshet21.github.io/Mmorpg-arpg/mobile/index.html?class=warrior&autostart=1` |
 | Маг сразу в бой | `https://reshet21.github.io/Mmorpg-arpg/mobile/index.html?class=mage&autostart=1` |
 | Хаб дизайн-библии | https://reshet21.github.io/Mmorpg-arpg/ |
-| Зеркало (jsDelivr, всегда свежая ветка) | https://cdn.jsdelivr.net/gh/Reshet21/Mmorpg-arpg@arena/bfc40927-mmorpg-arpg/mobile/index.html |
+| Зеркало (jsDelivr, закреплено за коммитом) | https://cdn.jsdelivr.net/gh/Reshet21/Mmorpg-arpg@a5c427e6bdcc90b8bd5e2f30e428e790041ee6e3/mobile/index.html |
 
 Проверено внешним запросом: `mobile/index.html`, `css/style.css`, `js/game.js`, `manifest.webmanifest`, `sw.js`, `data/classes.json` и иконки отдаются с публичного хоста; Pages API возвращает `status: built`.
 
@@ -126,7 +126,7 @@ GitHub Pages статичен, поэтому при отсутствии `wss:/
 |---|---|
 | **Игра G2** | https://reshet21.github.io/Mmorpg-arpg/mobile/ |
 | Арена G1 | https://reshet21.github.io/Mmorpg-arpg/mobile/g1.html |
-| Зеркало G2 (jsDelivr) | https://cdn.jsdelivr.net/gh/Reshet21/Mmorpg-arpg@arena/bfc40927-mmorpg-arpg/mobile/index.html |
+| Зеркало G2 (jsDelivr) | https://cdn.jsdelivr.net/gh/Reshet21/Mmorpg-arpg@a5c427e6bdcc90b8bd5e2f30e428e790041ee6e3/mobile/index.html |
 
 ---
 
