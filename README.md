@@ -55,6 +55,21 @@ python3 tools/verify_canon.py --strict   # 121 проверка согласов
 
 ---
 
+## Публикация: бесплатный облачный хостинг
+
+Игра полностью статическая (Canvas 2D + WebAudio, без сборки и бэкенда), поэтому разворачивается на **GitHub Pages** бесплатно и по HTTPS — это обязательное условие для service worker и установки PWA на телефон.
+
+| Что | Адрес |
+|---|---|
+| **Игра** | <https://reshet21.github.io/Mmorpg-arpg/mobile/> |
+| Хаб дизайн-библии | <https://reshet21.github.io/Mmorpg-arpg/> |
+
+**Однократное включение** (делает владелец репозитория в браузере, без паролей и токенов): откройте <https://github.com/Reshet21/Mmorpg-arpg/settings/pages> → **Source: Deploy from a branch** → ветка `arena/bfc40927-mmorpg-arpg` → папка `/(root)` → **Save**. Через 1–2 минуты ссылки выше начинают работать; `.nojekyll` уже лежит в корне, поэтому Jekyll не тронет PWA-ассеты. Каждый `push` в ветку автоматически обновляет сайт.
+
+Альтернатива — источник «GitHub Actions» и ручной запуск [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml). Токены интеграций (GitHub App), включая выданные песочнице Arena и `GITHUB_TOKEN` в Actions, не могут создать Pages site через REST API — GitHub отвечает `403 Resource not accessible by integration`. Поэтому первичное включение страницы — единственный шаг, который требует человека; весь контент, манифест, иконки и офлайн-кэш уже закоммичены и проверены.
+
+---
+
 ## Ассеты и данные
 
 | Путь | Назначение |

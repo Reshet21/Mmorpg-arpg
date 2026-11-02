@@ -1,8 +1,16 @@
 name: Deploy ARKEON mobile PWA to GitHub Pages
 
+# Публикация статического PWA на бесплатном хостинге GitHub Pages.
+#
+# Первичное включение Pages делает владелец репозитория в браузере:
+#   Settings → Pages → Source:
+#     · «Deploy from a branch» → arena/bfc40927-mmorpg-arpg → /(root)
+#       (сайт обновляется автоматически при каждом push, этот воркфлоу не нужен);
+#     · либо «GitHub Actions» → затем запустить этот воркфлоу вручную.
+# Токены GitHub App не могут создать Pages site через REST API (403
+# «Resource not accessible by integration»), поэтому enablement намеренно
+# не вызывается: один пользовательский клик нельзя заменить программно.
 on:
-  push:
-    branches: [arena/bfc40927-mmorpg-arpg]
   workflow_dispatch:
 
 permissions:
@@ -24,10 +32,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Enable and configure GitHub Pages
+      - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
