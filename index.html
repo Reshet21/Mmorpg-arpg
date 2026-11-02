@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARKEON · Пепел Завета — Дизайн-библия</title>
+<style>
+:root{
+  --bg:#0b1118; --bg2:#101a24; --panel:#13202c; --line:#243645;
+  --gold:#e8b25c; --gold2:#f0d27a; --cyan:#4fd6d0; --violet:#a878e0;
+  --red:#d6534f; --text:#e5e9e8; --muted:#9db0bd; --dim:#6f8797;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+a{color:var(--cyan);text-decoration:none} a:hover{text-decoration:underline}
+button{font-family:inherit;cursor:pointer}
+.layout{display:flex;min-height:100vh}
+/* ---------- sidebar ---------- */
+.side{width:286px;flex:0 0 286px;background:linear-gradient(180deg,#0d1720,#0a1219);border-right:1px solid var(--line);position:sticky;top:0;height:100vh;overflow-y:auto;padding:22px 16px 40px}
+.brand{display:flex;gap:12px;align-items:center;margin-bottom:6px}
+.brand svg{flex:0 0 42px}
+.brand h1{font-size:19px;letter-spacing:4px;margin:0;color:var(--gold2);font-weight:700}
+.brand small{display:block;color:var(--dim);font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;margin-top:2px}
+.tagline{color:var(--muted);font-size:12px;font-style:italic;margin:12px 2px 18px;border-left:2px solid var(--gold);padding-left:10px}
+.search{width:100%;padding:9px 11px;background:#0a141d;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:13px;outline:none}
+.search:focus{border-color:var(--cyan)}
+.navgroup{margin-top:20px}
+.navgroup h4{font-size:10.5px;letter-spacing:1.8px;color:var(--dim);text-transform:uppercase;margin:0 0 8px 8px;font-weight:600}
+.nav a{display:flex;gap:9px;align-items:center;padding:7px 9px;border-radius:7px;color:#c7d3d9;font-size:13.2px;line-height:1.35}
+.nav a:hover{background:#182836;text-decoration:none}
+.nav a.active{background:linear-gradient(90deg,rgba(232,178,92,.18),rgba(232,178,92,.02));color:var(--gold2);border-left:2px solid var(--gold)}
+.nav a .num{font-size:11px;color:var(--dim);min-width:22px;font-variant-numeric:tabular-nums}
+.nav a.active .num{color:var(--gold)}
+.side-foot{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);font-size:11px;color:var(--dim)}
+.side-foot code{color:var(--cyan);font-size:10.5px}
+/* ---------- main ---------- */
+.main{flex:1;min-width:0;padding:0 0 80px}
+.topbar{position:sticky;top:0;z-index:5;background:rgba(11,17,24,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:11px 32px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.crumbs{font-size:12.5px;color:var(--muted)} .crumbs b{color:var(--gold2)}
+.pill{font-size:11px;border:1px solid var(--line);padding:3px 9px;border-radius:20px;color:var(--muted)}
+.content{max-width:1180px;margin:0 auto;padding:30px 34px}
+/* ---------- dashboard ---------- */
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center;margin-bottom:30px}
+.hero h2{font-size:44px;line-height:1.1;letter-spacing:6px;margin:0 0 10px;color:var(--gold2);font-weight:800}
+.hero p.lead{font-size:17px;color:#d4ddd9;margin:0 0 18px}
+.hero .sub{color:var(--muted);font-size:13.5px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0 30px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 14px}
+.kpi b{display:block;font-size:26px;color:var(--gold2);letter-spacing:.5px;line-height:1.2}
+.kpi span{font-size:11.5px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:18px}
+.card h3{margin:0 0 12px;font-size:16px;color:var(--gold2);letter-spacing:.4px}
+.card p{color:#c6d2d5;font-size:13.5px}
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.pillar{border:1px solid var(--line);border-radius:10px;padding:13px;background:#0e1a24}
+.pillar b{color:var(--cyan);font-size:13px} .pillar p{font-size:12px;color:var(--muted);margin:6px 0 0}
+.launchpad{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.launch{border:1px solid var(--line);background:#0f1c27;border-radius:10px;padding:14px;text-align:left;color:var(--text);transition:.15s}
+.launch:hover{border-color:var(--gold);transform:translateY(-2px);text-decoration:none}
+.launch b{display:block;color:var(--gold2);font-size:13.5px;margin-bottom:4px}
+.launch span{font-size:11.5px;color:var(--muted)}
+.diagram{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.dbox{background:#0d1a24;border:1px solid var(--line);border-radius:9px;padding:12px 10px;font-size:11.5px;color:#cbd7d9}
+.dbox b{display:block;color:var(--cyan);font-size:12px;margin-bottom:5px}
+.dbox.gold b{color:var(--gold)}
+.dbox.violet b{color:var(--violet)}
+/* map */
+.mapwrap{background:#0a141d;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.mapwrap svg{display:block;width:100%;height:auto}
+.layers{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.layer-btn{background:#132432;border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:5px 12px;font-size:11.5px}
+.layer-btn.on{background:rgba(79,214,208,.14);border-color:var(--cyan);color:var(--cyan)}
+/* classes */
+.classgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.classcard{background:#0f1c27;border:1px solid var(--line);border-radius:12px;padding:16px}
+.classcard h4{margin:0 0 3px;color:var(--gold2);font-size:16px}
+.classcard .role{font-size:11.5px;color:var(--cyan);margin-bottom:10px}
+.classcard dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:11.8px;margin:0}
+.classcard dt{color:var(--dim)} .classcard dd{margin:0;color:#cdd8da}
+.classcard .specs{margin-top:10px;font-size:11.5px;color:var(--muted)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chart{background:#0a141d;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.chart svg,.chart img{display:block;width:100%;height:auto}
+.chart .cap{padding:9px 14px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--line)}
+/* ---------- markdown ---------- */
+.md h1{font-size:31px;color:var(--gold2);letter-spacing:.6px;margin:0 0 8px;line-height:1.25}
+.md h2{font-size:23px;color:var(--gold2);margin:34px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.md h3{font-size:18px;color:#e7d7ad;margin:26px 0 10px}
+.md h4{font-size:15px;color:var(--cyan);margin:20px 0 8px}
+.md p{color:#d2dcdd;margin:10px 0}
+.md blockquote{border-left:3px solid var(--gold);background:#101d28;margin:14px 0;padding:10px 16px;color:var(--muted);font-size:13.5px}
+.md blockquote p{margin:4px 0}
+.md ul,.md ol{padding-left:22px;color:#d2dcdd} .md li{margin:4px 0}
+.md code{background:#0b1a24;border:1px solid #1e3340;border-radius:4px;padding:1px 5px;color:var(--cyan);font-size:12.5px}
+.md pre{background:#08131c;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto;font-size:12.5px;line-height:1.55}
+.md pre code{background:none;border:0;padding:0;color:#bcd6d3}
+.md pre.mermaid{background:#0c1a22;border-left:3px solid var(--violet)}
+.md table{border-collapse:collapse;width:100%;margin:14px 0;font-size:12.9px;display:block;overflow-x:auto}
+.md th,.md td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+.md th{background:#162634;color:var(--gold2);white-space:nowrap}
+.md tr:nth-child(even) td{background:rgba(255,255,255,.018)}
+.md td{color:#cdd8da;min-width:90px}
+.md hr{border:0;border-top:1px solid var(--line);margin:26px 0}
+.md a{color:var(--cyan);border-bottom:1px dotted rgba(79,214,208,.5)}
+.md .check{list-style:none;margin-left:-18px}
+.md .check:before{content:"☐ ";color:var(--gold)}
+.md .mermaid-note{font-size:11px;color:var(--dim);margin-top:-8px;margin-bottom:10px}
+.docmeta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:22px;font-size:11.5px;color:var(--dim)}
+.docmeta a{border:1px solid var(--line);border-radius:6px;padding:3px 9px}
+.status{display:inline-flex;align-items:center;gap:6px;color:var(--cyan)}
+.status i{width:7px;height:7px;background:var(--cyan);border-radius:50%;display:inline-block}
+.loader{color:var(--muted);padding:40px;text-align:center}
+@media(max-width:1100px){.hero{grid-template-columns:1fr}.kpis,.launchpad,.diagram{grid-template-columns:repeat(2,1fr)}.classgrid,.charts,.grid2{grid-template-columns:1fr}}
+@media(max-width:760px){.side{position:relative;width:100%;height:auto;flex-basis:auto;border-right:0;border-bottom:1px solid var(--line)}.layout{display:block}.content{padding:22px 16px}.topbar{padding:10px 16px}.kpis,.launchpad,.diagram,.classgrid,.charts,.grid2{grid-template-columns:1fr}.hero h2{font-size:32px}}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <div class="brand">
+      <svg viewBox="0 0 48 48" width="42" height="42" aria-hidden="true">
+        <circle cx="24" cy="24" r="22" fill="#0e1a24" stroke="#e8b25c" stroke-width="1.5"/>
+        <g stroke="#e8b25c" stroke-width="2.4" stroke-linecap="round">
+          <line x1="24" y1="24" x2="24" y2="7"/><line x1="24" y1="24" x2="38" y2="13"/>
+          <line x1="24" y1="24" x2="41" y2="27"/><line x1="24" y1="24" x2="34" y2="39"/>
+          <line x1="24" y1="24" x2="14" y2="40"/><line x1="24" y1="24" x2="8" y2="32"/>
+        </g>
+        <line x1="24" y1="24" x2="9" y2="13" stroke="#6b3fa8" stroke-width="2.4" stroke-dasharray="3 3" stroke-linecap="round"/>
+        <circle cx="24" cy="24" r="4.5" fill="#f0d27a"/>
+      </svg>
+      <div><h1>АРКЕОН</h1><small>Пепел Завета · Design Bible</small></div>
+    </div>
+    <div class="tagline">«Мир не погиб. Он перестал держать слово.»</div>
+    <input id="search" class="search" placeholder="Поиск по документам…" autocomplete="off">
+    <nav id="nav" class="nav"></nav>
+    <div class="side-foot">
+      Источник истины: <code>data/canon.json</code><br>
+      Проверка: <code>python3 tools/verify_canon.py</code><br>
+      Версия 1.0 · 2027-Q1 · 15 документов
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="crumbs" id="crumbs"><b>ARKEON</b> / Обзор</div>
+      <div style="display:flex;gap:8px"><span class="pill" id="pill">F2P · без P2W</span><span class="pill">UE 5.6 · Android · iOS · ПК</span></div>
+    </div>
+    <div class="content" id="content"><div class="loader">Загрузка дизайн-библии…</div></div>
+  </main>
+</div>
+
+<script>
+/* ============================ данные навигации ============================ */
+const DOCS=[
+ {f:'01-title.md',       t:'Название и бренд',        g:'Видение'},
+ {f:'02-lore.md',        t:'Лор и сюжет',             g:'Видение'},
+ {f:'03-gdd.md',         t:'Полный GDD',              g:'Видение'},
+ {f:'04-world-map.md',   t:'Карта мира',              g:'Игра'},
+ {f:'05-classes.md',     t:'Классы',                  g:'Игра'},
+ {f:'06-economy.md',     t:'Экономика',               g:'Игра'},
+ {f:'07-mechanics.md',   t:'Все игровые механики',    g:'Игра'},
+ {f:'08-server.md',      t:'Архитектура сервера',     g:'Технологии'},
+ {f:'09-client.md',      t:'Архитектура клиента',     g:'Технологии'},
+ {f:'10-db.md',          t:'Структура базы данных',   g:'Технологии'},
+ {f:'11-roadmap.md',     t:'Roadmap разработки',      g:'Бизнес'},
+ {f:'12-monetization.md',t:'План монетизации',        g:'Бизнес'},
+ {f:'13-budget.md',      t:'Оценка бюджета',          g:'Бизнес'},
+ {f:'14-team.md',        t:'Состав команды',          g:'Бизнес'},
+ {f:'15-launch.md',      t:'Запуск и продвижение',    g:'Бизнес'},
+];
+const VIEWS=[
+ {id:'overview', t:'Обзор', g:'Видение'},
+ {id:'map',      t:'Карта мира (интерактивная)', g:'Видение'},
+ {id:'classes',  t:'Классы (18 специализаций)', g:'Видение'},
+ {id:'models',   t:'Модели и расчёты', g:'Видение'},
+];
+const ALL=[...VIEWS,...DOCS.map(d=>({id:d.f,t:d.t,g:d.g}))];
+const nav=document.getElementById('nav');
+const groups=['Видение','Игра','Технологии','Бизнес'];
+let active='overview';
+function buildNav(filter=''){
+  nav.innerHTML='';
+  groups.forEach(g=>{
+    const items=ALL.filter(x=>x.g===g && (x.t.toLowerCase().includes(filter)||x.id.toLowerCase().includes(filter)));
+    if(!items.length)return;
+    const sec=document.createElement('div');sec.className='navgroup';
+    sec.innerHTML=`<h4>${g}</h4>`;
+    items.forEach(x=>{
+      const a=document.createElement('a');a.href='#'+x.id;a.dataset.id=x.id;
+      a.innerHTML=`<span class="num">${x.id==='overview'?'★':x.id==='map'?'◈':x.id==='classes'?'✦':x.id==='models'?'∑':x.id.slice(0,2)}</span><span>${x.t}</span>`;
+      if(x.id===active)a.classList.add('active');
+      a.onclick=e=>{e.preventDefault();go(x.id)};
+      sec.appendChild(a);
+    });
+    nav.appendChild(sec);
+  });
+}
+buildNav();
+document.getElementById('search').addEventListener('input',e=>buildNav(e.target.value.trim().toLowerCase()));
+
+/* ============================Мини-рендерер Markdown ============================ */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function inline(s){
+  s=esc(s);
+  s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
+  s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/(^|\W)\*([^*\n]+)\*(?=\W|$)/g,'$1<em>$2</em>');
+  s=s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,(m,txt,url)=>{
+    const target=url.replace(/^docs\//,'').replace(/^\.\//,'');
+    const found=DOCS.find(d=>d.f===target||target.startsWith(d.f.slice(0,2)));
+    if(found&&!url.startsWith('http'))return `<a href="#${found.f}" data-doc="${found.f}">${txt}</a>`;
+    if(/^https?:/.test(url))return `<a href="${url}" target="_blank" rel="noopener">${txt}</a>`;
+    return `<a href="${url}" target="_blank" rel="noopener">${txt}</a>`;
+  });
+  return s;
+}
+function renderMD(md){
+  md=md.replace(/<!--[\s\S]*?-->/g,'');
+  const L=md.split('\n');let out=[],i=0;
+  const isTable=l=>/^\s*\|/.test(l);
+  while(i<L.length){
+    let l=L[i];
+    if(!l.trim()){i++;continue}
+    if(/^```/.test(l.trim())){
+      const lang=l.trim().slice(3).trim();let buf=[];
+      i++;while(i<L.length&&!/^```/.test(L[i].trim())){buf.push(L[i]);i++}i++;
+      const cls=lang==='mermaid'?'mermaid':'';
+      out.push(`<pre class="${cls}"><code>${esc(buf.join('\n'))}</code></pre>`);
+      if(lang==='mermaid')out.push('<p class="mermaid-note">Mermaid-диаграмма: в GitHub она отображается графически, здесь показан исходник.</p>');
+      continue;
+    }
+    if(/^#{1,4}\s/.test(l)){
+      const n=(l.match(/^#+/)||[''])[0].length;
+      out.push(`<h${n}>${inline(l.replace(/^#+\s*/,''))}</h${n}>`);i++;continue;
+    }
+    if(/^>\s?/.test(l)){
+      let buf=[];while(i<L.length&&/^>\s?/.test(L[i])){buf.push(L[i].replace(/^>\s?/,''));i++}
+      out.push(`<blockquote>${buf.map(x=>`<p>${inline(x)}</p>`).join('')}</blockquote>`);continue;
+    }
+    if(/^\s*(---|\*\*\*|___)\s*$/.test(l)){out.push('<hr>');i++;continue}
+    if(isTable(l)){
+      let rows=[];while(i<L.length&&isTable(L[i])){rows.push(L[i].trim());i++}
+      const cells=r=>r.replace(/^\||\|$/g,'').split('|').map(c=>c.trim());
+      const head=cells(rows[0]);
+      let body=rows.slice(rows[1]&&/^[\|\s:\-]+$/.test(rows[1])?2:1).map(r=>`<tr>${cells(r).map(c=>`<td>${inline(c)}</td>`).join('')}</tr>`).join('');
+      out.push(`<table><thead><tr>${head.map(h=>`<th>${inline(h)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`);
+      continue;
+    }
+    if(/^\s*([-*]|\d+\.)\s/.test(l)){
+      const ordered=/^\s*\d+\./.test(l);let buf=[];
+      while(i<L.length&&/^\s*([-*]|\d+\.)\s/.test(L[i])){
+        let raw=L[i].replace(/^\s*([-*]|\d+\.)\s/,'');
+        let cls='';
+        if(/^\[[ xX]\]/.test(raw)){cls=' class="check"';raw=raw.replace(/^\[[ xX]\]\s*/,'')}
+        buf.push(`<li${cls}>${inline(raw)}</li>`);i++;
+      }
+      out.push(`<${ordered?'ol':'ul'}>${buf.join('')}</${ordered?'ol':'ul'}>`);continue;
+    }
+    // paragraph
+    let buf=[];
+    while(i<L.length&&L[i].trim()&&!/^#{1,4}\s|^>|^```|^\s*(---|\*\*\*|___)\s*$/.test(L[i])&&!isTable(L[i])&&!/^\s*([-*]|\d+\.)\s/.test(L[i])){buf.push(L[i]);i++}
+    out.push(`<p>${inline(buf.join(' '))}</p>`);
+  }
+  return out.join('\n');
+}
+function bindDocLinks(root){
+  root.querySelectorAll('a[data-doc]').forEach(a=>a.onclick=e=>{e.preventDefault();go(a.dataset.doc)});
+}
+
+/* ============================ роутер ============================ */
+const content=document.getElementById('content');
+const crumbs=document.getElementById('crumbs');
+async function fetchText(p){const r=await fetch(p);if(!r.ok)throw new Error(p+' → '+r.status);return r.text()}
+function setHeader(title,sub){crumbs.innerHTML=`<b>ARKEON</b> / ${sub?sub+' / ':''}${title}`}
+function go(id){
+  active=id;buildNav(document.getElementById('search').value.trim().toLowerCase());
+  location.hash=id;
+  const v=ALL.find(x=>x.id===id);
+  setHeader(v?v.t:'Обзор',v&&v.g!=='Видение'?v.g:'');
+  if(id==='overview')return viewOverview();
+  if(id==='map')return viewMap();
+  if(id==='classes')return viewClasses();
+  if(id==='models')return viewModels();
+  content.innerHTML='<div class="loader">Загрузка документа…</div>';
+  fetchText('docs/'+id).then(md=>{
+    content.innerHTML=`<div class="docmeta"><span class="status"><i></i> Утверждено к препродакшену · v1.0</span>
+      <span>·</span><a href="docs/${id}" target="_blank" rel="noopener">Открыть Markdown ↗</a>
+      <span>·</span><span>Источник: docs/${id}</span></div><article class="md" id="article">${renderMD(md)}</article>`;
+    bindDocLinks(content);
+    window.scrollTo({top:0,behavior:'instant'});
+  }).catch(e=>{content.innerHTML=`<div class="loader">Не удалось загрузить docs/${id}: ${e.message}<br><small>Запустите локальный сервер: <code>python3 -m http.server 8000</code></small></div>`});
+}
+
+/* ============================ Обзор ============================ */
+function viewOverview(){
+  content.innerHTML=`
+  <div class="hero">
+    <div>
+      <h2>АРКЕОН<br>ПЕПЕЛ ЗАВЕТА</h2>
+      <p class="lead">Изометрическая MMORPG-ARPG нового поколения: бой уровня Diablo IV, социальная ткань уровня World of Warcraft, экономика уровня Albion Online.</p>
+      <p class="sub">Шесть классов · восемнадцать специализаций · общий мир на тысячи игроков · осады 200 на 200 · только косметика за деньги.</p>
+      <div class="launchpad" style="margin-top:20px">
+        <button class="launch" onclick="go('03-gdd.md')"><b>Читать GDD →</b><span>Мастер-документ проекта</span></button>
+        <button class="launch" onclick="go('map')"><b>Карта мира →</b><span>14 регионов, переключаемые слои</span></button>
+        <button class="launch" onclick="go('classes')"><b>Классы →</b><span>6 классов / 18 спеков / 144 узла</span></button>
+        <button class="launch" onclick="go('models')"><b>Модели →</b><span>Экономика, бой, бюджет</span></button>
+      </div>
+    </div>
+    <div class="mapwrap" id="miniMap" style="max-height:330px;overflow:hidden"><div class="loader">Карта…</div></div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><b>6 / 18</b><span>классов / специализаций</span></div>
+    <div class="kpi"><b>14</b><span>регионов открытого мира</span></div>
+    <div class="kpi"><b>4 000</b><span>CCU на реалм · 192 000 проектно</span></div>
+    <div class="kpi"><b>$224.68M</b><span>бюджет на 54 месяца</span></div>
+    <div class="kpi"><b>30 Гц</b><span>авторитетный серверный тик</span></div>
+    <div class="kpi"><b>0</b><span>силовых SKU в магазине</span></div>
+    <div class="kpi"><b>8</b><span>PvP-режимов</span></div>
+    <div class="kpi"><b>10M+</b><span>целевая аудитория MAU</span></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card"><h3>Три опоры дизайна</h3>
+      <div class="pillars">
+        <div class="pillar"><b>P1 · Вес каждого удара</b><p>Отклик, тайминг, последствие. Никакого авто-боя.</p></div>
+        <div class="pillar"><b>P2 · Мир, который помнит</b><p>Экономика, репутация, территории и сезоны хранят след.</p></div>
+        <div class="pillar"><b>P3 · Равные правила</b><p>Никакой силы за деньги, сервер — единственная истина.</p></div>
+      </div>
+      <p style="margin-top:14px">Полный бренд и позиционирование — <a href="#01-title.md" onclick="go('01-title.md');return false">01 · Название</a>, лор из семи актов — <a href="#02-lore.md" onclick="go('02-lore.md');return false">02 · Лор</a>.</p>
+    </div>
+    <div class="card"><h3>Студия: 16 владельцев направлений</h3>
+      <p>От Creative Director до Community Manager — у каждой роли из брифа есть зона решений и KPI. Пик команды <b>252 FTE</b>, 7 отделов, RACI на 9 критических решений.</p>
+      <p><a href="#14-team.md" onclick="go('14-team.md');return false">Открыть состав команды →</a></p>
+      <h3 style="margin-top:18px">Статус канона</h3>
+      <p><span class="status"><i></i> Линтер: 83 проверки · PASS</span> — данные, документы, баланс и хартия согласованы (<code>tools/verify_canon.py</code>).</p>
+    </div>
+  </div>
+
+  <div class="card"><h3>Технический контур</h3>
+    <div class="diagram">
+      <div class="dbox gold"><b>Клиент · UE 5.6</b>GAS · World Partition · Nanite/Lumen на ПК · 4 профиля · QUIC · предсказание</div>
+      <div class="dbox"><b>Edge</b>Anycast + WAF · Gateway QUIC · Auth/OIDC · multi-CDN · патчер</div>
+      <div class="dbox violet"><b>Ядро мира</b>World Director · Cell 256 м · 30 Гц · AOI 120 м · 200v200 battleground</div>
+      <div class="dbox"><b>Сервисы</b>Чат/голос · социальный слой · Glicko-2 · рынок · Ledger · гильдии · античит · аналитика</div>
+      <div class="dbox"><b>GLOBAL (CRDB)</b>Аккаунты · платежи · entitlements · баны · флаги</div>
+      <div class="dbox"><b>REALM (PG 17)</b>12 шардов/регион · двойная запись · idempotency · saga · PITR 5 мин</div>
+      <div class="dbox"><b>ANALYTICS</b>Kafka → ClickHouse → S3 Parquet · 240 типов событий · SLO</div>
+      <div class="dbox gold"><b>Экономика</b>Контроллер инфляции · 1.085 sink/faucet · BURN · антидюп · антибот</div>
+    </div>
+    <p style="margin-top:14px"><a href="#08-server.md" onclick="go('08-server.md');return false">Сервер</a> · <a href="#09-client.md" onclick="go('09-client.md');return false">Клиент</a> · <a href="#10-db.md" onclick="go('10-db.md');return false">БД + SQL-схема</a></p>
+  </div>
+
+  <div class="card"><h3>Дорожная карта · 54 месяца</h3>
+    <div class="diagram" style="grid-template-columns:repeat(6,1fr)">
+      <div class="dbox"><b>2027 Q1</b>G0 · дизайн-библия</div>
+      <div class="dbox"><b>M9</b>G1 · vertical slice</div>
+      <div class="dbox"><b>M21</b>G2 · пайплайн</div>
+      <div class="dbox"><b>M33</b>G3 · feature complete</div>
+      <div class="dbox"><b>M42</b>G4 · софт-ланч</div>
+      <div class="dbox gold"><b>2031 Q2</b>G5 · глобальный запуск</div>
+    </div>
+    <p style="margin-top:12px"><a href="#11-roadmap.md" onclick="go('11-roadmap.md');return false">Полный roadmap →</a> · <a href="#13-budget.md" onclick="go('13-budget.md');return false">Бюджет →</a> · <a href="#15-launch.md" onclick="go('15-launch.md');return false">Go-to-Market →</a></p>
+  </div>`;
+  fetchText('assets/world-map.svg').then(svg=>{
+    const el=document.getElementById('miniMap');if(el)el.innerHTML=svg;
+  }).catch(()=>{});
+  bindDocLinks(content);
+}
+
+/* ============================ Карта ============================ */
+const LAYERS=[['layer-law','Зоны закона'],['layer-grid','Сетка'],['layer-routes','Маршруты'],['layer-poi','POI и подписи'],['layer-territories','Территории'],['layer-beacons','Светочи']];
+function viewMap(){
+  content.innerHTML=`<div class="docmeta"><span class="status"><i></i> Векторный ассет · assets/world-map.svg</span><span>·</span><a href="assets/world-map.svg" target="_blank">Открыть SVG ↗</a></div>
+  <h1 style="font-size:31px;color:var(--gold2);margin:0 0 8px">Карта мира Аркеон</h1>
+  <p style="color:var(--muted);font-size:13.5px">14 регионов · 7 Светочей (шесть горят) · 36 территорий · 8 данжей · 3 рейда · 6 мировых боссов · 38 якорей. Переключайте слои кнопками ниже.</p>
+  <div class="layers" id="layers"></div>
+  <div class="mapwrap" id="fullMap"><div class="loader">Загрузка карты…</div></div>
+  <div class="grid2" style="margin-top:18px">
+    <div class="card"><h3>Градация риска</h3><p>Зелёная — PvP выключен · Жёлтая — PvP без потерь · Красная — частичный дроп и 25% BURN · Чёрная — full-loot и 30% BURN. Риск растёт от центра (Светоград) к периферии (Глухой Предел).</p><p><a href="#04-world-map.md" onclick="go('04-world-map.md');return false">Документ по миру →</a></p></div>
+    <div class="card"><h3>Данные регионов</h3><div id="regionList" style="font-size:12.5px;color:var(--muted)">Загрузка…</div></div>
+  </div>`;
+  const lw=document.getElementById('layers');
+  LAYERS.forEach(([id,label])=>{
+    const b=document.createElement('button');b.className='layer-btn'+(id==='layer-grid'?'':' on');b.textContent=label;b.dataset.layer=id;
+    b.onclick=()=>{
+      b.classList.toggle('on');
+      const g=document.querySelector('#fullMap #'+id);
+      if(g)g.style.display=b.classList.contains('on')?'':'none';
+    };lw.appendChild(b);
+  });
+  fetchText('assets/world-map.svg').then(svg=>{
+    document.getElementById('fullMap').innerHTML=svg;
+    const grid=document.querySelector('#fullMap #layer-grid');if(grid)grid.style.display='none';
+  }).catch(e=>{document.getElementById('fullMap').innerHTML='<div class="loader">'+e.message+'</div>'});
+  fetchText('data/world.json').then(t=>{
+    const w=JSON.parse(t);
+    document.getElementById('regionList').innerHTML=w.regions.map(r=>
+      `<div style="padding:5px 0;border-bottom:1px solid var(--line)"><b style="color:var(--gold2)">${r.name}</b> · ${r.biome} · L${r.levels} · ${r.law.toUpperCase()}</div>`).join('');
+  }).catch(()=>{});
+  bindDocLinks(content);
+}
+
+/* ============================ Классы ============================ */
+function viewClasses(){
+  content.innerHTML=`<div class="docmeta"><span class="status"><i></i> Данные: data/classes.json</span><span>·</span><a href="#05-classes.md" onclick="go('05-classes.md');return false">Полная спецификация →</a></div>
+  <h1 style="font-size:31px;color:var(--gold2);margin:0 0 8px">Шесть классов · восемнадцать специализаций</h1>
+  <p style="color:var(--muted);font-size:13.5px">48 активных навыков, 18 ультимейтов, 144 узла талантов. Таблицы в GDD генерируются из этого же JSON.</p>
+  <div class="classgrid" id="classgrid"><div class="loader">Загрузка…</div></div>
+  <div class="charts" style="margin-top:18px">
+    <div class="chart" id="rolechart"><div class="loader">…</div></div>
+    <div class="chart" id="dpschart"><div class="loader">…</div></div>
+  </div>`;
+  fetchText('data/classes.json').then(t=>{
+    const d=JSON.parse(t);
+    document.getElementById('classgrid').innerHTML=d.classes.map(c=>`
+      <div class="classcard">
+        <h4>${c.name_ru} <span style="color:var(--dim);font-size:11px">/ ${c.name_en}</span></h4>
+        <div class="role">«${c.title}» · ${c.role}</div>
+        <dl>
+          <dt>Ресурс</dt><dd>${c.resource.name}</dd>
+          <dt>Основной стат</dt><dd>${c.primary_stat}</dd>
+          <dt>Оружие</dt><dd>${c.weapons.join(' · ')}</dd>
+          <dt>Сложность</dt><dd>${c.difficulty}</dd>
+          <dt>Навыков</dt><dd>${c.skills.length} + ультимейт</dd>
+        </dl>
+        <div class="specs"><b style="color:var(--cyan)">Специализации:</b> ${c.specs.map(s=>s.name).join(' · ')}</div>
+        <div class="specs"><b style="color:var(--gold)">Ветки талантов:</b> ${c.talent_branches.map(b=>b.name).join(' / ')}</div>
+      </div>`).join('');
+  }).catch(e=>{});
+  fetchText('assets/charts/classes-summary.svg').then(s=>{document.getElementById('rolechart').innerHTML=s+'<div class="cap">Пространство ролей: риск позиционирования × устойчивый урон</div>'});
+  fetchText('assets/charts/combat-dps.svg').then(s=>{document.getElementById('dpschart').innerHTML=s+'<div class="cap">Эталонный DPS L60 после PTR-калибровки · разброс ±1.78%</div>'});
+  bindDocLinks(content);
+}
+
+/* ============================ Модели ============================ */
+function viewModels(){
+  content.innerHTML=`<div class="docmeta"><span class="status"><i></i> Исполняемые модели · только stdlib Python</span></div>
+  <h1 style="font-size:31px;color:var(--gold2);margin:0 0 8px">Модели и расчёты</h1>
+  <p style="color:var(--muted);font-size:13.5px">Каждое число в документах можно пересчитать. Запуск: <code>python3 tools/economy_sim.py</code>, <code>combat_model.py</code>, <code>financial_model.py</code>, <code>gen_docs.py</code>, <code>verify_canon.py --strict</code>.</p>
+  <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi"><b>PASS</b><span>PI 98.79–100.43 за 30 дней</span></div>
+    <div class="kpi"><b>PASS</b><span>sink/faucet 1.028–1.089</span></div>
+    <div class="kpi"><b>PASS</b><span>DPS-разброс ±1.78%</span></div>
+    <div class="kpi"><b>PASS</b><span>83/83 проверок канона</span></div>
+  </div>
+  <div class="charts">
+    <div class="chart" id="ecochart"><div class="loader">…</div></div>
+    <div class="chart" id="budgetchart"><div class="loader">…</div></div>
+  </div>
+  <div class="grid2" style="margin-top:18px">
+    <div class="card"><h3>Экономика · 30 дней</h3>
+      <p>Бот-шок на 12-й день, попытка дюпа на 20-й, приток +25% DAU на 25-й. Контроллер <code>R_t</code> удерживает индекс цен в коридоре, реконсиляция ledger отсекает 100% попыток дюпа.</p>
+      <p><a href="data/economy_sim_30d.csv" target="_blank">CSV ↓</a> · <a href="#06-economy.md" onclick="go('06-economy.md');return false">Документ →</a></p>
+    </div>
+    <div class="card"><h3>Бюджет · 5 лет</h3>
+      <p>Ровно <b>$224 680 000</b>, 12% контингенси, 5 траншей по вратам G0–G5. Базовый сценарий: окупаемость <b>28.9 мес.</b> после глобального запуска.</p>
+      <p><a href="data/budget.csv" target="_blank">Бюджет CSV ↓</a> · <a href="data/revenue_scenarios.csv" target="_blank">Сценарии CSV ↓</a> · <a href="#13-budget.md" onclick="go('13-budget.md');return false">Документ →</a></p>
+    </div>
+    <div class="card"><h3>Бой: TTK-коридоры</h3>
+      <p>Рейд-босс 72M HP → 301 с · данж-босс 14M → 94 с · мировой босс 240M → 253 с · PvP → 9.5 с. Все четыре проверки PASS.</p>
+      <p><a href="data/combat_balance.csv" target="_blank">DPS CSV ↓</a></p>
+    </div>
+    <div class="card"><h3>Схема БД</h3>
+      <p>81 таблица, 4 VIEW, триггеры баланса проводок и неотрицательного баланса, партиции, проверки дюпов. Исполняемый DDL: <code>sql/schema.sql</code>.</p>
+      <p><a href="sql/schema.sql" target="_blank">Открыть SQL ↗</a> · <a href="#10-db.md" onclick="go('10-db.md');return false">Документ →</a></p>
+    </div>
+  </div>`;
+  fetchText('assets/charts/economy-30d.svg').then(s=>{document.getElementById('ecochart').innerHTML=s+'<div class="cap">Индекс цен, денежная масса и sink/faucet · три шока</div>'});
+  fetchText('assets/charts/budget.svg').then(s=>{document.getElementById('budgetchart').innerHTML=s+'<div class="cap">Бюджет по годам, $M (stacked)</div>'});
+  bindDocLinks(content);
+}
+
+/* ============================ старт ============================ */
+window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(h&&h!==active)go(h)});
+go(location.hash.slice(1)||'overview');
+</script>
+</body>
+</html>

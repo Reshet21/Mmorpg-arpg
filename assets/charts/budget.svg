@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 520" width="940" height="520">
+<rect width="100%" height="100%" fill="#0d141c"/>
+<text x="24" y="32" fill="#f0d27a" font-family="Arial" font-size="17" font-weight="bold">ARKEON · бюджет по годам, $M (stacked)</text>
+<line x1="70" y1="430" x2="910" y2="430" stroke="#9fb4c0"/>
+<line x1="70" y1="430.0" x2="910" y2="430.0" stroke="#243440"/>
+<text x="62" y="434.0" fill="#8ba2b0" font-size="11" font-family="Arial" text-anchor="end">0</text>
+<line x1="70" y1="337.5" x2="910" y2="337.5" stroke="#243440"/>
+<text x="62" y="341.5" fill="#8ba2b0" font-size="11" font-family="Arial" text-anchor="end">20</text>
+<line x1="70" y1="245.0" x2="910" y2="245.0" stroke="#243440"/>
+<text x="62" y="249.0" fill="#8ba2b0" font-size="11" font-family="Arial" text-anchor="end">40</text>
+<line x1="70" y1="152.5" x2="910" y2="152.5" stroke="#243440"/>
+<text x="62" y="156.5" fill="#8ba2b0" font-size="11" font-family="Arial" text-anchor="end">60</text>
+<line x1="70" y1="60.0" x2="910" y2="60.0" stroke="#243440"/>
+<text x="62" y="64.0" fill="#8ba2b0" font-size="11" font-family="Arial" text-anchor="end">80</text>
+<rect x="100" y="387.2" width="118" height="42.8" fill="#e8b25c" fill-opacity=".85"/>
+<rect x="100" y="379.8" width="118" height="7.4" fill="#4fd6d0" fill-opacity=".85"/>
+<rect x="100" y="376.1" width="118" height="3.7" fill="#8b6cc0" fill-opacity=".85"/>
+<rect x="100" y="370.5" width="118" height="5.5" fill="#7fd6d0" fill-opacity=".85"/>
+<rect x="100" y="368.7" width="118" height="1.9" fill="#d6534f" fill-opacity=".85"/>
+<text x="159" y="448" fill="#c8d4d8" font-size="12" font-family="Arial" text-anchor="middle">2027</text>
+<text x="159" y="360.7" fill="#f0d27a" font-size="12" font-family="Arial" text-anchor="middle">$13.3M</text>
+<rect x="266" y="350.9" width="118" height="79.1" fill="#e8b25c" fill-opacity=".85"/>
+<rect x="266" y="340.7" width="118" height="10.2" fill="#4fd6d0" fill-opacity=".85"/>
+<rect x="266" y="333.3" width="118" height="7.4" fill="#8b6cc0" fill-opacity=".85"/>
+<rect x="266" y="324.1" width="118" height="9.2" fill="#7fd6d0" fill-opacity=".85"/>
+<rect x="266" y="320.4" width="118" height="3.7" fill="#d6534f" fill-opacity=".85"/>
+<text x="325" y="448" fill="#c8d4d8" font-size="12" font-family="Arial" text-anchor="middle">2028</text>
+<text x="325" y="312.4" fill="#f0d27a" font-size="12" font-family="Arial" text-anchor="middle">$23.7M</text>
+<rect x="432" y="314.7" width="118" height="115.3" fill="#e8b25c" fill-opacity=".85"/>
+<rect x="432" y="301.7" width="118" height="12.9" fill="#4fd6d0" fill-opacity=".85"/>
+<rect x="432" y="286.0" width="118" height="15.7" fill="#8b6cc0" fill-opacity=".85"/>
+<rect x="432" y="271.2" width="118" height="14.8" fill="#7fd6d0" fill-opacity=".85"/>
+<rect x="432" y="260.6" width="118" height="10.6" fill="#d6534f" fill-opacity=".85"/>
+<text x="491" y="448" fill="#c8d4d8" font-size="12" font-family="Arial" text-anchor="middle">2029</text>
+<text x="491" y="252.6" fill="#f0d27a" font-size="12" font-family="Arial" text-anchor="middle">$36.6M</text>
+<rect x="598" y="291.6" width="118" height="138.4" fill="#e8b25c" fill-opacity=".85"/>
+<rect x="598" y="276.8" width="118" height="14.8" fill="#4fd6d0" fill-opacity=".85"/>
+<rect x="598" y="238.9" width="118" height="37.9" fill="#8b6cc0" fill-opacity=".85"/>
+<rect x="598" y="215.7" width="118" height="23.1" fill="#7fd6d0" fill-opacity=".85"/>
+<rect x="598" y="118.6" width="118" height="97.1" fill="#d6534f" fill-opacity=".85"/>
+<text x="657" y="448" fill="#c8d4d8" font-size="12" font-family="Arial" text-anchor="middle">2030</text>
+<text x="657" y="110.6" fill="#f0d27a" font-size="12" font-family="Arial" text-anchor="middle">$67.3M</text>
+<rect x="764" y="331.1" width="118" height="98.9" fill="#e8b25c" fill-opacity=".85"/>
+<rect x="764" y="318.2" width="118" height="12.9" fill="#4fd6d0" fill-opacity=".85"/>
+<rect x="764" y="253.4" width="118" height="64.8" fill="#8b6cc0" fill-opacity=".85"/>
+<rect x="764" y="232.6" width="118" height="20.8" fill="#7fd6d0" fill-opacity=".85"/>
+<rect x="764" y="154.0" width="118" height="78.7" fill="#d6534f" fill-opacity=".85"/>
+<rect x="764" y="42.6" width="118" height="111.3" fill="#f0d27a" fill-opacity=".85"/>
+<text x="823" y="448" fill="#c8d4d8" font-size="12" font-family="Arial" text-anchor="middle">2031</text>
+<text x="823" y="34.6" fill="#f0d27a" font-size="12" font-family="Arial" text-anchor="middle">$83.8M</text>
+<rect x="74" y="458" width="12" height="12" fill="#e8b25c"/>
+<text x="92" y="468" fill="#c8d4d8" font-size="10.5" font-family="Arial">Персонал (fully loaded)</text>
+<rect x="374" y="458" width="12" height="12" fill="#4fd6d0"/>
+<text x="392" y="468" fill="#c8d4d8" font-size="10.5" font-family="Arial">Движок / лицензии / инструменты</text>
+<rect x="674" y="458" width="12" height="12" fill="#8b6cc0"/>
+<text x="692" y="468" fill="#c8d4d8" font-size="10.5" font-family="Arial">Инфраструктура / CDN / Live</text>
+<rect x="74" y="478" width="12" height="12" fill="#7fd6d0"/>
+<text x="92" y="488" fill="#c8d4d8" font-size="10.5" font-family="Arial">VO / локализация / QA / юристы</text>
+<rect x="374" y="478" width="12" height="12" fill="#d6534f"/>
+<text x="392" y="488" fill="#c8d4d8" font-size="10.5" font-family="Arial">Маркетинг / UA / комьюнити</text>
+<rect x="674" y="478" width="12" height="12" fill="#f0d27a"/>
+<text x="692" y="488" fill="#c8d4d8" font-size="10.5" font-family="Arial">Контингенси (12%)</text>
+</svg>

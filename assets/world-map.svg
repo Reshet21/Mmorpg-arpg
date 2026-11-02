@@ -1,0 +1,235 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" role="img" aria-label="Карта мира Аркеон: 14 регионов, 7 Светочей, зоны закона и маршруты">
+<defs>
+  <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#0b1c2c"/><stop offset="0.5" stop-color="#123048"/><stop offset="1" stop-color="#081522"/>
+  </linearGradient>
+  <linearGradient id="land" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3b32"/><stop offset="1" stop-color="#22231f"/></linearGradient>
+  <radialGradient id="beacon"><stop offset="0" stop-color="#fff3c9"/><stop offset="0.35" stop-color="#f0b957"/><stop offset="1" stop-color="#f0b957" stop-opacity="0"/></radialGradient>
+  <radialGradient id="rift"><stop offset="0" stop-color="#c07bff"/><stop offset="0.5" stop-color="#6b3fa8" stop-opacity=".55"/><stop offset="1" stop-color="#6b3fa8" stop-opacity="0"/></radialGradient>
+  <pattern id="waves" width="46" height="24" patternUnits="userSpaceOnUse"><path d="M0 12 q11 -8 23 0 t23 0" fill="none" stroke="#4a7d9b" stroke-opacity=".18" stroke-width="1.2"/></pattern>
+  <pattern id="dots" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.8" fill="#000" fill-opacity=".12"/></pattern>
+  <pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="9" stroke="#ffffff" stroke-opacity=".07" stroke-width="2"/></pattern>
+  <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" result="n"/><feColorMatrix in="n" type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="0.09"/></feComponentTransfer><feBlend in="SourceGraphic" mode="overlay"/></filter>
+  <filter id="soft"><feGaussianBlur stdDeviation="7"/></filter>
+  <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <style>
+    .am-lbl{font-family:'Segoe UI',Arial,sans-serif;fill:#f2ead8;font-size:17px;font-weight:600;paint-order:stroke;stroke:#0c1116;stroke-width:3.4px;stroke-linejoin:round}
+    .am-sub{font-family:'Segoe UI',Arial,sans-serif;fill:#d8cbb0;font-size:11.5px;paint-order:stroke;stroke:#0c1116;stroke-width:2.6px}
+    .am-poi{font-family:'Segoe UI',Arial,sans-serif;fill:#cfd8cf;font-size:10.5px;paint-order:stroke;stroke:#0c1116;stroke-width:2.2px}
+    .am-title{font-family:'Segoe UI',Arial,sans-serif;fill:#f5d89a;font-size:40px;font-weight:700;letter-spacing:7px}
+    .am-small{font-family:'Segoe UI',Arial,sans-serif;fill:#a9bac6;font-size:12px}
+    .am-road{fill:none;stroke:#e9d4a6;stroke-opacity:.55;stroke-width:2.2;stroke-dasharray:9 7}
+    .am-sea-lane{fill:none;stroke:#69c6d0;stroke-opacity:.55;stroke-width:2;stroke-dasharray:3 9;stroke-linecap:round}
+    .am-border{fill:none;stroke:#0b1015;stroke-opacity:.65;stroke-width:2.5}
+  </style>
+</defs>
+
+<!-- ================= SEA ================= -->
+<rect width="1600" height="1000" fill="url(#sea)"/>
+<rect width="1600" height="1000" fill="url(#waves)"/>
+<g opacity=".35" fill="none" stroke="#67a7c0" stroke-width="1">
+  <path d="M0 210 q120 -28 240 8 t240 4"/><path d="M0 690 q160 -34 300 6 t300 -8"/>
+  <path d="M0 910 q140 -30 280 4 t280 -6"/><path d="M1450 90 q100 30 150 -14"/>
+</g>
+
+<!-- ================= LANDMASS ================= -->
+<g filter="url(#grain)">
+<path d="M182 122 L420 84 L610 92 L790 70 L1010 82 L1184 92 L1352 142 L1452 262 L1470 430 L1420 560 L1362 700 L1282 878 L1050 940 L762 928 L520 952 L300 900 L192 762 L160 602 L172 400 Z"
+      fill="url(#land)" stroke="#0a1015" stroke-width="5"/>
+<path d="M182 122 L420 84 L610 92 L790 70 L1010 82 L1184 92 L1352 142 L1452 262 L1470 430 L1420 560 L1362 700 L1282 878 L1050 940 L762 928 L520 952 L300 900 L192 762 L160 602 L172 400 Z"
+      fill="url(#dots)" opacity=".55"/>
+
+<!-- biome: inner rift (NW chaos) -->
+<path d="M212 140 L400 98 L548 108 L572 232 L470 302 L322 288 L214 236 Z" fill="#3a2350" opacity=".92" class="am-border"/>
+<ellipse cx="410" cy="190" rx="190" ry="115" fill="url(#rift)" opacity=".85"/>
+<!-- biome: frost spine (N) -->
+<path d="M846 92 L1170 96 L1250 148 L1232 300 L1080 356 L900 320 L836 210 Z" fill="#7fa9bd" opacity=".88" class="am-border"/>
+<path d="M846 92 L1170 96 L1250 148 L1232 300 L1080 356 L900 320 L836 210 Z" fill="url(#hatch)"/>
+<!-- biome: secret valley NE -->
+<path d="M1250 112 L1392 132 L1422 244 L1310 272 L1236 206 Z" fill="#3f5c46" opacity=".9" class="am-border"/>
+<!-- biome: verdant march -->
+<path d="M398 234 L690 210 L742 330 L676 442 L470 448 L386 344 Z" fill="#4d7040" opacity=".92" class="am-border"/>
+<path d="M398 234 L690 210 L742 330 L676 442 L470 448 L386 344 Z" fill="url(#dots)"/>
+<!-- biome: mist coast -->
+<path d="M178 442 L400 436 L452 556 L370 668 L206 644 L166 526 Z" fill="#4a6a70" opacity=".9" class="am-border"/>
+<!-- biome: capital ring -->
+<path d="M672 356 L858 344 L902 452 L840 528 L682 516 L646 430 Z" fill="#8a7956" opacity=".92" class="am-border"/>
+<!-- biome: caldera (E volcanic) -->
+<path d="M1200 268 L1420 292 L1460 432 L1396 566 L1240 546 L1178 404 Z" fill="#6b3324" opacity=".93" class="am-border"/>
+<ellipse cx="1322" cy="404" rx="118" ry="92" fill="#c6532b" opacity=".28" filter="url(#soft)"/>
+<!-- biome: ash'khar desert (SE) -->
+<path d="M872 500 L1200 496 L1270 606 L1204 762 L956 752 L872 626 Z" fill="#b18b4e" opacity=".9" class="am-border"/>
+<!-- biome: mourn marsh -->
+<path d="M452 596 L778 574 L826 712 L744 852 L512 856 L438 724 Z" fill="#3d5c46" opacity=".93" class="am-border"/>
+<path d="M452 596 L778 574 L826 712 L744 852 L512 856 L438 724 Z" fill="url(#hatch)"/>
+<!-- biome: underdeep (underground, shown as fissure) -->
+<path d="M702 742 L1012 738 L1052 892 L888 934 L716 898 Z" fill="#2a2636" opacity=".95" class="am-border"/>
+<!-- biome: hollow / black zone -->
+<path d="M1150 662 L1400 636 L1450 766 L1340 914 L1148 890 L1120 754 Z" fill="#3a2a2a" opacity=".94" class="am-border"/>
+<path d="M1150 662 L1400 636 L1450 766 L1340 914 L1148 890 L1120 754 Z" fill="url(#hatch)"/>
+<!-- shard sea (water inside) -->
+<path d="M166 700 L398 690 L430 856 L300 944 L154 892 Z" fill="#123048" opacity=".82" class="am-border"/>
+<path d="M166 700 L398 690 L430 856 L300 944 L154 892 Z" fill="url(#waves)"/>
+<!-- covenant isle (north offshore island) -->
+<path d="M628 62 L790 48 L822 132 L752 196 L636 178 L606 112 Z" fill="#6d6552" class="am-border"/>
+<path d="M628 62 L790 48 L822 132 L752 196 L636 178 L606 112 Z" fill="url(#dots)"/>
+</g>
+
+<!-- ================= LAW ZONES (toggleable) ================= -->
+<g id="layer-law" opacity=".16">
+  <path d="M178 442 L400 436 L452 556 L370 668 L206 644 L166 526 Z" fill="#53d06a"/>
+  <path d="M672 356 L858 344 L902 452 L840 528 L682 516 L646 430 Z" fill="#53d06a"/>
+  <path d="M398 234 L690 210 L742 330 L676 442 L470 448 L386 344 Z" fill="#53d06a"/>
+  <path d="M628 62 L790 48 L822 132 L752 196 L636 178 L606 112 Z" fill="#e8c14a"/>
+  <path d="M872 500 L1200 496 L1270 606 L1204 762 L956 752 L872 626 Z" fill="#e8c14a"/>
+  <path d="M452 596 L778 574 L826 712 L744 852 L512 856 L438 724 Z" fill="#e8c14a"/>
+  <path d="M846 92 L1170 96 L1250 148 L1232 300 L1080 356 L900 320 L836 210 Z" fill="#e8c14a"/>
+  <path d="M1200 268 L1420 292 L1460 432 L1396 566 L1240 546 L1178 404 Z" fill="#e2623c"/>
+  <path d="M702 742 L1012 738 L1052 892 L888 934 L716 898 Z" fill="#e2623c"/>
+  <path d="M166 700 L398 690 L430 856 L300 944 L154 892 Z" fill="#e2623c"/>
+  <path d="M1150 662 L1400 636 L1450 766 L1340 914 L1148 890 L1120 754 Z" fill="#b0344f"/>
+  <path d="M212 140 L400 98 L548 108 L572 232 L470 302 L322 288 L214 236 Z" fill="#b0344f"/>
+</g>
+
+<!-- ================= GRID ================= -->
+<g id="layer-grid" opacity=".14" stroke="#bcd6e0" stroke-width="1">
+  <path d="M0 200H1600M0 400H1600M0 600H1600M0 800H1600"/>
+  <path d="M200 0V1000M400 0V1000M600 0V1000M800 0V1000M1000 0V1000M1200 0V1000M1400 0V1000"/>
+</g>
+
+<!-- ================= ROUTES ================= -->
+<g id="layer-routes">
+  <path class="am-road" d="M560 330 Q660 360 760 430"/>
+  <path class="am-road" d="M760 430 Q580 470 320 520"/>
+  <path class="am-road" d="M760 430 Q900 500 1040 620"/>
+  <path class="am-road" d="M1040 620 Q840 640 620 700"/>
+  <path class="am-road" d="M620 700 Q730 780 840 830"/>
+  <path class="am-road" d="M1040 620 Q1180 540 1280 380"/>
+  <path class="am-road" d="M1280 380 Q1120 300 980 210"/>
+  <path class="am-road" d="M980 210 Q840 170 700 120"/>
+  <path class="am-road" d="M700 120 Q560 150 420 180"/>
+  <path class="am-road" d="M840 830 Q1130 800 1330 760"/>
+  <path class="am-road" d="M180 380 Q240 450 320 520"/>
+  <path class="am-sea-lane" d="M180 380 Q140 600 250 800"/>
+  <path class="am-sea-lane" d="M250 800 Q420 930 620 940"/>
+  <path class="am-sea-lane" d="M250 800 Q120 700 180 520"/>
+  <path class="am-sea-lane" d="M320 520 Q210 300 300 160"/>
+  <path class="am-sea-lane" d="M700 120 Q560 60 420 180"/>
+</g>
+
+<!-- ================= BEACONS ================= -->
+<g id="layer-beacons">
+  <g transform="translate(560,300)"><circle r="30" fill="url(#beacon)" filter="url(#glow)"/><circle r="7" fill="#ffe6a8"/><text class="am-poi" x="13" y="-12">I · Зелень</text></g>
+  <g transform="translate(330,500)"><circle r="30" fill="url(#beacon)" filter="url(#glow)"/><circle r="7" fill="#ffe6a8"/></g>
+  <g transform="translate(1040,590)"><circle r="30" fill="url(#beacon)" filter="url(#glow)"/><circle r="7" fill="#ffe6a8"/></g>
+  <g transform="translate(980,190)"><circle r="30" fill="url(#beacon)" filter="url(#glow)"/><circle r="7" fill="#ffe6a8"/></g>
+  <g transform="translate(1280,360)"><circle r="30" fill="url(#beacon)" filter="url(#glow)"/><circle r="7" fill="#ffe6a8"/></g>
+  <g transform="translate(760,400)"><circle r="34" fill="url(#beacon)" filter="url(#glow)"/><circle r="8" fill="#ffe6a8"/></g>
+  <!-- The Seventh: unlit -->
+  <g transform="translate(420,180)"><circle r="34" fill="#10121a" stroke="#8b6cc0" stroke-width="2" stroke-dasharray="5 4"/><circle r="8" fill="#6b3fa8"/><text class="am-poi" x="16" y="-16">VII · Безмолвие (погас)</text></g>
+</g>
+
+<!-- ================= POI / CITIES / DUNGEONS ================= -->
+<g id="layer-poi">
+  <!-- capital -->
+  <g transform="translate(760,430)"><rect x="-16" y="-16" width="32" height="32" rx="4" fill="#e8b25c" stroke="#221c14" stroke-width="2"/><path d="M-9 16 L0 -6 L9 16" fill="none" stroke="#3a2a16" stroke-width="3"/><text class="am-lbl" x="24" y="6">СВЕТОГРАД</text><text class="am-sub" x="24" y="23">столица · L1–60 · аукцион · 12 станций</text></g>
+  <!-- freeport -->
+  <g transform="translate(180,380)"><rect x="-15" y="-15" width="30" height="30" rx="4" fill="#d9c8a0" stroke="#221c14" stroke-width="2"/><path d="M-10 8 q10 -12 20 0" fill="none" stroke="#186078" stroke-width="3"/><text class="am-lbl" x="22" y="5">ВОЛЬНЫЕ ПРИЧАЛЫ</text><text class="am-sub" x="22" y="22">биржа · контракты · нейтралитет</text></g>
+  <!-- region labels -->
+  <text class="am-lbl" x="470" y="352">ЗЕЛЁНЫЙ ПРЕДЕЛ</text><text class="am-sub" x="470" y="370">леса · L1–12 · T2–T3</text>
+  <text class="am-lbl" x="215" y="570">ПОБЕРЕЖЬЕ ТУМАНОВ</text><text class="am-sub" x="215" y="588">скалы · L10–20 · T3–T4</text>
+  <text class="am-lbl" x="930" y="640">АШ'ХАР</text><text class="am-sub" x="930" y="658">пустыня · L20–30 · ЖЁЛТАЯ</text>
+  <text class="am-lbl" x="490" y="716">ТОПИ СКОРБИ</text><text class="am-sub" x="490" y="734">болото · L28–38 · Скверна</text>
+  <text class="am-lbl" x="900" y="240">ХРЕБЕТ ЛЬДА</text><text class="am-sub" x="900" y="258">3 яруса высоты · L38–48</text>
+  <text class="am-lbl" x="1215" y="440">КАЛЬДЕРА ПЕПЛА</text><text class="am-sub" x="1215" y="458">вулкан · L45–55 · КРАСНАЯ</text>
+  <text class="am-lbl" x="748" y="800">ПОДЗЕМЬЯ РАЗЛОМА</text><text class="am-sub" x="748" y="818">эндгейм · L50–60 · мифик+</text>
+  <text class="am-lbl" x="1170" y="730">ГЛУХОЙ ПРЕДЕЛ</text><text class="am-sub" x="1170" y="748">full-loot · 36 территорий</text>
+  <text class="am-lbl" x="255" y="180">ВНУТРЕННИЙ РАЗЛОМ</text><text class="am-sub" x="255" y="198">рейд 24 · НЕМ · 4 фазы</text>
+  <text class="am-lbl" x="630" y="90">ОСТРОВ ЗАВЕТА</text><text class="am-sub" x="630" y="108">осада замка 200v200</text>
+  <text class="am-lbl" x="1260" y="180">СЕМЬ ТАЙНЫХ МЕСТ</text><text class="am-sub" x="1260" y="198">головоломки · Кодекс</text>
+  <text class="am-lbl" x="196" y="770">МОРЕ ОСКОЛКОВ</text><text class="am-sub" x="196" y="788">корабли · штормы · L55–60</text>
+
+  <!-- dungeon diamonds -->
+  <g fill="#7fd6d0" stroke="#0d1c22" stroke-width="1.5">
+    <path d="M620 292 l9 -9 9 9 -9 9 z"/><path d="M352 548 l9 -9 9 9 -9 9 z"/><path d="M1100 552 l9 -9 9 9 -9 9 z"/>
+    <path d="M660 646 l9 -9 9 9 -9 9 z"/><path d="M1020 268 l9 -9 9 9 -9 9 z"/><path d="M1330 470 l9 -9 9 9 -9 9 z"/>
+    <path d="M880 860 l9 -9 9 9 -9 9 z"/><path d="M1240 838 l9 -9 9 9 -9 9 z"/>
+  </g>
+  <text class="am-poi" x="636" y="290">Подкоренье</text><text class="am-poi" x="368" y="546">Трюм «Авроры»</text>
+  <text class="am-poi" x="1116" y="550">Катакомбы Счётчика</text><text class="am-poi" x="676" y="644">Часовня Утопших</text>
+  <text class="am-poi" x="1036" y="266">Кузница Мороза</text><text class="am-poi" x="1346" y="468">Горнило Пепла</text>
+  <text class="am-poi" x="896" y="858">Башня Испытаний</text><text class="am-poi" x="1256" y="836">Костяной Колодец</text>
+
+  <!-- raid hexagons -->
+  <g fill="none" stroke="#e08b6a" stroke-width="2.5">
+    <path d="M880 792 l11 -6 11 6 0 12 -11 6 -11 -6 z"/><path d="M300 820 l11 -6 11 6 0 12 -11 6 -11 -6 z"/><path d="M452 236 l11 -6 11 6 0 12 -11 6 -11 -6 z"/>
+  </g>
+  <text class="am-poi" x="906" y="806">Немой Архонт (8/16)</text><text class="am-poi" x="326" y="834">Затонувший Собор (24)</text><text class="am-poi" x="478" y="250">Седьмая Клятва (24)</text>
+
+  <!-- world bosses -->
+  <g fill="#d6534f" stroke="#2a1010" stroke-width="1.5">
+    <circle cx="536" cy="392" r="7"/><circle cx="284" cy="608" r="7"/><circle cx="1160" cy="700" r="7"/>
+    <circle cx="1322" cy="516" r="7"/><circle cx="256" cy="884" r="7"/><circle cx="1360" cy="866" r="7"/>
+  </g>
+  <text class="am-poi" x="548" y="396">Олений Рог</text><text class="am-poi" x="296" y="612">Туманный Страж</text>
+  <text class="am-poi" x="1172" y="704">Мать Тины</text><text class="am-poi" x="1334" y="520">Левиафан</text>
+  <text class="am-poi" x="268" y="888">Приливной Змей</text><text class="am-poi" x="1372" y="870">Князь Пепла</text>
+
+  <!-- secret stars -->
+  <g fill="#f0d27a" stroke="#3a2c10" stroke-width="1">
+    <path d="M1290 218 l3 7 8 1 -6 5 2 8 -7 -4 -7 4 2 -8 -6 -5 8 -1 z"/>
+    <path d="M1140 152 l3 7 8 1 -6 5 2 8 -7 -4 -7 4 2 -8 -6 -5 8 -1 z"/>
+    <path d="M566 420 l3 7 8 1 -6 5 2 8 -7 -4 -7 4 2 -8 -6 -5 8 -1 z"/>
+  </g>
+  <!-- 36 territory squares (stylized grid) -->
+  <g id="layer-territories" fill="#f0a45c" fill-opacity=".8" stroke="#2a1510" stroke-width=".8">
+    <g transform="translate(1190,772)">
+      <rect x="0" y="0" width="9" height="9"/><rect x="18" y="0" width="9" height="9"/><rect x="36" y="0" width="9" height="9"/><rect x="54" y="0" width="9" height="9"/><rect x="72" y="0" width="9" height="9"/><rect x="90" y="0" width="9" height="9"/>
+      <rect x="0" y="18" width="9" height="9"/><rect x="18" y="18" width="9" height="9"/><rect x="36" y="18" width="9" height="9"/><rect x="54" y="18" width="9" height="9"/><rect x="72" y="18" width="9" height="9"/><rect x="90" y="18" width="9" height="9"/>
+      <rect x="0" y="36" width="9" height="9"/><rect x="18" y="36" width="9" height="9"/><rect x="36" y="36" width="9" height="9"/><rect x="54" y="36" width="9" height="9"/><rect x="72" y="36" width="9" height="9"/><rect x="90" y="36" width="9" height="9"/>
+      <rect x="0" y="54" width="9" height="9"/><rect x="18" y="54" width="9" height="9"/><rect x="36" y="54" width="9" height="9"/><rect x="54" y="54" width="9" height="9"/><rect x="72" y="54" width="9" height="9"/><rect x="90" y="54" width="9" height="9"/>
+      <rect x="0" y="72" width="9" height="9"/><rect x="18" y="72" width="9" height="9"/><rect x="36" y="72" width="9" height="9"/><rect x="54" y="72" width="9" height="9"/><rect x="72" y="72" width="9" height="9"/><rect x="90" y="72" width="9" height="9"/>
+      <rect x="0" y="90" width="9" height="9"/><rect x="18" y="90" width="9" height="9"/><rect x="36" y="90" width="9" height="9"/><rect x="54" y="90" width="9" height="9"/><rect x="72" y="90" width="9" height="9"/><rect x="90" y="90" width="9" height="9"/>
+    </g>
+  </g>
+  <!-- fast travel anchors -->
+  <g fill="#9fe8d8" opacity=".85"><circle cx="560" cy="330" r="3"/><circle cx="320" cy="520" r="3"/><circle cx="1040" cy="620" r="3"/><circle cx="620" cy="700" r="3"/><circle cx="980" cy="210" r="3"/><circle cx="1280" cy="380" r="3"/><circle cx="840" cy="830" r="3"/><circle cx="1330" cy="760" r="3"/><circle cx="250" cy="800" r="3"/><circle cx="700" cy="120" r="3"/><circle cx="420" cy="180" r="3"/></g>
+</g>
+
+<!-- ================= TITLE BLOCK / LEGEND ================= -->
+<g transform="translate(48,28)">
+  <text class="am-title" x="0" y="42">А Р К Е О Н</text>
+  <text class="am-small" x="2" y="66">ПЕПЕЛ ЗАВЕТА · КАРТА МИРА · ГОД 1041 ЭРЫ ЗАРИ</text>
+  <text class="am-small" x="2" y="84">14 регионов · ~96 км² суши + 34 км² моря · 38 якорей · 7 Светочей (6 горят)</text>
+</g>
+
+<g transform="translate(1150,24)">
+  <rect width="402" height="212" rx="10" fill="#0b131c" fill-opacity=".88" stroke="#4b6572" stroke-width="1.2"/>
+  <text class="am-sub" x="16" y="26" style="font-size:14px;font-weight:700;fill:#f0d27a">ЛЕГЕНДА</text>
+  <g transform="translate(18,42)">
+    <rect x="0" y="0" width="14" height="14" fill="#e8b25c"/><text class="am-poi" x="22" y="11">город / хаб (аукцион, банк, станции)</text>
+    <rect x="0" y="22" width="14" height="14" fill="#53d06a" fill-opacity=".45"/><text class="am-poi" x="22" y="33">Зелёная зона — PvP выключен</text>
+    <rect x="0" y="44" width="14" height="14" fill="#e8c14a" fill-opacity=".45"/><text class="am-poi" x="22" y="55">Жёлтая — PvP без потери лута</text>
+    <rect x="0" y="66" width="14" height="14" fill="#e2623c" fill-opacity=".45"/><text class="am-poi" x="22" y="77">Красная — частичный дроп (25% уничтожается)</text>
+    <rect x="0" y="88" width="14" height="14" fill="#b0344f" fill-opacity=".5"/><text class="am-poi" x="22" y="99">Чёрная — full-loot, осады, территории</text>
+    <path d="M7 112 l7 -7 7 7 -7 7 z" fill="#7fd6d0"/><text class="am-poi" x="22" y="121">данж (5)</text>
+    <path d="M7 140 l7 -4 7 4 0 8 -7 4 -7 -4 z" fill="none" stroke="#e08b6a" stroke-width="2"/><text class="am-poi" x="22" y="143">рейд (8 / 16 / 24)</text>
+    <circle cx="7" cy="160" r="5" fill="#d6534f"/><text class="am-poi" x="22" y="164">мировой босс</text>
+    <circle cx="7" cy="180" r="6" fill="url(#beacon)"/><text class="am-poi" x="22" y="184">горящий Светоч · ◆ погасший VII</text>
+  </g>
+  <text class="am-poi" x="18" y="202" style="fill:#8fb4c2">пунктир: Световые тропы · синий пунктир: морские маршруты</text>
+</g>
+
+<!-- compass + scale -->
+<g transform="translate(1500,900)">
+  <circle r="42" fill="#0b131c" fill-opacity=".8" stroke="#4b6572"/>
+  <path d="M0 -34 L9 0 L0 34 L-9 0 Z" fill="#e8b25c"/><path d="M0 -34 L9 0 L0 0 Z" fill="#f7e6bc"/>
+  <text class="am-small" x="-5" y="-48" style="fill:#f0d27a">С</text><text class="am-small" x="-4" y="59">Ю</text>
+</g>
+<g transform="translate(1040,966)">
+  <line x1="0" y1="0" x2="200" y2="0" stroke="#d8cbb0" stroke-width="3"/>
+  <line x1="0" y1="-6" x2="0" y2="6" stroke="#d8cbb0" stroke-width="3"/><line x1="100" y1="-5" x2="100" y2="5" stroke="#d8cbb0" stroke-width="2"/><line x1="200" y1="-6" x2="200" y2="6" stroke="#d8cbb0" stroke-width="3"/>
+  <text class="am-small" x="0" y="20">0</text><text class="am-small" x="92" y="20">0.9 км</text><text class="am-small" x="176" y="20">1.8 км</text>
+</g>
+<text class="am-small" x="48" y="980">Проекция: изометрическая схема · сетка 200 svg-ед. ≈ 1.8 км · слои: law / grid / routes / poi / territories / beacons</text>
+</svg>
