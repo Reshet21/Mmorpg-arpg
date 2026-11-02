@@ -265,7 +265,15 @@
     g.fillStyle = rar ? mix('#4a5866', rar.color, .45) : '#4a5866';
     g.beginPath(); g.arc(0,-38,6.8,Math.PI,0); g.lineTo(6.8,-36); g.lineTo(-6.8,-36); g.fill(); outline(g);
     // оружие
-    g.save(); g.translate(11, -22); g.rotate(-0.35 + (e.attackAnim || 0) * 1.2);
+    const anim=e.attackAnim||0;
+    if(anim>0.05){
+      g.save(); g.translate(11,-22); g.rotate(-0.35+anim*1.2);
+      g.globalCompositeOperation='lighter';
+      g.strokeStyle=rgba(cls.color,0.55*anim); g.lineWidth=6*anim;
+      g.beginPath(); g.arc(0,0,25,-1.15,-0.15); g.stroke();
+      g.restore();
+    }
+    g.save(); g.translate(11, -22); g.rotate(-0.35 + anim * 1.2);
     g.strokeStyle = '#cfd8dc'; g.lineWidth = 2.6; g.beginPath(); g.moveTo(0,0); g.lineTo(0,-30); g.stroke();
     g.fillStyle = rar ? rar.color : cls.color;
     if (cls.range > 6) { g.strokeStyle = rgba(cls.color,.9); g.lineWidth=1.6; g.beginPath(); g.arc(0,-16,13,-1.2,1.2); g.stroke(); }
@@ -628,6 +636,99 @@
     g.restore();
   }
 
+  /* -------------------- G2.5 · анимация удара «как в Diablo» --------------------
+   * Слои: светящийся полумесяц-взмах, яркая ведущая кромка, трассирующие
+   * искры, ударное кольцо, нова/щит для навыков. Всё в аддитивном режиме,
+   * без внешних ассетов; в экономном режиме число слоёв сокращается.
+   */
+  function drawAttackFX(g, G, o, zoom) {
+    const list=G.attacks||[]; if(!list.length) return;
+    const simple=lowQ();
+    g.save(); g.globalCompositeOperation='lighter';
+    for(const fx of list){
+      const k=A2.clamp(fx.t/fx.dur,0,1);
+      const fade=Math.sin(Math.PI*k);
+      const col=fx.color||'#ffd27a';
+      const [x,y]=iso(fx.x,fx.y,0,o);
+      const [tx,ty]=iso(fx.tx===undefined?fx.x:fx.tx, fx.ty===undefined?fx.y:fx.ty, 0, o);
+      const ang=Math.atan2(ty-y,tx-x) || 0;
+      g.save(); g.translate(x,y);
+
+      if(fx.kind==='slash' || fx.kind==='dash' || fx.kind==='cast'){
+        const a0=ang-0.95, a1=ang+0.95;
+        const sweep=a0+(a1-a0)*A2.clamp(k*1.35,0,1);
+        const R=(fx.kind==='dash'?52:fx.kind==='cast'?46:40)*(fx.scale||1);
+        if(!simple){
+          const wg=g.createRadialGradient(0,0,R*0.28,0,0,R*1.28);
+          wg.addColorStop(0,rgba(col,0));
+          wg.addColorStop(0.68,rgba(col,0.30*fade));
+          wg.addColorStop(1,rgba(col,0));
+          g.fillStyle=wg;
+          g.beginPath(); g.arc(0,0,R*1.28,a0,sweep);
+          g.arc(0,0,R*0.42,sweep,a0,true); g.closePath(); g.fill();
+        }
+        // широкая цветная дуга + тонкая белая кромка
+        g.lineCap='round';
+        g.strokeStyle=rgba(col,0.72*fade); g.lineWidth=simple?5:9;
+        g.beginPath(); g.arc(0,0,R*0.94,a0,sweep); g.stroke();
+        g.strokeStyle=rgba('#fff6d8',0.92*fade); g.lineWidth=2.4;
+        g.beginPath(); g.arc(0,0,R,a0,sweep); g.stroke();
+        // «лезвие» — луч от героя к ведущей кромке
+        g.strokeStyle=rgba('#ffffff',0.55*fade); g.lineWidth=1.6;
+        g.beginPath(); g.moveTo(0,0);
+        g.lineTo(Math.cos(sweep)*R,Math.sin(sweep)*R); g.stroke();
+        // искры вдоль траектории
+        const sparks=simple?4:9;
+        for(let i=0;i<sparks;i++){
+          const a=a0+(a1-a0)*((i+0.5)/sparks);
+          const rr=R*(0.65+k*0.75)+Math.sin(i*2.7+fx.t*22)*3;
+          g.fillStyle=rgba(i%3===0?'#ffffff':col, (1-k)*0.85*fade);
+          g.beginPath(); g.arc(Math.cos(a)*rr,Math.sin(a)*rr,1.3+(1-k)*2.1,0,6.283); g.fill();
+        }
+      } else if(fx.kind==='nova'){
+        const R=(18+k*78)*(fx.scale||1);
+        g.strokeStyle=rgba(col,0.85*(1-k)); g.lineWidth=simple?4:8*(1-k)+1.5;
+        g.beginPath(); g.arc(0,-10,R,0,6.283); g.stroke();
+        g.strokeStyle=rgba('#ffffff',0.35*(1-k)); g.lineWidth=1.5;
+        g.beginPath(); g.arc(0,-10,R*0.72,0,6.283); g.stroke();
+        if(!simple){
+          const rays=14;
+          for(let i=0;i<rays;i++){
+            const a=i*6.283/rays+k*0.4;
+            g.strokeStyle=rgba(col,0.55*(1-k)); g.lineWidth=2;
+            g.beginPath(); g.moveTo(Math.cos(a)*R*0.55,-10+Math.sin(a)*R*0.3);
+            g.lineTo(Math.cos(a)*R*1.12,-10+Math.sin(a)*R*0.62); g.stroke();
+          }
+          const gl=g.createRadialGradient(0,-10,1,0,-10,R);
+          gl.addColorStop(0,rgba(col,0.20*(1-k))); gl.addColorStop(1,rgba(col,0));
+          g.fillStyle=gl; g.beginPath(); g.arc(0,-10,R,0,6.283); g.fill();
+        }
+      } else if(fx.kind==='ward'){
+        const R=(24+k*16)*(fx.scale||1);
+        g.strokeStyle=rgba(col,0.7*(1-k)); g.lineWidth=3;
+        g.beginPath(); g.ellipse(0,-16,R,R*0.75,0,Math.PI,0); g.stroke();
+        g.fillStyle=rgba(col,0.13*fade);
+        g.beginPath(); g.ellipse(0,-16,R,R*0.75,0,Math.PI,0); g.fill();
+      } else { // impact
+        const R=(8+k*32)*(fx.scale||1);
+        g.strokeStyle=rgba(col,0.9*(1-k)); g.lineWidth=3.5*(1-k)+1;
+        g.beginPath(); g.ellipse(0,-14,R,R*0.52,0,0,6.283); g.stroke();
+        g.strokeStyle=rgba('#ffffff',0.55*(1-k)); g.lineWidth=1.6;
+        g.beginPath(); g.ellipse(0,-14,R*0.55,R*0.28,0,0,6.283); g.stroke();
+        const sh=simple?3:7;
+        for(let i=0;i<sh;i++){
+          const a=i*6.283/sh+fx.t*3;
+          const rr=R*(0.5+k*0.9);
+          g.strokeStyle=rgba(fx.crit?'#ffe27a':col,0.75*(1-k)); g.lineWidth=1.8;
+          g.beginPath(); g.moveTo(Math.cos(a)*rr*0.45,-14+Math.sin(a)*rr*0.22);
+          g.lineTo(Math.cos(a)*rr,-14+Math.sin(a)*rr*0.5); g.stroke();
+        }
+      }
+      g.restore();
+    }
+    g.restore();
+  }
+
   /* ------------------------------- кадр ------------------------------- */
   function frame(W, G, dt) {
     if (!ctx) return;
@@ -717,10 +818,14 @@
     ctx.globalAlpha=1;
     for (const n of G.numbers) {
       const [x,y]=iso(n.x,n.y,n.z||1.2,o);
-      ctx.font='700 13px -apple-system,system-ui,sans-serif'; ctx.textAlign='center';
-      ctx.fillStyle='rgba(0,0,0,.75)'; ctx.fillText(n.text,x+1,y+1);
+      const fs=n.crit?20:13;
+      ctx.font='800 '+fs+'px -apple-system,system-ui,sans-serif'; ctx.textAlign='center';
+      if(n.crit){ ctx.shadowColor=n.color; ctx.shadowBlur=12; }
+      ctx.fillStyle='rgba(0,0,0,.8)'; ctx.fillText(n.text,x+1,y+1);
       ctx.fillStyle=n.color; ctx.fillText(n.text,x,y);
+      ctx.shadowBlur=0;
     }
+    drawAttackFX(ctx,G,o,zoom);
     ctx.restore();
 
     // ---- динамический свет ----

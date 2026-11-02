@@ -8,7 +8,7 @@
   'use strict';
   const A2 = window.A2 || (window.A2 = {});
 
-  A2.VERSION = 'G2.4';
+  A2.VERSION = 'G2.5';
   A2.C = {
     TICK: 1 / 30, SNAPSHOT: 1 / 20, WEAPON_HIT: 21600,
     TILE_W: 64, TILE_H: 32, H_UNIT: 26,

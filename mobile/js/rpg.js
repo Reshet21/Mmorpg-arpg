@@ -205,7 +205,7 @@
       px + (Math.random()-0.5)*1.2,
       py + (Math.random()-0.5)*1.2);
     const d = { uid:'d'+Math.random().toString(36).slice(2,8),
-      x:pos.x, y:pos.y, t:G.world.time, item:it, owner:null, gold:0,
+      x:pos.x, y:pos.y, t:Math.max(0.01,G.world.time), item:it, owner:null, gold:0,
       rar:it.rarity, spin:Math.random()*6.28, picked:false, magnet:0 };
     G.world.drops.push(d);
     G.onLoot && G.onLoot(it, d);
@@ -259,16 +259,49 @@
 
   /* Магнит лута: вещи с убитого вдали моба летят к игроку, а не остаются
    * за стеной / вне радиуса. Радиус 9.5 тайла покрывает дальность любого класса. */
+  /* G2.5 · неmutating-проверка: поместится ли предмет в сумку.
+   * Раньше магнит тащил за игрока вещи, которые физически не мог подобрать
+   * (фильтр редкости или сумка 40/40) — они вечно «ездили» следом. */
+  function haveRoom(G) {
+    const ch=G.char;
+    if(ch.inventory.length<40) return true;
+    if(!G.settings || G.settings.autoSalvage===false) return false;
+    return ch.inventory.some(it=>it.rarity==='common');
+  }
+  function dropFromBag(G, it) {
+    const ch=G.char, idx=ch.inventory.indexOf(it);
+    if(idx<0) return false;
+    ch.inventory.splice(idx,1);
+    const n=G.world.drops.filter(d=>d.noMagnet && !d.picked).length;
+    const a=n*1.15;
+    const pos=walkableDropPos(G, G.player.x+Math.cos(a)*1.7, G.player.y+Math.sin(a)*1.7);
+    const d={ uid:'drop'+Math.random().toString(36).slice(2,9),
+      x:pos.x, y:pos.y, t:Math.max(0.01,G.world.time), item:it, owner:null, gold:0,
+      rar:it.rarity, spin:Math.random()*6.28, picked:false, magnet:0,
+      noMagnet:true };   // выброшенная вещь НЕ притягивается обратно
+    G.world.drops.push(d);
+    G.log && G.log('🗑 Выброшено: '+itemName(it)+' · можно забрать кнопкой «Забрать лут»','#9db0bd');
+    G.onDrop && G.onDrop(d);
+    if(A2.Audio) A2.Audio.play('ui');
+    if(G.net && G.net.syncItems) G.net.syncItems();
+    return d;
+  }
+
   function magnetLoot(G, dt) {
-    const p=G.player, ch=G.char;
+    const p=G.player, ch=G.char, W=G.world;
+    if(!G.settings || G.settings.magnet===false) return 0;   // можно выключить в настройках
     const R=9.5, pickR=Math.max(2.6, ch.stats.pickup);
     let got=0;
-    for(const d of G.world.drops) {
+    for(const d of W.drops) {
       if(d.picked || d.t<0) continue;
+      // выброшенные вручную вещи лежат на месте до явного «Забрать лут»
+      if(d.noMagnet) { d.magnet=0; continue; }
       const dist=A2.dist(d.x,d.y,p.x,p.y);
-      if(dist>R) continue;
-      // Небольшой люфт у радиуса: без него дроп зависал ровно на границе
-      // pickR и никогда не подбирался — ещё одна причина «вещи не поднимаются».
+      if(dist>R) { d.magnet=0; continue; }
+      // G2.5 · КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: не притягиваем то, что не подберём.
+      // Отфильтрованное по редкости, выброшенное или «не влезающее» в сумку
+      // остаётся там, где упало, а не едет за игроком хвостом.
+      if(d.item && (!autoPickupAllowed(G,d.item) || !haveRoom(G))) { d.magnet=0; continue; }
       if(dist<=pickR+0.4) {
         if(!d.item || autoPickupAllowed(G,d.item)) { if(pickup(G,d)) got++; }
         continue;
@@ -462,8 +495,13 @@
     // G2.4 · моб отвечает только тому, кто его ударил; сам по себе не агрессит
     if (A2.World.provoke) A2.World.provoke(G.world, mob);
     G.damageDealt += dmg;
-    G.numbers.push({x:mob.x+(Math.random()-.5),y:mob.y,z:1.4,text:(crit?'✦ ':'')+A2.fmt(dmg),color:crit?'#ffe27a':'#e9efed',life:1,max:1});
-    spawnParticles(G,mob.x,mob.y,crit?14:7,elementColor(element||cls.element),1.5);
+    G.numbers.push({x:mob.x+(Math.random()-.5),y:mob.y,z:1.4,text:(crit?'✦ ':'')+A2.fmt(dmg),
+      color:crit?'#ffe27a':'#e9efed',life:1,max:1,crit:!!crit});
+    spawnParticles(G,mob.x,mob.y,crit?22:11,elementColor(element||cls.element),crit?2.4:1.7);
+    // G2.5 · ударная вспышка и «хищение кадра» для веса удара, как в Diablo
+    if(G.attacks) G.attacks.push({ kind:'impact', x:mob.x, y:mob.y, t:0, dur:0.34,
+      color:elementColor(element||cls.element), crit:!!crit, scale:crit?1.45:1 });
+    if(crit){ G.hitStop=0.055; G.cam.shake=Math.min(11,(G.cam.shake||0)+4); G.flash=Math.max(G.flash||0,0.22); }
     if(crit && st.shieldOnCrit) ch.shield=(ch.shield||0)+st.maxHp*st.shieldOnCrit;
     if(st.leech) ch.hp=Math.min(st.maxHp,ch.hp+dmg*st.leech);
     // статус/реакции
@@ -660,6 +698,7 @@
     grantXP, grantGold, talentUp, respec, dropItem, pickup, equip, salvage, enchant, reroll, buy,
     questAvailable, questsFor, startQuest, questProgress, completeQuest, activeQuests, sell, autoPickupAllowed,
     magnetLoot, collectNearby, unequip, equipBest, walkableDropPos, freeBagSlot,
+    haveRoom, dropFromBag,
     dialogue, mitigation, hit, elementColor, applyElement, spawnParticles, hurtPlayer,
     save, load, restore, clearSave,
     storyChapter, storyNpc, storyWaypoint, storyEvent, storyCheckReach, storyComplete, storySkip };

@@ -410,7 +410,7 @@ function start() {
 }
 
 function stats() {
-  return { version:'G2.4', tickHz:30, snapshotHz:20, aoi:C.AOI,
+  return { version:'G2.5', tickHz:30, snapshotHz:20, aoi:C.AOI,
     players:players.size, zones:worlds.size,
     mobs:Array.from(worlds.values()).reduce((a,W)=>a+W.mobs.filter(m=>m.alive).length,0),
     parties:parties.size, orders:orders.size, trades:trades.size, ledger:ledger.length,

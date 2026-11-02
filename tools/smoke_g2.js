@@ -104,7 +104,7 @@ async function run(useCanon) {
   const API=env.window.ARKEON_G2, A2=env.window.A2;
   ok(!!API,'window.ARKEON_G2 определён');
   if(!API) return;
-  ok(API.version==='G2.4','версия G2.4');
+  ok(API.version==='G2.5','версия G2.5');
   ok(API.source===(useCanon?'canon':'fallback'),'источник навыков: '+(useCanon?'canon':'fallback'));
   if(useCanon) {
     const m=API.meta('Клинок Рубежа');
@@ -248,6 +248,111 @@ async function run(useCanon) {
   ok(G.settings.worldEvents===false && G.world.noEvents===true,
      'G2.4: после телепорта Волны Разлома остаются выключенными');
   API.closeModal();
+
+  // ---- G2.5 · СУМКА, УМНЫЙ МАГНИТ, АНИМАЦИЯ УДАРА ----
+  ok(typeof A2.RPG.dropFromBag==='function' && typeof A2.RPG.haveRoom==='function' &&
+     typeof API.bagView==='function','G2.5: выброс, проверка места и фильтр сумки экспортированы');
+  const clickB=(act,attrs)=>env.document.getElementById('modalBody').onclick(
+    {target:{getAttribute:k=>k==='data-act'?act:(attrs&&Object.prototype.hasOwnProperty.call(attrs,k)?attrs[k]:null)}});
+  G.char.inventory.length=0;
+  for(let i=0;i<5;i++){
+    const it=A2.RPG.rollItem(5,'grove',{rarity:'common'}); it.uid='t_junk'+i; G.char.inventory.push(it);
+  }
+  const keepIt=A2.RPG.rollItem(20,'rift',{rarity:'legendary',slot:'weapon'});
+  keepIt.uid='t_keep'; G.char.inventory.push(keepIt);
+  G.bagFilter={rarity:'all',slot:'all',q:'',junkOnly:false}; G.bagSel.clear();
+  ok(API.bagView().length===6,'G2.5: сумка показывает все 6 предметов');
+  G.bagFilter.rarity='junk';
+  ok(API.bagView().length===5,'G2.5: фильтр «Хлам» оставляет только обычное');
+  G.bagFilter.rarity='legendary';
+  ok(API.bagView().length===1,'G2.5: фильтр «Легенд+» оставляет одну вещь');
+  G.bagFilter={rarity:'all',slot:'all',q:'',junkOnly:false};
+  API.openModal('bag');
+  const bagHtml=env.document.getElementById('modalBody').innerHTML;
+  ok(bagHtml.indexOf('dropSelected')>=0 && bagHtml.indexOf('selectAll')>=0 &&
+     bagHtml.indexOf('selectJunk')>=0 && bagHtml.indexOf('purgeJunk')>=0,
+     'G2.5: есть «Выбрать всё», «Выбрать хлам», массовый выброс и очистка');
+  ok(bagHtml.indexOf('data-act="bagRarity"')>=0 && bagHtml.indexOf('id="bagSlot"')>=0 &&
+     bagHtml.indexOf('id="bagQ"')>=0,'G2.5: панель фильтра: редкость, слот, поиск');
+  ok((bagHtml.match(/class="selbox"/g)||[]).length===6,'G2.5: у каждой ячейки есть чекбокс выделения');
+  API.openModal('item',0);
+  ok(env.document.getElementById('modalBody').innerHTML.indexOf('data-act="drop"')>=0,
+     'G2.5: в карточке предмета есть кнопка «Выбросить на землю»');
+  API.openModal('bag');
+  clickB('selectJunk');
+  ok(G.bagSel.size===5,'G2.5: «Выбрать хлам» выделил 5 обычных предметов');
+  clickB('dropSelected');
+  ok(G.char.inventory.length===1 && G.char.inventory[0]===keepIt,
+     'G2.5: массовый выброс освободил сумку, легендарная вещь осталась');
+  const thrown=G.world.drops.filter(d=>d.noMagnet&&!d.picked);
+  ok(thrown.length===5 && thrown.every(d=>d.item),'G2.5: выброшенные вещи лежат на земле');
+  const px=G.player.x, py=G.player.y;
+  thrown.forEach((d,i)=>{ d.x=px+6+i*0.15; d.y=py+1; });
+  const tx0=thrown.map(d=>d.x);
+  G.settings.magnet=true; G.settings.lootFilter='all';
+  for(let i=0;i<50;i++) API.step(A2.C.TICK);
+  ok(thrown.every((d,i)=>Math.abs(d.x-tx0[i])<0.001),
+     'G2.5: выброшенное НЕ притягивается обратно магнитом');
+  // отфильтрованное по редкости тоже не едет за игроком
+  G.settings.lootFilter='legendary';
+  const filtIt=A2.RPG.rollItem(5,'grove',{rarity:'common'}); filtIt.uid='t_filt';
+  const fd={uid:'t_fdrop',x:px+7,y:py+2,t:G.world.time+1,item:filtIt,gold:0,owner:null,
+    picked:false,magnet:0,rar:'common',spin:0};
+  G.world.drops.push(fd);
+  const fdx=fd.x;
+  for(let i=0;i<35;i++) API.step(A2.C.TICK);
+  ok(Math.abs(fd.x-fdx)<0.001 && fd.picked===false,
+     'G2.5: отфильтрованное редкостью остаётся на месте, а не едет хвостом');
+  G.settings.lootFilter='all';
+  for(let i=0;i<70;i++) API.step(A2.C.TICK);
+  ok(fd.picked===true,'G2.5: после смены фильтра вещь подбирается');
+  // полная сумка без «хлама» — магнит тоже не должен тащить
+  G.char.inventory.length=0;
+  for(let i=0;i<40;i++){
+    const it=A2.RPG.rollItem(20,'rift',{rarity:'epic'}); it.uid='t_full'+i; G.char.inventory.push(it);
+  }
+  ok(A2.RPG.haveRoom(G)===false,'G2.5: полная сумка распознаётся');
+  const fullIt=A2.RPG.rollItem(5,'grove',{rarity:'common'}); fullIt.uid='t_fi';
+  const fullDrop={uid:'t_fulldrop',x:px+7,y:py+2,t:G.world.time+1,item:fullIt,gold:0,owner:null,
+    picked:false,magnet:0,rar:'common',spin:0};
+  G.world.drops.push(fullDrop);
+  const fux=fullDrop.x;
+  for(let i=0;i<35;i++) API.step(A2.C.TICK);
+  ok(Math.abs(fullDrop.x-fux)<0.001,'G2.5: при полной сумке лут не «прилипает» к игроку');
+  G.settings.magnet=false;
+  G.char.inventory.length=0;
+  const magnetOff={uid:'t_moff',x:px+7,y:py+2,t:G.world.time+1,
+    item:A2.RPG.rollItem(5,'grove',{rarity:'common'}),gold:0,owner:null,picked:false,magnet:0,rar:'common',spin:0};
+  G.world.drops.push(magnetOff);
+  const mox=magnetOff.x;
+  for(let i=0;i<35;i++) API.step(A2.C.TICK);
+  ok(Math.abs(magnetOff.x-mox)<0.001,'G2.5: выключенный магнит полностью отключает притяжение');
+  G.settings.magnet=true;
+  // анимация удара
+  G.attacks.length=0; G.numbers.length=0; G.hitStop=0;
+  API.spawnMobs(2);
+  const fm=G.world.mobs[G.world.mobs.length-1];
+  G.player.x=fm.x+0.6; G.player.y=fm.y+0.6; G.target=fm; G.atkCd=0;
+  ok(API.basicAttack()===true,'G2.5: ручной удар выполняется');
+  ok(G.attacks.some(a=>a.kind==='slash'),'G2.5: удар рисует светящийся взмах-полумесяц');
+  ok(G.attacks.some(a=>a.kind==='impact'),'G2.5: попадание рисует ударное кольцо');
+  ok(G.numbers.length>0 && G.numbers[0].crit!==undefined,'G2.5: цифры урона размечены для крита');
+  let fxerr=null;
+  try { for(let i=0;i<4;i++) API.render(1/60);
+        A2.Render.setQuality('low'); API.render(1/60); A2.Render.setQuality('high');
+  } catch(e){ fxerr=e; }
+  ok(!fxerr,'G2.5: рендер анимации удара в обоих режимах качества без исключений'+(fxerr?': '+fxerr.message:''));
+  G.char.res=100; G.cooldowns={}; G.attacks.length=0;
+  API.cast(0);
+  ok(G.attacks.some(a=>['nova','dash','ward','cast'].indexOf(a.kind)>=0),
+     'G2.5: навык создаёт собственный визуальный эффект');
+  G.char.ult=100;
+  ok(API.useUlt()===true && G.hitStop>0,'G2.5: ультимейт даёт нова-вспышку и hit-stop');
+  G.hitStop=0; API.closeModal();
+  // восстановить чистое состояние для остальных тестов
+  G.char.inventory.length=0;
+  G.char.inventory.push(A2.RPG.rollItem(20,'grove',{rarity:'rare'}));
+  G.attacks.length=0;
 
   // ---- данные канона ----
   ok(A2.CLASSES.length===6,'6 классов канона');

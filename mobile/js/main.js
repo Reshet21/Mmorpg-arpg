@@ -29,9 +29,11 @@
     cooldowns:{}, atkCd:0, attackHeld:false, buffs:{},
     hooks:{}, pendingZone:null, pendingPos:null, modalMode:null, modalData:null,
     market:null, corpses:[], selectedItem:null, selectedPlayer:null, lastStep:0,
+    bagSel:new Set(), bagFilter:{rarity:'all',slot:'all',q:'',junkOnly:false},
+    attacks:[], hitStop:0,
     story:{chapter:0,done:false,met:{},progress:0,log:[],unlocked:false}, storyTarget:null, storyBannerUntil:0,
     settings:{motion:true,sound:true,vibration:true,quality:'auto',lootFilter:'all',autoSalvage:true,
-      worldEvents:false,volume:0.8,music:0.45},
+      worldEvents:false,magnet:true,volume:0.8,music:0.45},
     lowFps:0, lastFrame:0, started:false, perf:'high', fpsAvg:60, fpsLowT:0, fpsHighT:0, itemFlushT:0
   };
 
@@ -69,7 +71,8 @@
   G.onQuest = (q,act,cur,need) => { if(act==='start'){G.toast('Квест: '+q.ru,2.5);S('quest');} if(act==='complete'){G.toast('Квест завершён: '+q.ru,3);S('level');} };
   G.onReaction = name => { G.log('✺ Реакция: '+name,'#4fd6d0'); S('reaction'); };
   G.onHurt = () => S('hurt');
-  G.onHit = (mob,dmg,crit) => S(crit?'crit':'hit');
+  G.onHit = (mob,dmg,crit) => { S(crit?'crit':'hit');
+    if(crit){ G.cam.shake=Math.min(12,(G.cam.shake||0)+3); G.flash=Math.max(G.flash||0,0.18); } };
   G.onCast = () => S('cast');
   G.onDodge = () => S('dodge');
   G.onChat = c => { G.log('['+c.ch+'] '+c.name+': '+c.text,c.color); S('chat'); };
@@ -97,7 +100,7 @@
     A2.World.setWorldEvents(G.world, !!G.settings.worldEvents);
     if(x===undefined){ x=z.spawn[0]; y=z.spawn[1]; }
     G.player.x=A2.clamp(x,2,C.ZONE_N-3); G.player.y=A2.clamp(y,2,C.ZONE_N-3);
-    G.target=null; G.pets=[]; G.particles=[]; G.numbers=[]; G.corpses=[];
+    G.target=null; G.pets=[]; G.particles=[]; G.numbers=[]; G.corpses=[]; G.attacks=[]; G.hitStop=0;
     if(G.net) { G.net.ghosts.forEach((g,i)=>{ g.x=A2.clamp(G.player.x+Math.cos(i*1.7)*3,2,C.ZONE_N-3); g.y=A2.clamp(G.player.y+Math.sin(i*1.7)*3,2,C.ZONE_N-3); }); }
     G.toast(z.safe?'✦ '+z.ru+' · БЕЗОПАСНАЯ ЗОНА':z.ru+' · ур. '+z.lv[0]+'–'+z.lv[1],3);
     G.log('— '+z.ru+' — '+z.desc,'#f0d27a');
@@ -162,7 +165,7 @@
     else if(G.net.autoConnect()) G.log('Обнаружен сервер того же origin: подключаюсь к онлайну','#4fd6d0');
     const e=$('startScreen'); if(e && !saved) e.classList.remove('hidden');
     else { G.mode='playing'; const s=$('startScreen'); if(s) s.classList.add('hidden'); const h=$('hud'); if(h) h.classList.remove('hidden'); }
-    G.log('АРКЕОН · Мир Завета · G2.4','#f0d27a');
+    G.log('АРКЕОН · Мир Завета · G2.5','#f0d27a');
     G.log('Сервер не указан — активен офлайн-мир с союзниками-призраками','#9db0bd');
     if(A2.Audio) A2.Audio.ambient(G.world.id);
     if(/[?&]autostart=1/.test(q)) startGame();
@@ -201,6 +204,15 @@
     const special=specialKind(name);
     const coeff=m.coeff||1.2;
     const el=cls.element;
+    // G2.5 · визуальный «почерк» навыка: дуга, рывок, нова или щит
+    const fxKind = special==='aoe'||special==='reaction' ? 'nova'
+      : special==='dash' ? 'dash' : special==='guard'||special==='shield' ? 'ward' : 'cast';
+    G.attacks.push({ kind:fxKind, x:G.player.x, y:G.player.y,
+      tx:t?t.x:G.player.x+Math.cos(G.player.facing)*3.5,
+      ty:t?t.y:G.player.y+Math.sin(G.player.facing)*3.5,
+      t:0, dur:fxKind==='nova'?0.62:0.45, color:A2.RPG.elementColor(el), element:el,
+      scale:fxKind==='nova'?1.75:1.3 });
+    G.cam.shake=Math.min(9,(G.cam.shake||0)+(fxKind==='nova'?4:2));
     switch(special) {
       case 'dash': {
         const a=t?Math.atan2(t.y-G.player.y,t.x-G.player.x):G.player.facing;
@@ -262,7 +274,9 @@
     A2.World.mobsNear(G.world,G.player.x,G.player.y,11).forEach(mb=>A2.RPG.hit(G,mb,6.2*mult,cls.element));
     G.char.shield=(G.char.shield||0)+G.char.stats.maxHp*0.45;
     A2.RPG.spawnParticles(G,G.player.x,G.player.y,70,cls.color,3.4);
-    G.cam.shake=14; G.flash=0.8; G.toast('✦ '+cls.ult,3);
+    G.attacks.push({ kind:'nova', x:G.player.x, y:G.player.y, tx:G.player.x, ty:G.player.y,
+      t:0, dur:0.9, color:A2.RPG.elementColor(cls.element), element:cls.element, scale:3.1 });
+    G.hitStop=0.09; G.cam.shake=14; G.flash=0.8; G.toast('✦ '+cls.ult,3);
     return true;
   }
   function dodge(dx,dy) {
@@ -464,6 +478,7 @@
     G.toast('✦ Пристань Завета · безопасный город. Начните с Эльдары у Светоча',4.5);
     G.log('✦ АКТ I · ПРОЛОГ: 9 глав, каждая даёт часть снаряжения','#4fd6d0');
     G.log('✦ Мобы мирные: нападут только в ответ на ваш удар. Автоатаки нет — жмите «Удар»','#8fd08a');
+    G.log('✦ Магнит тянет только то, что реально подберётся. Хлам можно выбросить или очистить массово','#4fd6d0');
     G.log('Возжённый: '+G.char.name+' · '+A2.CLASS(id).ru,'#f0d27a');
     if($('serverInput')&&$('serverInput').value) G.net.connect($('serverInput').value.trim());
     updateStoryUI();
@@ -480,6 +495,11 @@
       if(G.time-(G.lastNoTarget||0)>2){ G.toast('Подойдите ближе или коснитесь цели',1.2); G.lastNoTarget=G.time; }
       G.atkCd=0.28; return false;
     }
+    const ang=Math.atan2(t.y-G.player.y,t.x-G.player.x);
+    G.player.facing=ang;
+    G.attacks.push({ kind:'slash', x:G.player.x, y:G.player.y, tx:t.x, ty:t.y,
+      t:0, dur:0.34, color:cls.color, element:cls.element, scale:1 });
+    G.cam.shake=Math.min(7,(G.cam.shake||0)+1.8);
     A2.RPG.hit(G,t,1.05,cls.element);
     G.char.res=A2.clamp(G.char.res+8,0,G.char.maxRes);
     G.char.ult=A2.clamp(G.char.ult+2,0,100);
@@ -508,6 +528,7 @@
     G.target=null; G.atkCd=0; G.attackHeld=false; G.cooldowns={};
     G.damageDealt=0; G.damageTaken=0; G.kills=0; G.dps=0; G.dmgWindow=[];
     G.particles=[]; G.numbers=[]; G.corpses=[]; G.pets=[]; G.logLines=[];
+    G.attacks=[]; G.hitStop=0; G.bagSel.clear(); G.bagFilter={rarity:'all',slot:'all',q:'',junkOnly:false};
     G.time=0; G.tick=0; G.accum=0; G.saveT=0; G.toastUntil=0; G.flash=0;
     G.pointers.clear(); G.pinch=null; G.joy.id=null; G.joy.dx=0; G.joy.dy=0;
     G.cam.zoom=1; G.cam.shake=0;
@@ -574,8 +595,32 @@
     if(!it) return '<div class="cell empty"></div>';
     const r=A2.RARITY(it.rarity), icon=G.market? G.market.icon(it):'◇';
     const aff=(it.affixes||[]).slice(0,compact?0:6).map(f=>'<div class="aff">'+f.ru+' +'+f.value+(f.suffix||'')+'</div>').join('');
-    return '<div class="cell '+r.id+'" data-act="item" data-i="'+i+'"><span class="cicon">'+icon+'</span>'+
+    const sel=G.bagSel.has(it.uid);
+    return '<div class="cell '+r.id+(sel?' picked':'')+'" data-act="item" data-i="'+i+'">'+
+      '<input class="selbox" type="checkbox" data-act="sel" data-uid="'+it.uid+'" '+(sel?'checked':'')+' aria-label="Выбрать предмет">'+
+      '<span class="cicon">'+icon+'</span>'+
       '<span class="cname">'+A2.RPG.itemName(it).slice(0,12)+'</span><span class="cprice">'+it.ilvl+' ур.</span></div>';
+  }
+  // Награды сюжета не считаются хламом, даже если они обычной редкости.
+  function isJunk(it) { return !!it && it.rarity==='common' && !it.questReward; }
+  // Фильтр сумки: редкость / слот / поиск / «только хлам».
+  function bagView() {
+    const f=G.bagFilter, out=[];
+    G.char.inventory.forEach((it,idx)=>{
+      if(!it) return;
+      if(f.junkOnly && !isJunk(it)) return;
+      if(f.rarity!=='all'){
+        const ri=A2.RARITIES.findIndex(r=>r.id===it.rarity), need=A2.RARITIES.findIndex(r=>r.id===f.rarity);
+        if(f.rarity==='junk'){ if(!isJunk(it)) return; }
+        else if(ri<need) return;
+      }
+      if(f.slot!=='all' && it.slot!==f.slot) return;
+      if(f.q && (A2.RPG.itemName(it)+' '+A2.RARITY(it.rarity).ru).toLowerCase().indexOf(f.q.toLowerCase())<0) return;
+      out.push({it,idx});
+    });
+    out.sort((a,b)=>A2.RARITIES.findIndex(r=>r.id===b.it.rarity)-A2.RARITIES.findIndex(r=>r.id===a.it.rarity)
+      || A2.RPG.itemPower(b.it)-A2.RPG.itemPower(a.it));
+    return out;
   }
   function itemDetail(it, idx) {
     if(!it) return '';
@@ -593,6 +638,7 @@
       '<div class="btnrow"><button data-act="equip" data-i="'+idx+'">Надеть</button>'+
       '<button data-act="salvage" data-i="'+idx+'">Разобрать</button>'+
       '<button data-act="sell" data-i="'+idx+'">Продать · '+Math.max(1,Math.round(it.price*0.42))+' S</button></div>'+
+      '<div class="btnrow"><button class="danger" data-act="drop" data-i="'+idx+'">🗑 Выбросить на землю</button></div>'+
       '<div class="btnrow"><input id="listPrice" class="field" type="number" min="1" value="'+G.market.suggest(it)+'">'+
       '<button data-act="list" data-i="'+idx+'">На рынок · комиссия '+G.market.fee(G.market.suggest(it))+' S</button></div>'+
       '<div class="btnrow"><button data-act="backbag">← К сумке</button></div></div>';
@@ -764,17 +810,38 @@
       });
       html.push('<div class="btnrow"><button data-act="goequip">← Все слоты</button><button data-act="backbag">Сумка</button></div>');
     } else if(mode==='bag'){
-      h('Сумка · '+ch.inventory.length+' / 40 · новых: '+G.market.newItems);
-      html.push('<div class="bagbar"><span>Автоподбор: <b>'+({all:'всё',rare:'редкое+',epic:'эпическое+',legendary:'легендарное+',none:'выключен'}[G.settings.lootFilter])+'</b></span>'+
-        '<span>S: <b>'+A2.fmt(ch.gold)+'</b></span><span>На земле: <b>'+G.world.drops.filter(d=>d.t>0&&d.item).length+'</b></span></div>');
+      const view=bagView(), f=G.bagFilter;
+      h('Сумка · '+ch.inventory.length+' / 40 · выбрано: '+G.bagSel.size);
+      html.push('<div class="bagbar"><span>S: <b>'+A2.fmt(ch.gold)+'</b></span>'+
+        '<span>На земле: <b>'+G.world.drops.filter(d=>d.t>0&&!d.picked&&d.item).length+'</b></span>'+
+        '<span>Магнит: <b>'+(G.settings.magnet?'вкл':'выкл')+'</b></span></div>');
+      // ---- фильтр ----
+      html.push('<div class="bagfilter"><div class="chips">');
+      [['all','Всё'],['junk','Хлам'],['rare','Редкое+'],['epic','Эпик+'],['legendary','Легенд+']].forEach(q=>
+        html.push('<button class="chip'+(f.rarity===q[0]?' on':'')+'" data-act="bagRarity" data-v="'+q[0]+'">'+q[1]+'</button>'));
+      html.push('</div><div class="btnrow"><select id="bagSlot" class="field" data-bag="slot">');
+      html.push('<option value="all">Все слоты</option>');
+      A2.SLOTS.forEach(sl=>html.push('<option value="'+sl.id+'" '+(f.slot===sl.id?'selected':'')+'>'+sl.icon+' '+sl.ru+'</option>'));
+      html.push('</select><input id="bagQ" class="field" data-bag="q" placeholder="Поиск по названию" value="'+f.q+'"></div></div>');
+      // ---- массовое выделение ----
+      html.push('<div class="bagselect"><div class="btnrow">'+
+        '<button data-act="selectAll">☑ Выбрать всё</button><button data-act="selectJunk">🧹 Выбрать хлам</button>'+
+        '<button data-act="clearSel">Снять</button></div>');
+      html.push('<div class="btnrow"><button data-act="salvageSelected">Разобрать ('+G.bagSel.size+')</button>'+
+        '<button data-act="sellSelected">Продать ('+G.bagSel.size+')</button>'+
+        '<button class="danger" data-act="dropSelected">🗑 Выбросить ('+G.bagSel.size+')</button></div>');
+      html.push('<div class="btnrow"><button data-act="purgeJunk">🧹 Очистить хлам одним тапом</button></div></div>');
+      // ---- сетка ----
       html.push('<div class="grid40">');
-      for(let i=0;i<40;i++) html.push(itemCard(ch.inventory[i],i,true));
+      view.forEach(o=>html.push(itemCard(o.it,o.idx,true)));
+      const empty=Math.max(0,40-view.length);
+      for(let i=0;i<Math.min(empty,40);i++) html.push('<div class="cell empty"></div>');
       html.push('</div>');
+      if(!view.length) html.push('<p class="empty">Под фильтр ничего не подходит. Сбросьте фильтр на «Всё».</p>');
       html.push('<div class="btnrow"><button data-act="goequip">⚔ Снаряжение</button><button data-act="equipBest">✦ Надеть лучшее</button>'+
         '<button data-act="pickAll">✦ Забрать лут рядом</button></div>');
-      html.push('<div class="btnrow"><button data-act="salvageCommon">Разобрать обычное</button><button data-act="sellCommon">Продать обычное</button>'+
-        '<button data-act="gomarket">Рынок</button><button data-act="filters">Фильтр лута</button></div>');
-      html.push('<p class="note">Тап по ячейке — карточка предмета: сравнение со слотом, надевание, разбор, продажа и выставление на рынок.</p>');
+      html.push('<div class="btnrow"><button data-act="gomarket">Рынок</button><button data-act="filters">Фильтр лута и магнит</button></div>');
+      html.push('<p class="note">Чекбокс — выбрать предмет для массовых действий. Тап по ячейке — карточка: надеть, разобрать, продать, выставить или <b>выбросить на землю</b>. Выброшенное не притягивается магнитом, пока вы сами его не заберёте.</p>');
     } else if(mode==='item'){
       const it=ch.inventory[typeof data==='number'?data:G.selectedItem];
       h('Предмет · '+A2.RARITY(it?it.rarity:'common').ru);
@@ -784,6 +851,9 @@
       html.push('<h4>Автоподбор предметов</h4>');
       [['all','Всё подряд (рекомендуется)'],['rare','Редкое и выше'],['epic','Эпическое и выше'],['legendary','Легендарное и выше'],['none','Только вручную']].forEach(f=>
         html.push('<button class="wide" data-act="setLoot" data-v="'+f[0]+'" '+(G.settings.lootFilter===f[0]?'style="border-color:#4fd6d0"':'')+'>'+(G.settings.lootFilter===f[0]?'✓ ':'')+f[1]+'</button>'));
+      html.push('<h4>Магнит лута</h4>');
+      html.push('<label class="check"><input type="checkbox" data-set="magnet" '+(G.settings.magnet?'checked':'')+'> Притягивать только то, что реально подберётся</label>');
+      html.push('<p class="note">Отфильтрованное редкостью, выброшенное вручную и «не влезающее» в полную сумку остаётся на месте и не едет за вами. Полностью выключите магнит, чтобы собирать лут только кнопкой «Забрать лут».</p>');
       html.push('<h4>Звук · '+A2.Audio.state().running+' / '+A2.Audio.state().ctx+'</h4>');
       html.push('<label class="check"><input type="checkbox" data-set="sound" '+(G.settings.sound?'checked':'')+'> Звук и музыка биома</label>');
       html.push('<label class="range">Общая громкость <input type="range" data-range="volume" min="0" max="100" value="'+Math.round(G.settings.volume*100)+'"></label>');
@@ -791,6 +861,7 @@
       html.push('<label class="range">Эффекты <input type="range" data-range="sfx" min="0" max="100" value="90"></label>');
       html.push('<label class="check"><input type="checkbox" data-set="autoSalvage" '+(G.settings.autoSalvage?'checked':'')+'> Авторазбор обычного при полной сумке</label>');
       html.push('<label class="check"><input type="checkbox" data-set="worldEvents" '+(G.settings.worldEvents?'checked':'')+'> Волны Разлома (агрессивные события)</label>');
+      html.push('<label class="check"><input type="checkbox" data-set="magnet" '+(G.settings.magnet?'checked':'')+'> Магнит лута (только подбираемое)</label>');
       html.push('<p class="note">Бой полностью ручной: тап по врагу, кнопка «Удар» или клавиша F. Мобы мирные и отвечают только на ваш удар; через 12 с успокаиваются.</p>');
       html.push('<div class="btnrow"><button data-act="testSound">Проверить звук</button><button data-act="backbag">← К сумке</button></div>');
     } else if(mode==='market'){
@@ -863,6 +934,7 @@
       html.push('<label class="check"><input type="checkbox" data-set="vibration" '+(G.settings.vibration?'checked':'')+'> Вибрация</label>');
       html.push('<label class="check"><input type="checkbox" data-set="autoSalvage" '+(G.settings.autoSalvage?'checked':'')+'> Авторазбор обычного при полной сумке</label>');
       html.push('<label class="check"><input type="checkbox" data-set="worldEvents" '+(G.settings.worldEvents?'checked':'')+'> Волны Разлома (агрессивные события)</label>');
+      html.push('<label class="check"><input type="checkbox" data-set="magnet" '+(G.settings.magnet?'checked':'')+'> Магнит лута (только подбираемое)</label>');
       html.push('<p class="note">Бой полностью ручной: тап по врагу, кнопка «Удар» или клавиша F. Мобы мирные и отвечают только на ваш удар; через 12 с успокаиваются.</p>');
       html.push('<h4>Графика · сейчас '+(G.perf==='low'?'экономный':'полный')+' режим · '+Math.round(G.fpsAvg)+' FPS</h4>');
       [['auto','Авто (по FPS)'],['high','Полная детализация'],['low','Экономная · без лагов']].forEach(q=>
@@ -906,8 +978,12 @@
   }
   function closeModal(){ const b=$('modal'); if(b) b.classList.add('hidden'); G.modalMode=null; }
   function modalChange(ev){
-    const el=ev.target; if(!el||!el.getAttribute) return;
-    const r=el.getAttribute('data-range'), v=el.getAttribute('data-set');
+    let el=ev.target; if(!el||!el.getAttribute) return;
+    if(!el.getAttribute('data-range') && !el.getAttribute('data-set') && !el.getAttribute('data-bag') && el.closest){
+      const owner=el.closest('[data-range],[data-set],[data-bag]'); if(owner) el=owner;
+    }
+    const r=el.getAttribute('data-range'), v=el.getAttribute('data-set'), bag=el.getAttribute('data-bag');
+    if(bag){ G.bagFilter[bag]=el.value||''; openModal('bag'); return; }
     if(r && A2.Audio){
       const n=Number(el.value)/100;
       if(r==='volume'){G.settings.volume=n;A2.Audio.setVolume(n);}
@@ -921,7 +997,12 @@
       A2.Audio.play('ui'); }
   }
   function modalClick(ev) {
-    const el=ev.target; if(!el||!el.getAttribute) return;
+    let el=ev.target; if(!el||!el.getAttribute) return;
+    // G2.5 · тап по вложенному <span> внутри ячейки раньше ничего не делал:
+    // обработчик читал data-act только с самого ev.target.
+    if(!el.getAttribute('data-act') && el.closest){
+      const owner=el.closest('[data-act]'); if(owner) el=owner;
+    }
     const act=el.getAttribute('data-act'); if(!act) return;
     const i=parseInt(el.getAttribute('data-i')||'0',10);
     const s=el.getAttribute('data-s'), b=el.getAttribute('data-b'), v=el.getAttribute('data-v');
@@ -930,6 +1011,41 @@
     const val=q=>{const e=$(q);return e?e.value:'';};
     switch(act){
       case 'item': G.selectedItem=i; openModal('item',i); break;
+      // ---- G2.5 · сумка: фильтр, массовое выделение, выброс ----
+      case 'sel': {
+        const u=el.getAttribute('data-uid');
+        if(G.bagSel.has(u)) G.bagSel.delete(u); else G.bagSel.add(u);
+        openModal('bag'); break;
+      }
+      case 'bagRarity': G.bagFilter.rarity=v; A2.Audio.play('ui'); openModal('bag'); break;
+      case 'selectAll': G.bagSel=new Set(bagView().map(o=>o.it.uid)); A2.Audio.play('ui'); openModal('bag'); break;
+      case 'selectJunk': G.bagSel=new Set(ch.inventory.filter(isJunk).map(it=>it.uid));
+        A2.Audio.play('ui'); openModal('bag'); break;
+      case 'clearSel': G.bagSel.clear(); openModal('bag'); break;
+      case 'salvageSelected': case 'sellSelected': case 'dropSelected': {
+        const list=ch.inventory.filter(it=>G.bagSel.has(it.uid));
+        let n=0;
+        list.forEach(it=>{
+          if(act==='salvageSelected'){ if(A2.RPG.salvage(G,it)) n++; }
+          else if(act==='sellSelected'){ if(A2.RPG.sell(G,it)) n++; }
+          else { if(A2.RPG.dropFromBag(G,it)) n++; }
+        });
+        G.bagSel.clear();
+        G.toast(n?(act==='dropSelected'?'Выброшено: ':'Обработано: ')+n:'Нечего обрабатывать',2);
+        A2.Audio.play(act==='dropSelected'?'ui':'coin'); openModal('bag'); break;
+      }
+      case 'purgeJunk': {
+        const junk=ch.inventory.filter(isJunk);
+        let n=0; junk.forEach(it=>{ if(A2.RPG.salvage(G,it)) n++; });
+        G.bagSel.clear();
+        G.toast(n?'🧹 Разобрано хлама: '+n+' предметов':'Хлама в сумке нет',2.4);
+        A2.Audio.play('break'); openModal('bag'); break;
+      }
+      case 'drop': {
+        const it=ch.inventory[i];
+        if(it && A2.RPG.dropFromBag(G,it)){ A2.Audio.play('ui'); G.toast('Выброшено: '+A2.RPG.itemName(it),2); }
+        openModal('bag'); break;
+      }
       case 'backbag': M.newItems=0; openModal('bag'); break;
       case 'goequip': openModal('equip'); break;
       case 'gostory': openModal('story'); break;
@@ -989,7 +1105,7 @@
       }
       case 'salvageCommon': case 'sellCommon': {
         let n=0;
-        for(let k=ch.inventory.length-1;k>=0;k--) if(ch.inventory[k].rarity==='common') {
+        for(let k=ch.inventory.length-1;k>=0;k--) if(isJunk(ch.inventory[k])) {
           if(act==='salvageCommon') A2.RPG.salvage(G,ch.inventory[k]); else A2.RPG.sell(G,ch.inventory[k]); n++;
         }
         G.toast(n?'Обработано предметов: '+n:'Обычных предметов нет',1.8); A2.Audio.play('coin'); openModal('bag'); break;
@@ -1195,6 +1311,10 @@
     G.numbers=G.numbers.filter(n=>n.life>0);
     for(const c of G.corpses) c.life-=dt;
     G.corpses=G.corpses.filter(c=>c.life>0);
+    // G2.5 · анимации ударов живут 0.3–0.9 с и Updated каждый тик
+    for(const a of G.attacks) a.t+=dt;
+    G.attacks=G.attacks.filter(a=>a.t<a.dur);
+    if(G.attacks.length>28) G.attacks.splice(0,G.attacks.length-28);
     // камера
     G.cam.shake*=Math.pow(0.06,dt);
     G.cam.shakeX=(Math.random()-0.5)*G.cam.shake*(G.settings.motion?1:0.2);
@@ -1231,8 +1351,16 @@
         if(G.perf!==want){ G.perf=want; A2.Render.setQuality(want); }
       }
     }
-    G.accum+=dt;
-    let n=0; while(G.accum>=C.TICK && n<4){ step(C.TICK); G.accum-=C.TICK; n++; }
+    // G2.5 · hit-stop: короткая остановка симуляции на крите/ультимейте
+    // делает удар «тяжёлым», но рендер и анимации продолжают идти.
+    G.hitStop=Math.max(0,(G.hitStop||0)-dt);
+    // FX обновляются в step() ровно с частотой симуляции — без двойного счёта.
+    if(G.hitStop<=0){
+      G.accum+=dt;
+      let n=0; while(G.accum>=C.TICK && n<4){ step(C.TICK); G.accum-=C.TICK; n++; }
+    } else {
+      G.accum=Math.min(G.accum,C.TICK);
+    }
     if(G.world && G.char) A2.Render.frame(G.world,G,dt);
     G.uiT+=dt; if(G.uiT>0.2){G.uiT=0;updateUI();}
     if(typeof requestAnimationFrame==='function') requestAnimationFrame(frame);
@@ -1316,7 +1444,7 @@
 
   /* ------------------------------ тестовый API ------------------------------ */
   window.ARKEON_G2 = {
-    version:'G2.4', state:G,
+    version:'G2.5', state:G,
     get source(){return CANON_SOURCE;},
     boot, startGame, step, cast, dodge, useUlt, setZone, interact, openModal, closeModal,
     target, meta, updateUI, render:(dt)=>A2.Render.frame(G.world,G,dt||1/60),
@@ -1325,6 +1453,7 @@
     giveXP:n=>A2.RPG.grantXP(G,n),
     story:n=>A2.RPG.storyEvent(G,n.type,n.target,n.amount||1),
     basicAttack, resetGame, travelTo, provoke:(m)=>A2.World.provoke(G.world,m),
+    bagView, dropFromBag:(it)=>A2.RPG.dropFromBag(G,it),
     skipStory:()=>A2.RPG.storySkip(G),
     storyState:()=>G.story,
     killNearest:()=>{ const t=target(); if(t){ while(t.alive) A2.RPG.hit(G,t,50,'Физический'); return t; } return null; },

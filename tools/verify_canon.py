@@ -245,7 +245,7 @@ for token in ("js/audio.js", "js/market.js", "btnMarket", "btnPlayers", "bagCoun
     check(token in html_g2, f"G2.1: mobile/index.html подключает {token}")
 for token in ("js/audio.js", "js/market.js"):
     check(token in sw_js, f"G2.1: service worker кэширует {token}")
-check("arkeon-g24-v1" in sw_js, "G2.4: версия офлайн-кэша обновлена")
+check("arkeon-g25-v1" in sw_js, "G2.5: версия офлайн-кэша обновлена")
 for token in ("market_list", "market_buy", "trade_invite", "trade_confirm", "whisper", "emote",
               "syncInitial", "broadcastRoster", "broadcastMarket", "idempotent"):
     check(token in sim_js, f"G2.1: авторитетный сервер поддерживает {token}")
@@ -297,7 +297,7 @@ check("bottom:calc(var(--safe-b) + 172px)" in css_g2,
       "G2.2: тулбар поднят над блоком управления — кнопки не перекрыты джойстиком")
 check("A2.Render.minimap" in main_js2 and "G.uiT>0.2" in main_js2,
       "G2.2: обновление HUD и мини-карты реже для плавности")
-check(("G2.2" in html2 or "G2.3" in html2 or "G2.4" in html2) and "G2.2" in (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8"),
+check(("G2.2" in html2 or "G2.3" in html2 or "G2.4" in html2 or "G2.5" in html2) and "G2.2" in (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8"),
       "G2.2: версия зафиксирована в клиенте и спецификации студии")
 
 # --- 8e. G2.3 «Пристань Завета»: город, пролог, постепенная экипировка ---
@@ -359,7 +359,7 @@ check("G.storyTarget" in render_js3 and "✦ СЮЖЕТ" in render_js3,
       "G2.3: НПС текущей главы и путевая точка помечены в мире")
 check("btnStory" in html3 and "storyBar" in html3 and ".story-bar" in css3 and ".prologue" in css3,
       "G2.3: кнопка сюжета, баннер главы и оформление книги")
-check(("G2.3" in html3 or "G2.4" in html3) and "G2.3" in doc3 and "16.24" in doc3,
+check(("G2.3" in html3 or "G2.4" in html3 or "G2.5" in html3) and "G2.3" in doc3 and "16.24" in doc3,
       "G2.3: версия зафиксирована в клиенте и спецификации студии")
 check("'haven'" in (ROOT / "server/sim.js").read_text(encoding="utf-8"),
       "G2.3: авторитетный сервер знает безопасный город")
@@ -421,8 +421,53 @@ check("class=\"tool interact\"" in html4 and ".sheet .primary{width:100%" in css
       "G2.4: «Взаим.» больше не растягивается на весь экран")
 check("safeBadge" in html4 and ".safe-badge.show" in css4,
       "G2.4: индикатор безопасной зоны виден в HUD")
-check("G2.4" in html4 and "16.25" in doc4,
+check(("G2.4" in html4 or "G2.5" in html4) and "16.25" in doc4,
       "G2.4: версия зафиксирована в клиенте и спецификации студии")
+
+# --- 8g. G2.5 «Удар и добыча»: сумка, умный магнит, анимация атаки ---
+rpg_js5 = (MOB / "js/rpg.js").read_text(encoding="utf-8")
+main_js5 = (MOB / "js/main.js").read_text(encoding="utf-8")
+render_js5 = (MOB / "js/render.js").read_text(encoding="utf-8")
+html5 = (MOB / "index.html").read_text(encoding="utf-8")
+css5 = (MOB / "css/g2.css").read_text(encoding="utf-8")
+doc5 = (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8")
+check("function dropFromBag(G, it)" in rpg_js5 and "noMagnet:true" in rpg_js5,
+      "G2.5: предмет можно выбросить на землю, и он не прилипнет обратно")
+check("function haveRoom(G)" in rpg_js5,
+      "G2.5: проверка места в сумке без побочных эффектов")
+check("!autoPickupAllowed(G,d.item) || !haveRoom(G)" in rpg_js5 and
+      "if(d.noMagnet)" in rpg_js5,
+      "G2.5: магнит НЕ тащит отфильтрованное, выброшенное и невлезающее")
+check("G.settings.magnet===false" in rpg_js5 and 'data-set="magnet"' in main_js5,
+      "G2.5: магнит можно полностью выключить в настройках")
+check("function bagView()" in main_js5 and 'data-act="bagRarity"' in main_js5 and
+      'data-bag="slot"' in main_js5 and 'data-bag="q"' in main_js5,
+      "G2.5: фильтр сумки по редкости, слоту и названию")
+check('data-act="sel"' in main_js5 and 'class="selbox"' in main_js5,
+      "G2.5: чекбоксы массового выделения предметов")
+for act in ("selectAll", "selectJunk", "clearSel", "salvageSelected",
+            "sellSelected", "dropSelected", "purgeJunk"):
+    check(('case \''+act+'\'') in main_js5, f"G2.5: массовое действие {act}")
+check('data-act="drop" data-i=' in main_js5,
+      "G2.5: кнопка «Выбросить» в карточке предмета")
+check("el.closest('[data-act]')" in main_js5,
+      "G2.5: исправлен тап по вложенным элементам ячейки (раньше не срабатывал)")
+check(".cell .selbox" in css5 and ".chip.on" in css5 and "button.danger" in css5,
+      "G2.5: оформление фильтра, выделения и опасных действий")
+check("G.attacks.push({ kind:'slash'" in main_js5 and
+      "G.attacks.push({ kind:'impact'" in rpg_js5,
+      "G2.5: взмах и попадание порождают эффекты")
+check("function drawAttackFX(g, G, o, zoom)" in render_js5 and
+      "g.globalCompositeOperation='lighter'" in render_js5,
+      "G2.5: аддитивная анимация взмаха, искр, ударного кольца и новы")
+check("drawAttackFX(ctx,G,o,zoom);" in render_js5 and "n.crit?20:13" in render_js5,
+      "G2.5: крупные цифры крита и слой FX в кадре")
+check("G.hitStop=0.055" in rpg_js5 and "G.hitStop" in main_js5,
+      "G2.5: hit-stop для веса удара")
+check("const anim=e.attackAnim||0" in render_js5,
+      "G2.5: шлейф оружия на спрайте героя")
+check("G2.5" in html5 and "16.26" in doc5,
+      "G2.5: версия зафиксирована в клиенте и спецификации студии")
 
 # --- 9. Отчёт ---
 passed = sum(1 for ok, _ in results if ok)
