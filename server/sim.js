@@ -222,13 +222,14 @@ function handle(p, msg) {
       const o=msg.order;
       if(!o || !o.item || !o.item.uid || !Number.isFinite(o.price)) return;
       if(!idempotent(msg.key)) return;
-      const uid=String(o.item.uid);
+      const uid=String(o.item.uid).slice(0,48);
+      if(orders.size>=200) { send(p.ws,{t:'event',text:'Рынок заполнен (200 лотов)'}); return; }
       if(!p.items.has(uid) || issued.has(uid)) { send(p.ws,{t:'event',text:'Предмет уже выставлен или не ваш'}); return; }
       const price=A2.clamp(Math.round(o.price),1,1e9);
       const fee=marketFee(price);
       if(p.gold<fee) { send(p.ws,{t:'event',text:'Не хватает Серебра на комиссию 5%'}); return; }
       p.gold-=fee; p.items.delete(uid); issued.add(uid);
-      const order={ id:o.id||('srv_'+Math.random().toString(36).slice(2,10)), sellerUid:p.uid,
+      const order={ id:String(o.id||('srv_'+Math.random().toString(36).slice(2,10))).slice(0,48), sellerUid:p.uid,
         sellerName:p.name, item:o.item, price, ts:Date.now(), ghost:false };
       orders.set(order.id,order);
       record('fee',-fee,'Комиссия рынка от '+p.name);
@@ -347,7 +348,7 @@ function handle(p, msg) {
       // по владению и Серебру, поэтому дубликат не проходит в рынок/торговлю.
       if(Array.isArray(msg.uids)) msg.uids.slice(0,120).forEach(raw=>{
         const u=String(raw||'').slice(0,48);
-        if(!u || issued.has(u)) return;
+        if(!u || issued.has(u) || p.items.size>=240) return;
         for(const q of players.values()) if(q.uid!==p.uid && q.items.has(u)) return;
         p.items.add(u);
       });
