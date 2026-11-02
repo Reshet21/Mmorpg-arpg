@@ -114,6 +114,10 @@ async function run(useCanon) {
   API.startGame();
   ok(G.mode==='playing','старт: режим playing');
   ok(G.char.classId==='warrior','класс по умолчанию: Воин');
+  const intro=env.document.getElementById('modalBody').innerHTML;
+  ok(G.modalMode==='prologue','после старта открывается кинематографичный пролог');
+  ok(intro.indexOf('НАЧАТЬ ПРОЛОГ')>=0 && intro.indexOf('Пристань Завета')>=0,
+     'пролог содержит лор города и кнопку начала');
 
   // ---- G2.3 · ГОРОД, ПРОЛОГ И ПОСТЕПЕННАЯ ЭКИПИРОВКА ----
   const HW=G.world;

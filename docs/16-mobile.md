@@ -277,7 +277,7 @@ Lead Game Designer и Economy Designer зафиксировали честный
 |---|---|
 | `node --check` для 6 клиентских модулей + 2 серверных + хаба | PASS |
 | `node tools/smoke_mobile.js` (G1) | 43/43 PASS |
-| `node tools/smoke_g2.js` (G2.3, два контекста: fallback и канон) | 355/355 PASS |
+| `node tools/smoke_g2.js` (G2.3, два контекста: fallback и канон) | 359/359 PASS |
 | `node tools/smoke_net.js` (3 реальных WS-клиента: ростер, рынок, торговля, шёпот, эмоции, античит, health) | 32/32 PASS |
 | `python3 tools/verify_canon.py --strict` | 253/253 PASS |
 | HTTP-проверка всех ассетов `/mobile/` и `/data/` | 200, корректные MIME |
@@ -394,7 +394,7 @@ GitHub Pages остаётся статическим хостом: он отда
 |---|---|
 | `node --check` для 8 клиентских модулей, `sw.js`, 2 серверных и хаба | PASS |
 | `node tools/smoke_mobile.js` (арена G1 не сломана) | 43/43 PASS |
-| `node tools/smoke_g2.js` (включая 86 новых проверок G2.3) | 355/355 PASS |
+| `node tools/smoke_g2.js` (включая 90 новых проверок G2.3) | 359/359 PASS |
 | `node tools/smoke_net.js` (реальный WS-сервер) | 32/32 PASS |
 | `python3 tools/verify_canon.py --strict` | 253/253 PASS |
 | HTTP-проверка `/mobile/*`, `/data/*`, MIME, `/health` | 200 / PASS |
@@ -450,7 +450,7 @@ GitHub Pages остаётся статическим хостом: он отда
 |---|---|
 | `node --check` для 8 клиентских модулей, `sw.js`, 2 серверных и хаба | PASS |
 | `node tools/smoke_mobile.js` (арена G1) | 43/43 PASS |
-| `node tools/smoke_g2.js` (включая 86 новых проверок: город, 9 глав, награды, манекены, путевые точки, запрет квестов, гейт событий) | 355/355 PASS |
+| `node tools/smoke_g2.js` (включая 90 новых проверок: город, 9 глав, награды, манекены, путевые точки, запрет квестов, гейт событий) | 359/359 PASS |
 | `node tools/smoke_net.js` (реальный WS-сервер, 5 зон) | 32/32 PASS |
 | `python3 tools/verify_canon.py --strict` | 253/253 PASS |
 | HTTP-проверка `/mobile/*`, `/data/*`, MIME, `/health` | 200 / PASS |
