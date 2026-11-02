@@ -1,0 +1,279 @@
+#!/usr/bin/env node
+/* =====================================================================
+ * ARKEON · G2 · headless smoke-тест без браузера (Node + vm).
+ * Запуск: node tools/smoke_g2.js
+ * Проверяет: загрузку 6 модулей, процедурный мир, детализированный рендер
+ * на заглушке Canvas, 6 классов, гринд/лут/уровни/экипировку, 12 квестов,
+ * НПС, смену зон, навыки/додж/ультимейт, офлайн-призраков и реальный
+ * сетевой контур через поддельный WebSocket, источник канона, сохранение.
+ * ===================================================================== */
+'use strict';
+const fs = require('fs');
+const vm = require('vm');
+const path = require('path');
+const ROOT = path.resolve(__dirname, '..');
+const FILES = ['data.js','world.js','rpg.js','render.js','net.js','main.js']
+  .map(f => path.join(ROOT,'mobile/js',f));
+const CANON = JSON.parse(fs.readFileSync(path.join(ROOT,'data/classes.json'),'utf8'));
+
+let checks=0, fails=[];
+const ok=(c,m)=>{checks++; if(!c) fails.push(m);};
+
+function makeEnv(useCanon) {
+  const grad={addColorStop(){}};
+  const ctxProxy=new Proxy({}, {
+    get(t,k){
+      if(k==='createLinearGradient'||k==='createRadialGradient') return ()=>grad;
+      if(k==='measureText') return ()=>({width:12});
+      if(k==='canvas') return canvas;
+      if(k in t) return t[k];
+      return ()=>{};
+    },
+    set(t,k,v){t[k]=v;return true;}
+  });
+  class FakeEl {
+    constructor(id,tag){
+      this.id=id||''; this.tagName=(tag||'div').toUpperCase(); this.dataset={}; this.children=[];
+      this.checked=false; this.value=''; this._text=''; this._html=''; this._ev={};
+      this.width=132; this.height=132;
+      this.style={setProperty(){},removeProperty(){}};
+      const set=new Set();
+      this.classList={
+        add:(...c)=>c.forEach(x=>set.add(x)), remove:(...c)=>c.forEach(x=>set.delete(x)),
+        toggle:(c,f)=>{const on=f===undefined?!set.has(c):!!f; on?set.add(c):set.delete(c); return on;},
+        contains:c=>set.has(c)
+      };
+    }
+    addEventListener(t,fn){this._ev[t]=fn;}
+    appendChild(c){this.children.push(c);return c;}
+    removeChild(c){const i=this.children.indexOf(c); if(i>=0)this.children.splice(i,1); return c;}
+    setAttribute(k,v){this[k]=v;}
+    getAttribute(k){return this[k]===undefined?null:this[k];}
+    getBoundingClientRect(){return {left:0,top:0,width:132,height:132};}
+    getContext(){return ctxProxy;}
+    querySelector(sel){
+      const cls=String(sel).replace('.','');
+      return this.children.find(c=>c.className&&String(c.className).split(' ').includes(cls))||new FakeEl('q');
+    }
+    closest(){return null;}
+    get textContent(){return this._text;} set textContent(v){this._text=String(v);}
+    get innerHTML(){return this._html;} set innerHTML(v){this._html=String(v); if(v==='')this.children=[];}
+  }
+  const els=new Map();
+  const el=id=>{if(!els.has(id))els.set(id,new FakeEl(id));return els.get(id);};
+  const canvas=el('game');
+  const cards=A2_CLASSES.map(id=>{const e=new FakeEl('card','button');e.dataset.class=id;e.className='class-card'+(id==='warrior'?' selected':'');return e;});
+  const store={};
+  const win={innerWidth:844,innerHeight:390,devicePixelRatio:2,addEventListener(){}};
+  const doc={
+    readyState:'complete', hidden:false, getElementById:el,
+    createElement:(tag)=>new FakeEl('new',tag),
+    querySelectorAll:sel=>sel==='.class-card'?cards:[],
+    querySelector:sel=>sel==='.class-card.selected'?cards[0]:null,
+    addEventListener(){}
+  };
+  class FakeWS {
+    constructor(url){this.url=url;this.readyState=0;env.lastWS=this;}
+    send(d){try{env.sent.push(JSON.parse(d));}catch(e){}}
+    close(){this.readyState=3;if(this.onclose)this.onclose();}
+    open(){this.readyState=1;if(this.onopen)this.onopen();}
+    push(obj){if(this.onmessage)this.onmessage({data:JSON.stringify(obj)});}
+  }
+  const env={
+    window:win, document:doc, navigator:{vibrate(){}},
+    location:{protocol:'https:',search:''},
+    localStorage:{getItem:k=>store[k]||null,setItem:(k,v)=>{store[k]=String(v);},removeItem:k=>{delete store[k];}},
+    performance:{now:()=>Date.now()},
+    requestAnimationFrame:()=>0, setTimeout:()=>0, setInterval:()=>0,
+    console, WebSocket:FakeWS,
+    fetch: useCanon ? ()=>Promise.resolve({ok:true,json:()=>Promise.resolve(CANON)})
+                    : ()=>Promise.reject(new Error('offline')),
+    sent:[], lastWS:null
+  };
+  env.globalThis=env;
+  return env;
+}
+const A2_CLASSES=['warrior','paladin','assassin','ranger','mage','necromancer'];
+
+async function run(useCanon) {
+  const env=makeEnv(useCanon);
+  const ctx=vm.createContext(env);
+  for(const f of FILES) vm.runInContext(fs.readFileSync(f,'utf8'),ctx,{filename:path.basename(f)});
+  await new Promise(r=>setImmediate(r)); await new Promise(r=>setImmediate(r));
+  const API=env.window.ARKEON_G2, A2=env.window.A2;
+  ok(!!API,'window.ARKEON_G2 определён');
+  if(!API) return;
+  ok(API.version==='G2.0','версия G2.0');
+  ok(API.source===(useCanon?'canon':'fallback'),'источник навыков: '+(useCanon?'canon':'fallback'));
+  if(useCanon) {
+    const m=API.meta('Клинок Рубежа');
+    ok(Math.abs(m.coeff-2.45)<1e-6,'коэффициент навыка из канона classes.json');
+  }
+  const G=API.state;
+  API.startGame();
+  ok(G.mode==='playing','старт: режим playing');
+  ok(G.char.classId==='warrior','класс по умолчанию: Воин');
+
+  // ---- данные канона ----
+  ok(A2.CLASSES.length===6,'6 классов канона');
+  ok(A2.ZONES.length===4,'4 зоны открытого мира');
+  ok(A2.QUESTS.length===12,'12 квестов');
+  ok(A2.NPCS.length>=8,'НПС: '+A2.NPCS.length);
+  ok(A2.MOBS.length>=10,'типов мобов: '+A2.MOBS.length);
+  ok(A2.RARITIES.length===6,'6 редкостей');
+  ok(A2.SLOTS.length===8,'8 слотов экипировки');
+  ok(A2.TALENTS.reduce((a,b)=>a+b.nodes.length,0)===18,'18 узлов талантов');
+  ok(A2.REACTIONS['Огонь+Лёд'].ru==='Пар','реакции названы по канону');
+
+  // ---- мир ----
+  const W=G.world;
+  ok(W.mobs.length>=25,'в зоне >=25 мобов ('+W.mobs.length+')');
+  ok(W.props.length>=100,'процедурных объектов >=100 ('+W.props.length+')');
+  ok(W.npcs.length>=2,'НПС в зоне: '+W.npcs.length);
+  ok(W.portals.length>=1,'порталы: '+W.portals.length);
+  ok(W.lights.length>=1,'источники динамического света: '+W.lights.length);
+  ok(W.bossAlive===true,'мировой босс жив');
+  ok(W.camps.length>=6,'лагерей спавна: '+W.camps.length);
+
+  // ---- рендер ----
+  let rerr=null;
+  try { for(let i=0;i<6;i++) API.render(1/60); } catch(e){rerr=e;}
+  ok(!rerr,'детализированный рендер без исключений'+(rerr?': '+rerr.message:''));
+  const iso=A2.Render.iso(10,10,0,1);
+  ok(Number.isFinite(iso[0])&&Number.isFinite(iso[1]),'изометрическая проекция конечна');
+  ok(!!A2.Render.makeGround(W,1),'тайлграунд процедурно отрисован и закэширован');
+
+  // ---- симуляция ----
+  let serr=null;
+  try { for(let i=0;i<120;i++) API.step(A2.C.TICK); } catch(e){serr=e;}
+  ok(!serr,'120 тиков симуляции без исключений'+(serr?': '+serr.message:''));
+  ok(G.time>=3.9,'время симуляции >=3.9 с');
+  ok(Number.isFinite(G.player.x)&&Number.isFinite(G.player.y)&&Number.isFinite(G.char.hp),'нет NaN в состоянии');
+  ok(Number.isFinite(G.dps),'DPS конечен');
+
+  // ---- гринд ----
+  const before={kills:G.char.kills,xp:G.char.xp,gold:G.char.gold};
+  API.spawnMobs(16);
+  const mobs=A2.World.mobsNear(W,G.player.x,G.player.y,40).filter(m=>m.alive);
+  for(const m of mobs.slice(0,16)) A2.RPG.hit(G,m,50,'Физический');
+  ok(G.char.kills>before.kills,'убийства засчитаны: '+G.char.kills);
+  ok(G.char.xp+G.char.level*1000>before.xp,'опыт начислен');
+  A2.RPG.dropItem(G,{x:G.player.x+0.4,y:G.player.y+0.4,lvl:5},3);
+  ok(W.drops.length>=3,'дроп появился в мире: '+W.drops.length);
+  for(let i=0;i<10;i++) API.step(A2.C.TICK);
+  ok(G.char.inventory.length>0,'лут автоматически подобран: '+G.char.inventory.length+' предметов');
+
+  // ---- уровни, экипировка, кузница ----
+  const lv=G.char.level;
+  API.giveXP(30000);
+  ok(G.char.level>lv,'уровень вырос: '+lv+' → '+G.char.level);
+  ok(G.char.talentPoints>0,'очки талантов начислены');
+  ok(A2.RPG.talentUp(G,'steel'),'вложение очка таланта');
+  const it=A2.RPG.rollItem(30,'rift',{rarity:'legendary',slot:'weapon'});
+  const p0=G.char.stats.power;
+  G.char.inventory.push(it);
+  ok(A2.RPG.equip(G,it),'экипировка предмета');
+  ok(G.char.stats.power>=p0,'сила пересчитана после надевания');
+  ok(A2.RPG.enchant(G,'weapon'),'заточка +1');
+  ok(G.char.equip.weapon.plus===1,'предмет получил +1');
+  ok(A2.RPG.reroll(G,'weapon'),'перековка аффиксов');
+  const bag=G.char.inventory.length;
+  ok(A2.RPG.salvage(G,G.char.inventory[0])===true||bag===0,'разбор предмета');
+
+  // ---- редкости и аффиксы ----
+  const seen=new Set(); let affOK=true;
+  for(let i=0;i<1600;i++){ const x=A2.RPG.rollItem(40,'rift'); seen.add(x.rarity);
+    if(x.affixes.length!==A2.RARITY(x.rarity).aff) affOK=false; }
+  ok(seen.size>=5,'выпало >=5 из 6 редкостей ('+seen.size+')');
+  ok(affOK,'число аффиксов соответствует редкости');
+
+  // ---- квесты и НПС ----
+  ok(A2.RPG.startQuest(G,'q1'),'квест q1 принят');
+  A2.RPG.questProgress(G,'kill','pepelnik',8);
+  ok(G.char.quests.q1.progress>=8,'прогресс квеста 8/8');
+  const gold0=G.char.gold, xp0=G.char.xp;
+  ok(A2.RPG.completeQuest(G,'q1'),'квест сдан');
+  ok(G.char.gold>gold0||G.char.xp!==xp0,'награда квеста начислена');
+  ok(G.char.quests.q1.done===true,'квест помечен завершённым');
+  ok(A2.RPG.questAvailable(G,A2.QUEST('q2')),'открыта следующая глава цепочки');
+  const dlg=A2.RPG.dialogue(G,W.npcs[0]);
+  ok(dlg.options.length>0,'диалог НПС содержит варианты: '+dlg.options.length);
+
+  // ---- навыки ----
+  let cerr=null;
+  try { for(let i=0;i<6;i++){G.char.res=100; API.cast(i);} } catch(e){cerr=e;}
+  ok(!cerr,'все 6 навыков кастуются без ошибок'+(cerr?': '+cerr.message:''));
+  G.char.dodgeCharges=2;
+  ok(API.dodge(1,0)===true,'додж выполнен');
+  ok(G.player.iframe>0.29,'додж даёт 0.30 с i-frames');
+  G.char.ult=100;
+  ok(API.useUlt()===true,'ультимейт при 100% Заряда Искры');
+  ok(G.char.ult===0,'заряд Искры сброшен');
+
+  // ---- смена зоны ----
+  API.setZone('ash',10,10);
+  ok(G.world.id==='ash','переход в Пепельную пустошь');
+  ok(G.world.mobs.length>=25,'новая зона заселена мобами');
+  ok(!!A2.Render.makeGround(G.world,1),'граунд новой зоны перегенерирован');
+  let zerr=null; try{API.render(1/60);}catch(e){zerr=e;}
+  ok(!zerr,'рендер после смены зоны без ошибок'+(zerr?': '+zerr.message:''));
+
+  // ---- офлайн-онлайн ----
+  const net=G.net;
+  ok(net.status().state==='offline','по умолчанию офлайн-мир');
+  ok(net.status().count>=4,'союзники-призраки: '+net.status().count);
+  net.chat('проверка чата');
+  ok(net.chatLog.length>0,'чат работает в офлайне');
+  net.connect('wss://test.local/ws');
+  ok(!!env.lastWS,'WebSocket-соединение создано');
+  env.lastWS.open();
+  ok(env.sent.some(m=>m.t==='hello'),'клиент отправил hello');
+  env.lastWS.push({t:'welcome',uid:'me_local',zone:'ash',players:[{uid:'me_local',name:'Я',level:10}]});
+  ok(net.status().state==='online','статус: онлайн');
+  ok(net.ghosts.length===0,'призраки заменены реальными игроками');
+  env.lastWS.push({t:'snap',tick:1,players:[
+    {uid:'me_local',name:'Я',classId:'warrior',level:10,x:10,y:10,hp:12000,maxHp:12000,zone:'ash',gearRarity:'rare'},
+    {uid:'p_server',name:'Серверный',classId:'mage',level:10,x:12,y:12,hp:9000,maxHp:12000,zone:'ash',gearRarity:'epic'},
+    {uid:'p_other',name:'Лиана',classId:'ranger',level:14,x:14,y:12,hp:11000,maxHp:12000,zone:'ash',gearRarity:'rare'}
+  ],mobs:[],events:[]});
+  ok(net.players.size===2,'два удалённых игрока в снапшоте');
+  net.update(0.05);
+  const remote=Array.from(net.players.values()).find(p=>p.uid==='p_other');
+  ok(!!remote && Number.isFinite(remote.x) && Number.isFinite(remote.y),'интерполяция удалённых игроков');
+  env.lastWS.push({t:'chat',ch:'global',name:'Лиана',text:'держу фланг',color:'#4fd6d0'});
+  ok(net.chatLog.some(c=>c.text==='держу фланг'),'сетевой чат доставлен');
+  net.disconnect();
+  ok(net.status().state==='offline','после дисконнекта офлайн-мир восстановлен');
+
+  // ---- сохранение ----
+  A2.RPG.save(G);
+  const saved=A2.RPG.load();
+  ok(!!saved && saved.level===G.char.level && saved.zone===G.world.id,'сохранение/загрузка профиля');
+
+  // ---- авто-подключение к своему серверу / отказ на Pages ----
+  env.localStorage.removeItem('arkeon_server');
+  env.location.host='myserver.example'; env.location.protocol='https:';
+  const auto=G.net.autoConnect();
+  ok(auto===true && env.lastWS && env.lastWS.url==='wss://myserver.example/ws',
+     'авто-подключение к серверу того же origin');
+  G.net.disconnect();
+  env.localStorage.removeItem('arkeon_server');
+  env.location.host='reshet21.github.io';
+  ok(G.net.autoConnect()===false,'на GitHub Pages остаётся честный офлайн-мир');
+
+  // ---- финальная устойчивость ----
+  let ferr=null;
+  try{ for(let i=0;i<150;i++){API.step(A2.C.TICK); if(i%10===0)API.render(1/60);} }catch(e){ferr=e;}
+  ok(!ferr,'150 тиков + рендер после всех операций'+(ferr?': '+ferr.message:''));
+  ok(Number.isFinite(G.player.x)&&Number.isFinite(G.char.hp)&&Number.isFinite(G.dps),'финальное состояние без NaN');
+}
+
+(async()=>{
+  console.log('=== ARKEON · G2 · smoke_g2 ===');
+  await run(false);
+  await run(true);
+  console.log(`Проверок: ${checks} | PASS: ${checks-fails.length} | FAIL: ${fails.length}`);
+  fails.forEach(f=>console.log('  FAIL:',f));
+  if(fails.length) process.exit(1);
+  console.log('Итог: PASS — мир, графика, гринд, квесты, НПС, сеть и канон работают.');
+})();

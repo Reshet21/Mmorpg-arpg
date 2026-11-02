@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "АРКЕОН: Пепел Завета — Рубеж (G1)",
-  "short_name": "АРКЕОН G1",
-  "description": "Телефонный вертикальный срез боя АРКЕОН: изометрическая арена, сенсорное управление и Страж Рубежа.",
+  "name": "АРКЕОН: Пепел Завета — Мир Завета (G2)",
+  "short_name": "АРКЕОН G2",
+  "description": "Открытый мир АРКЕОН: 6 классов, гринд мобов, 12 квестов, НПС, 4 зоны и онлайн. Телефонный PWA.",
   "lang": "ru-RU",
   "dir": "ltr",
   "start_url": "./index.html",
@@ -49,10 +49,10 @@
   ],
   "shortcuts": [
     {
-      "name": "Бой: Воин",
+      "name": "Воин",
       "short_name": "Воин",
-      "description": "Начать арену за Воина",
-      "url": "./index.html?class=warrior&autostart=1",
+      "description": "Войти в мир Воином",
+      "url": "./index.html?class=warrior",
       "icons": [
         {
           "src": "icon-192.png",
@@ -61,10 +61,10 @@
       ]
     },
     {
-      "name": "Бой: Маг",
+      "name": "Маг",
       "short_name": "Маг",
-      "description": "Начать арену за Мага",
-      "url": "./index.html?class=mage&autostart=1",
+      "description": "Войти в мир Магом",
+      "url": "./index.html?class=mage",
       "icons": [
         {
           "src": "icon-192.png",

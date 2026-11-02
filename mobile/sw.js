@@ -4,8 +4,8 @@
  * только GET, без аналитики и без сетевых зависимостей извне.
  * ===================================================================== */
 'use strict';
-const VERSION = 'arkeon-g1-v1';
-const CACHE = 'arkeon-g1-' + VERSION;
+const VERSION = 'arkeon-g2-v1';
+const CACHE = 'arkeon-g2-' + VERSION;
 const SHELL = [
   './',
   './index.html',
@@ -16,6 +16,16 @@ const SHELL = [
   './icon-192.png',
   './icon-512.png',
   './README.md',
+  './css/g2.css',
+  './css/g1-link.css',
+  './g1.html',
+  './js/data.js',
+  './js/world.js',
+  './js/rpg.js',
+  './js/render.js',
+  './js/net.js',
+  './js/main.js',
+  './js/game.js',
   '../data/classes.json'
 ];
 
@@ -30,7 +40,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('arkeon-g1-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('arkeon-g') && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

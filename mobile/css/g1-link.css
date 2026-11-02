@@ -1,0 +1,2 @@
+/* G1 → G2: ничего не ломаем в классическом срезе, только добавляем заметную ссылку */
+.foot-links .link[href="index.html"]{color:#4fd6d0;border:1px solid rgba(79,214,208,.45);border-radius:8px;padding:5px 9px}

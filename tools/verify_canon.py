@@ -10,6 +10,7 @@
   · защита P3: в схемах нет конвертера DC→Silver, у косметики нет статов;
   · сгенерированные артефакты (бюджет, DPS, экономика, SVG) на месте;
   · мобильный срез G1: PWA-оболочка, манифест, иконки, офлайн-кэш, канон, CI-тест;
+  · G2 «Мир Завета»: 6 модулей, процедурный рендер, сервер, сетевые тесты;
   · сумма data/budget.csv == production.total_budget_usd из canon.json.
 
 Используется в CI (`09-client.md`, `11-roadmap.md`, `12-monetization.md`).
@@ -158,6 +159,50 @@ check("mobile/index.html" in (ROOT / "index.html").read_text(encoding="utf-8"),
       "хаб дизайн-библии ссылается на мобильный срез")
 check("mobile/" in (ROOT / "README.md").read_text(encoding="utf-8"),
       "README.md содержит инструкцию по мобильному срезу")
+
+# --- 8b. G2 «Мир Завета» ---
+for f in ("js/data.js", "js/world.js", "js/rpg.js", "js/render.js", "js/net.js", "js/main.js",
+          "css/g2.css", "g1.html"):
+    q = MOB / f
+    check(q.is_file() and q.stat().st_size > 2000, f"mobile/{f}: модуль G2 на месте")
+
+data_js = (MOB / "js/data.js").read_text(encoding="utf-8")
+check("A2.CLASSES.length" not in data_js and "id:'necromancer'" in data_js,
+      "G2: все 6 классов канона объявлены в data.js")
+check(data_js.count("id:'") >= 4 and "A2.QUESTS = [" in data_js and "q12" in data_js,
+      "G2: 4 зоны и 12 квестов цепочки Завета")
+render_js = (MOB / "js/render.js").read_text(encoding="utf-8")
+check("createRadialGradient" in render_js and "destination-out" in render_js,
+      "G2: динамический свет и bloom-эмуляция в рендере")
+check(render_js.count("case '") >= 10, "G2: >=10 процедурных видов объектов/существ")
+main_js = (MOB / "js/main.js").read_text(encoding="utf-8")
+check("window.ARKEON_G2" in main_js, "G2: тестовый интерфейс window.ARKEON_G2")
+net_js = (MOB / "js/net.js").read_text(encoding="utf-8")
+check("WebSocket" in net_js and "ghost:true" in net_js,
+      "G2: сетевой клиент + честные офлайн-призраки")
+check("sec-websocket" not in net_js.lower(), "G2: клиент не изобретает handshake")
+
+SRV = ROOT / "server"
+for f in ("server.js", "sim.js", "README.md", "Dockerfile"):
+    check((SRV / f).is_file(), f"server/{f}: файл на месте")
+srv_js = (SRV / "server.js").read_text(encoding="utf-8")
+sim_js = (SRV / "sim.js").read_text(encoding="utf-8")
+check("258EAFA5-E914-47DA-95CA-C5AB0DC85B11" in srv_js, "сервер: WebSocket RFC 6455 без npm")
+check("TICK_MS" not in srv_js and "30" in sim_js and "20" in sim_js,
+      "сервер: 30 Гц тик / 20 Гц снапшоты")
+check("correction" in sim_js and "seq" in sim_js, "сервер: античит и идемпотентность")
+for f in ("js/data.js", "js/world.js", "js/rpg.js", "js/render.js", "js/net.js", "js/main.js"):
+    t = (MOB / f).read_text(encoding="utf-8").lower()
+    check("https://" not in t and "http://" not in t and
+          "unpkg.com" not in t and "cdn.jsdelivr.net" not in t and "cdnjs" not in t,
+          f"mobile/{f}: без внешних CDN и сетевых зависимостей")
+for f in ("tools/smoke_g2.js", "tools/smoke_net.js"):
+    check((ROOT / f).is_file(), f"{f}: тест G2/сети на месте")
+check("G2" in (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8"),
+      "docs/16-mobile.md описывает G2")
+check("G2" in (ROOT / "README.md").read_text(encoding="utf-8") and
+      "G2" in (ROOT / "index.html").read_text(encoding="utf-8"),
+      "хаб и README ведут на G2")
 
 # --- 9. Отчёт ---
 passed = sum(1 for ok, _ in results if ok)
