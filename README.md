@@ -131,7 +131,7 @@ GitHub Pages статичен, поэтому при отсутствии `wss:/
 |---|---|
 | **Игра G2.6** | https://reshet21.github.io/Mmorpg-arpg/mobile/ |
 | Арена G1 | https://reshet21.github.io/Mmorpg-arpg/mobile/g1.html |
-| Зеркало G2.5 (jsDelivr, закреплённый коммит) | https://cdn.jsdelivr.net/gh/Reshet21/Mmorpg-arpg@46dac46d46ea0077c49940c7f67b3092af9989a3/mobile/index.html |
+| Зеркало G2.6 (jsDelivr, закреплённый коммит) | https://cdn.jsdelivr.net/gh/Reshet21/Mmorpg-arpg@2063dc72726abe8175ac31afe4ae52d9b2540988/mobile/index.html |
 
 ---
 
