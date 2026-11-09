@@ -165,7 +165,7 @@
     else if(G.net.autoConnect()) G.log('Обнаружен сервер того же origin: подключаюсь к онлайну','#4fd6d0');
     const e=$('startScreen'); if(e && !saved) e.classList.remove('hidden');
     else { G.mode='playing'; const s=$('startScreen'); if(s) s.classList.add('hidden'); const h=$('hud'); if(h) h.classList.remove('hidden'); }
-    G.log('АРКЕОН · Мир Завета · G2.5','#f0d27a');
+    G.log('АРКЕОН · Мир Завета · G2.6','#f0d27a');
     G.log('Сервер не указан — активен офлайн-мир с союзниками-призраками','#9db0bd');
     if(A2.Audio) A2.Audio.ambient(G.world.id);
     if(/[?&]autostart=1/.test(q)) startGame();
@@ -626,25 +626,55 @@
       || A2.RPG.itemPower(b.it)-A2.RPG.itemPower(a.it));
     return out;
   }
+  /* G2.6 · карточка предмета = витрина + сетка действий, как в современных MMO.
+     Раньше это была стопка кнопок вперемешку с аффиксами — теперь видно,
+     что с вещью можно сделать, сколько это стоит и что даст по силе. */
   function itemDetail(it, idx) {
     if(!it) return '';
-    const r=A2.RARITY(it.rarity), cur=G.char.equip[it.slot], curP=cur?A2.RPG.itemPower(cur):0;
-    const d=A2.RPG.itemPower(it)-curP;
-    const aff=(it.affixes||[]).map(f=>'<div class="aff"><b>'+f.ru+'</b><span>+'+f.value+(f.suffix||'')+'</span></div>').join('')||'<p class="note">Без дополнительных свойств</p>';
-    return '<div class="detail '+r.id+'"><div class="dhead"><span class="dicon">'+(G.market?G.market.icon(it):'◇')+'</span>'+
-      '<div><b>'+A2.RPG.itemName(it)+'</b><small>'+r.ru+' · ур. '+it.ilvl+' · сила '+A2.RPG.itemPower(it)+'</small></div></div>'+
-      '<div class="dbadge" style="color:'+r.color+'">'+r.ru.toUpperCase()+'</div>'+ aff +
-      (it.set?'<div class="aff"><b>Сет</b><span>'+(A2.SETS.find(x=>x.id===it.set)||{}).ru+'</span></div>':'')+
+    const ch=G.char, MK=G.market, r=A2.RARITY(it.rarity);
+    const sl=A2.SLOTS.find(x=>x.id===it.slot)||{ru:'Предмет',icon:'◇'};
+    const icon=MK?MK.icon(it):'◇';
+    const cur=ch.equip[it.slot], curP=cur?A2.RPG.itemPower(cur):0;
+    const p=A2.RPG.itemPower(it), d=p-curP;
+    const plus=it.plus||0, maxed=plus>=A2.RPG.ENCHANT_MAX;
+    const ecost=A2.RPG.enchantCost(it), afford=ch.gold>=ecost;
+    const shard=ch.mats[A2.RPG.SHARD]||0, canReroll=A2.RPG.canReroll(G,it);
+    const sell=Math.max(1,Math.round(it.price*0.42));
+    const sug=MK?MK.suggest(it):0, fee=MK?MK.fee(sug):0;
+    const bar=curP>0?Math.max(10,Math.min(100,Math.round(p/Math.max(p,curP)*100))):100;
+    const aff=(it.affixes||[]).map(f=>'<div class="aff"><b>'+f.ru+'</b><span>+'+f.value+(f.suffix||'')+'</span></div>').join('')
+      ||'<p class="note">Без дополнительных свойств</p>';
+    return '<div class="detail '+r.id+'">'+
+      '<div class="dhead"><span class="dicon">'+icon+'</span>'+
+        '<div class="dtext"><b>'+A2.RPG.itemName(it)+'</b><small>'+r.ru+' · '+sl.ru+' · ур. '+it.ilvl+'</small></div>'+
+        '<span class="dpower">'+p+'<em class="'+(d>=0?'up':'down')+'">'+(d>=0?'+':'')+d+'</em></span></div>'+
+      '<div class="dcmp"><span class="dcmpk">В слоте</span><div class="dcmpbar"><i style="width:'+bar+'%"></i></div>'+
+        '<span class="dcmpv">'+(cur?curP+' · '+A2.RPG.itemName(cur).slice(0,12):'пусто')+'</span></div>'+
+      aff+
+      (it.set?'<div class="aff"><b>Сет</b><span>'+((A2.SETS.find(x=>x.id===it.set)||{}).ru||'—')+'</span></div>':'')+
       (it.rune?'<div class="aff"><b>Руна</b><span>'+it.rune+'</span></div>':'')+
       (it.gem?'<div class="aff"><b>Самоцвет</b><span>'+it.gem+'</span></div>':'')+
-      '<div class="aff"><b>В слоте сейчас</b><span>'+(cur?A2.RPG.itemName(cur)+' · '+curP:'пусто')+'</span></div>'+
-      '<div class="aff"><b>Прирост силы</b><span style="color:'+(d>=0?'#8fd08a':'#e0574f')+'">'+(d>=0?'+':'')+d+'</span></div>'+
-      '<div class="btnrow"><button data-act="equip" data-i="'+idx+'">Надеть</button>'+
-      '<button data-act="salvage" data-i="'+idx+'">Разобрать</button>'+
-      '<button data-act="sell" data-i="'+idx+'">Продать · '+Math.max(1,Math.round(it.price*0.42))+' S</button></div>'+
-      '<div class="btnrow"><button class="danger" data-act="drop" data-i="'+idx+'">🗑 Выбросить на землю</button></div>'+
-      '<div class="btnrow"><input id="listPrice" class="field" type="number" min="1" value="'+G.market.suggest(it)+'">'+
-      '<button data-act="list" data-i="'+idx+'">На рынок · комиссия '+G.market.fee(G.market.suggest(it))+' S</button></div>'+
+      '<div class="acthead"><span>Действия</span><small>'+A2.fmt(ch.gold)+' S · заточка +'+plus+'/+'+A2.RPG.ENCHANT_MAX+'</small></div>'+
+      '<div class="acts-grid">'+
+      '<button class="act-tile" data-act="equip" data-i="'+idx+'"><span class="ai">⚔</span>'+
+        '<span class="atxt"><b>Надеть</b><small>'+(d>=0?'+':'')+d+' силы · '+(cur?'заменит текущий':'слот свободен')+'</small></span></button>'+
+      '<button class="act-tile'+(maxed||!afford?' is-off':'')+'"'+(maxed||!afford?' disabled':'')+' data-act="enchantItem" data-i="'+idx+'">'+
+        '<span class="ai">⬆</span><span class="atxt"><b>'+(maxed?'Заточка · макс':'Заточить +'+(plus+1))+'</b>'+
+        '<small>'+(maxed?'+12 — предел':'−'+ecost+' S · '+(afford?'хватает':'не хватает '+(ecost-ch.gold)+' S'))+'</small></span></button>'+
+      '<button class="act-tile'+(canReroll?'':' is-off')+'"'+(canReroll?'':' disabled')+' data-act="rerollItem" data-i="'+idx+'">'+
+        '<span class="ai">🎲</span><span class="atxt"><b>Перековать</b>'+
+        '<small>'+((shard>0)?'1 Осколок Разлома ('+shard+')':'−'+A2.RPG.REROLL_GOLD+' S')+' · новые аффиксы</small></span></button>'+
+      '<button class="act-tile" data-act="salvage" data-i="'+idx+'"><span class="ai">🔨</span>'+
+        '<span class="atxt"><b>Разобрать</b><small>материалы крафта · +'+Math.round(it.price*0.35)+' S</small></span></button>'+
+      '<button class="act-tile" data-act="sell" data-i="'+idx+'"><span class="ai">💰</span>'+
+        '<span class="atxt"><b>Продать</b><small>+'+sell+' S · 42% цены</small></span></button>'+
+      '<button class="act-tile'+(MK?'':' is-off')+'"'+(MK?'':' disabled')+' data-act="listQuick" data-i="'+idx+'">'+
+        '<span class="ai">🏷</span><span class="atxt"><b>На рынок</b><small>лот '+sug+' S · комиссия '+fee+' S</small></span></button>'+
+      '<button class="act-tile danger" data-act="drop" data-i="'+idx+'"><span class="ai">🗑</span>'+
+        '<span class="atxt"><b>Выбросить</b><small>на землю, подберёте обратно</small></span></button>'+
+      '</div>'+
+      '<div class="btnrow"><input id="listPrice" class="field" type="number" min="1" value="'+sug+'">'+
+        '<button data-act="list" data-i="'+idx+'">Своя цена на рынке</button></div>'+
       '<div class="btnrow"><button data-act="backbag">← К сумке</button></div></div>';
   }
   function marketRows() {
@@ -1102,12 +1132,61 @@
         if(v!=='auto'){ G.perf=v; A2.Render.setQuality(v); }
         A2.Audio.play('ui'); openModal('settings'); break;
       }
-      case 'equip': if(A2.RPG.equip(G,ch.inventory[i])){A2.Audio.play('equip');openModal('bag');} break;
-      case 'salvage': if(A2.RPG.salvage(G,ch.inventory[i])){A2.Audio.play('break');openModal('bag');} break;
-      case 'sell': if(A2.RPG.sell(G,ch.inventory[i])) openModal('bag'); break;
+      // ---- G2.6 · меню действий с предметом: надеть, улучшить, перековать,
+      // разобрать, продать, выставить на рынок, выбросить ----
+      case 'equip': {
+        const it=ch.inventory[i];
+        if(it && A2.RPG.equip(G,it)){ A2.Audio.play('equip'); G.toast('Надето: '+A2.RPG.itemName(it),1.8); openModal('bag'); }
+        else G.toast('Не удалось надеть предмет',1.5);
+        break;
+      }
+      case 'salvage': {
+        const it=ch.inventory[i];
+        if(it && A2.RPG.salvage(G,it)){
+          A2.Audio.play('break');
+          const mats=Object.keys(ch.mats).filter(k=>ch.mats[k]>0).slice(0,2).map(k=>k+' ×'+ch.mats[k]).join(', ');
+          G.toast('Разобрано: '+A2.RPG.itemName(it)+(mats?' → '+mats:''),2.2);
+          openModal('bag');
+        } else G.toast('Нечего разбирать',1.5);
+        break;
+      }
+      case 'sell': {
+        const it=ch.inventory[i], gain=it?Math.max(1,Math.round(it.price*0.42)):0;
+        if(it && A2.RPG.sell(G,it)){ A2.Audio.play('coin'); G.toast('Продано: '+A2.RPG.itemName(it)+' · +'+gain+' S',2); openModal('bag'); }
+        else G.toast('Нечего продавать',1.5);
+        break;
+      }
+      case 'enchantItem': {
+        const it=ch.inventory[i];
+        if(!it){ openModal('bag'); break; }
+        if(A2.RPG.enchantItem(G,it)){
+          A2.Audio.play('enchant');
+          G.toast('Заточка: '+A2.RPG.itemName(it)+' → +'+it.plus,2);
+        } else {
+          G.toast(it.plus>=A2.RPG.ENCHANT_MAX?'Заточка +12 — предел':'Нужно '+A2.RPG.enchantCost(it)+' S на заточку',2.2);
+        }
+        openModal('item',i); break;
+      }
+      case 'rerollItem': {
+        const it=ch.inventory[i];
+        if(!it){ openModal('bag'); break; }
+        if(A2.RPG.rerollItem(G,it)){ A2.Audio.play('enchant'); G.toast('Аффиксы перекованы: '+A2.RPG.itemName(it),2); }
+        else G.toast('Нужен Осколок Разлома или '+A2.RPG.REROLL_GOLD+' S',2.2);
+        openModal('item',i); break;
+      }
+      case 'listQuick': {
+        const it=ch.inventory[i];
+        const p=it&&M?M.suggest(it):0;
+        if(it && M && M.list(it,p)){ A2.Audio.play('coin'); G.toast('Лот выставлен · '+p+' S',2); openModal('market'); }
+        else G.toast('Не удалось выставить лот',2);
+        break;
+      }
       case 'list': {
-        const p=Number(val('listPrice'))||M.suggest(ch.inventory[i]);
-        if(M.list(ch.inventory[i],p)) openModal('market');
+        const it=ch.inventory[i];
+        if(!it){ openModal('bag'); break; }
+        const p=Number(val('listPrice'))||M.suggest(it);
+        if(M.list(it,p)){ A2.Audio.play('coin'); G.toast('Лот выставлен · '+p+' S',2); openModal('market'); }
+        else G.toast('Не удалось выставить лот',2);
         break;
       }
       case 'salvageCommon': case 'sellCommon': {
@@ -1451,7 +1530,7 @@
 
   /* ------------------------------ тестовый API ------------------------------ */
   window.ARKEON_G2 = {
-    version:'G2.5', state:G,
+    version:'G2.6', state:G,
     get source(){return CANON_SOURCE;},
     boot, startGame, step, cast, dodge, useUlt, setZone, interact, openModal, closeModal,
     target, meta, updateUI, render:(dt)=>A2.Render.frame(G.world,G,dt||1/60),
@@ -1460,7 +1539,7 @@
     giveXP:n=>A2.RPG.grantXP(G,n),
     story:n=>A2.RPG.storyEvent(G,n.type,n.target,n.amount||1),
     basicAttack, resetGame, travelTo, provoke:(m)=>A2.World.provoke(G.world,m),
-    bagView, dropFromBag:(it)=>A2.RPG.dropFromBag(G,it),
+    bagView, itemDetail:(i)=>itemDetail(ch.inventory[i],i), dropFromBag:(it)=>A2.RPG.dropFromBag(G,it),
     skipStory:()=>A2.RPG.storySkip(G),
     storyState:()=>G.story,
     killNearest:()=>{ const t=target(); if(t){ while(t.alive) A2.RPG.hit(G,t,50,'Физический'); return t; } return null; },

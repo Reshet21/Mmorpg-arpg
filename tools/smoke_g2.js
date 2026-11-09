@@ -104,7 +104,7 @@ async function run(useCanon) {
   const API=env.window.ARKEON_G2, A2=env.window.A2;
   ok(!!API,'window.ARKEON_G2 определён');
   if(!API) return;
-  ok(API.version==='G2.5','версия G2.5');
+  ok(API.version==='G2.6','версия G2.6');
   ok(API.source===(useCanon?'canon':'fallback'),'источник навыков: '+(useCanon?'canon':'fallback'));
   if(useCanon) {
     const m=API.meta('Клинок Рубежа');
@@ -353,6 +353,74 @@ async function run(useCanon) {
   G.char.inventory.length=0;
   G.char.inventory.push(A2.RPG.rollItem(20,'grove',{rarity:'rare'}));
   G.attacks.length=0;
+
+  // ---- G2.6 · МЕНЮ ДЕЙСТВИЙ С ПРЕДМЕТОМ (как в современных MMO) ----
+  ok(typeof A2.RPG.enchantItem==='function' && typeof A2.RPG.rerollItem==='function' &&
+     typeof A2.RPG.enchantCost==='function' && typeof A2.RPG.canReroll==='function',
+     'G2.6: заточка и перековка работают с любым предметом, а не только с надетым');
+  const menuClick=(act,attrs)=>env.document.getElementById('modalBody').onclick(
+    {target:{getAttribute:k=>k==='data-act'?act:(attrs&&Object.prototype.hasOwnProperty.call(attrs,k)?attrs[k]:null)}});
+  G.char.inventory.length=0;
+  const menuIt=A2.RPG.rollItem(24,'rift',{rarity:'epic'}); menuIt.plus=0; menuIt.uid='t_menu';
+  G.char.inventory.push(menuIt);
+  const menuIdx=0;
+  API.openModal('item',menuIdx);
+  const iHtml=env.document.getElementById('modalBody').innerHTML;
+  ['equip','enchantItem','rerollItem','salvage','sell','listQuick','drop','list'].forEach(a=>{
+    ok(iHtml.indexOf('data-act="'+a+'"')>=0,'G2.6: в меню предмета есть действие «'+a+'»');
+  });
+  ok(iHtml.indexOf('acts-grid')>=0 && iHtml.indexOf('acthead')>=0 &&
+     (iHtml.match(/class="act-tile/g)||[]).length>=7,
+     'G2.6: действия собраны в сетку из 7+ плиток с ценой и эффектом');
+  ok(iHtml.indexOf('Надеть')>=0 && iHtml.indexOf('Заточить')>=0 && iHtml.indexOf('Перековать')>=0 &&
+     iHtml.indexOf('Разобрать')>=0 && iHtml.indexOf('На рынок')>=0 && iHtml.indexOf('Выбросить')>=0,
+     'G2.6: надеть, улучшить, перековать, разобрать, продать, рынок, выбросить');
+  G.char.gold=5000;
+  ok(A2.RPG.enchantCost(menuIt)===120,'G2.6: первая заточка стоит 120 S');
+  const goldMenu0=G.char.gold;
+  menuClick('enchantItem',{'data-i':String(menuIdx)});
+  ok(menuIt.plus===1 && G.char.gold===goldMenu0-120,
+     'G2.6: заточка прямо из сумки списывает Серебро и даёт +1');
+  ok(G.modalMode==='item','G2.6: после улучшения карточка предмета остаётся открытой');
+  menuIt.plus=0; G.char.gold=119;
+  ok(A2.RPG.enchantItem(G,menuIt)===false && menuIt.plus===0,
+     'G2.6: без нужной суммы заточка не проходит и деньги не списываются');
+  menuIt.plus=A2.RPG.ENCHANT_MAX; G.char.gold=999999;
+  ok(A2.RPG.enchantItem(G,menuIt)===false,'G2.6: +12 — предел заточки');
+  API.openModal('item',menuIdx);
+  ok(env.document.getElementById('modalBody').innerHTML.indexOf('is-off')>=0,
+     'G2.6: недоступное действие показано неактивным, а не просто не работает');
+  menuIt.plus=3;
+  G.char.mats[A2.RPG.SHARD]=1; G.char.gold=0;
+  ok(A2.RPG.rerollItem(G,menuIt)===true && (G.char.mats[A2.RPG.SHARD]||0)===0,
+     'G2.6: перековка из меню тратит Осколок Разлома');
+  G.char.gold=400;
+  ok(A2.RPG.rerollItem(G,menuIt)===true && G.char.gold===0,
+     'G2.6: без осколка перековка стоит 400 S');
+  const plainIt=A2.RPG.rollItem(2,'grove',{rarity:'common'}); plainIt.affixes=[]; G.char.gold=999;
+  ok(A2.RPG.rerollItem(G,plainIt)===false,'G2.6: предмет без аффиксов не перековывается');
+  // надевание, продажа и рынок из меню
+  G.char.inventory.length=0; G.char.inventory.push(menuIt);
+  const oldEq=G.char.equip[menuIt.slot];
+  menuClick('equip',{'data-i':'0'});
+  ok(G.char.equip[menuIt.slot]===menuIt,'G2.6: «Надеть» из меню ставит предмет в слот');
+  if(oldEq) G.char.inventory.push(oldEq);
+  G.char.inventory.push(menuIt);
+  const gSell=G.char.gold, nInv=G.char.inventory.length;
+  menuClick('sell',{'data-i':String(nInv-1)});
+  ok(G.char.inventory.length===nInv-1 && G.char.gold>gSell,'G2.6: «Продать» из меню даёт Серебро');
+  const lotIt=A2.RPG.rollItem(12,'grove',{rarity:'rare'}); lotIt.uid='t_lot';
+  G.char.inventory.push(lotIt);
+  const nLot=G.char.inventory.length;
+  API.openModal('item',nLot-1);
+  menuClick('listQuick',{'data-i':String(nLot-1)});
+  ok(G.char.inventory.length===nLot-1 && G.modalMode==='market',
+     'G2.6: «На рынок» выставляет лот и открывает рынок');
+  // возврат к прежнему состоянию для остальных проверок
+  G.char.inventory.length=0;
+  G.char.inventory.push(A2.RPG.rollItem(20,'grove',{rarity:'rare'}));
+  G.char.gold=Math.max(G.char.gold,200);
+  API.closeModal();
 
   // ---- данные канона ----
   ok(A2.CLASSES.length===6,'6 классов канона');
