@@ -27,6 +27,8 @@ const SHELL = [
   './js/audio.js',
   './js/market.js',
   './js/main.js',
+  './css/g2.css?v=g27',
+  './js/main.js?v=g27',
   './js/game.js',
   '../data/classes.json'
 ];

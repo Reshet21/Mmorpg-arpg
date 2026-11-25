@@ -591,6 +591,8 @@ button.danger:active{background:rgba(120,40,34,.8)}
 #hud .mtab.on{color:#1b1408;background:linear-gradient(180deg,#e8b25c,#a9762f);border-color:#ffe9b6}
 #hud .mtab.close{margin-left:2px;color:#ffb0a6;border-color:rgba(224,87,79,.5)}
 #hud .mhint{margin-left:auto;font-size:9px;letter-spacing:1.4px;color:var(--gold2)}
+#hud .mver{font-size:8px;letter-spacing:1px;color:var(--cyan);padding:3px 6px;
+  border:1px solid rgba(79,214,208,.45);border-radius:8px;white-space:nowrap}
 #hud .mstatus{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:8px;opacity:.85}
 #hud .mstatus .badge{font-size:8px;padding:2px 7px}
 #hud .mstatus .mini-stats{grid-template-columns:auto auto auto auto auto auto;gap:0 4px;padding:2px 6px}
