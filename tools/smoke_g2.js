@@ -768,12 +768,72 @@ async function run(useCanon) {
   ok(!!fresh && fresh.v===A2.C.SAVE_VERSION && fresh.story && fresh.story.chapter===0,
      'G2.4: новое сохранение сразу пишет чистый пролог');
   API.closeModal();
+
+  // ---- G2.7 · компактный HUD: состояния, вкладки и делегация меню ----
+  let hudErr=null;
+  try{ API.toggleMenu(); API.setHudState(); API.switchTab({getAttribute:()=> 'world'}); API.closeMenu(); }
+  catch(e){ hudErr=e; }
+  ok(!hudErr,'G2.7: меню, вкладки и состояния HUD не бросают исключений'+(hudErr?': '+hudErr.message:''));
+  const hudEl=env.document.getElementById('hud');
+  ok(!!hudEl.dataset && ['explore','combat','menu'].indexOf(hudEl.dataset.state)>=0,
+     'G2.7: data-state принимает explore / combat / menu');
+  const sheetEl=env.document.getElementById('menuSheet');
+  const fakeTile={ getAttribute:k=>k==='data-open'?'bag':(k==='aria-label'?'Сумка':null) };
+  const tileEv={ target:{ closest:sel=>sel==='.mtile'?fakeTile:null }, preventDefault(){} };
+  if(sheetEl._ev && sheetEl._ev.pointerdown && sheetEl._ev.pointerup){
+    sheetEl._ev.pointerdown(tileEv); sheetEl._ev.pointerup(tileEv);
+    ok(G.modalMode==='bag','G2.7: тап по плитке-иконке открывает нужную панель');
+    API.closeModal();
+  } else ok(false,'G2.7: обработчики меню зарегистрированы');
+}
+
+/* ---- G2.7 «Компактный HUD»: статические проверки вёрстки ----
+   Без браузера проверяем структуру разметки, уникальность id, размеры
+   сенсорных целей и геометрию кластера на CSS-переменных. */
+function checkLayout() {
+  const html=fs.readFileSync(path.join(ROOT,'mobile/index.html'),'utf8');
+  const css=fs.readFileSync(path.join(ROOT,'mobile/css/g2.css'),'utf8');
+  const js=fs.readFileSync(path.join(ROOT,'mobile/js/main.js'),'utf8');
+  const sw=fs.readFileSync(path.join(ROOT,'mobile/sw.js'),'utf8');
+  const num=(n)=>{ const m=new RegExp('--'+n+':\\s*(\\d+)px').exec(css); return m?Number(m[1]):0; };
+  ok(/id="menuSheet"/.test(html) && /id="btnMenu"/.test(html),
+     'G2.7: одна кнопка меню вместо 15 разбросанных кнопок');
+  ok(!/<div class="toolbar"/.test(html), 'G2.7: горизонтальный скролл-тулбар удалён');
+  ok(/data-state="explore"/.test(html) && /data-hand="right"/.test(html),
+     'G2.7: контекстные состояния и режим левши в разметке');
+  ok(/class="skill-zone cluster"/.test(html) && /class="tool attack core"/.test(html),
+     'G2.7: большая кнопка «Удар» в центре радиального кластера');
+  const tiles=(html.match(/class="mtile"/g)||[]).length;
+  ok(tiles>=15, `G2.7: все панели перенесены в меню (${tiles} плиток)`);
+  const opens=(html.match(/data-open="/g)||[]).length;
+  ok(opens>=14, `G2.7: режимы панелей доступны из меню (${opens})`);
+  const ids=(html.match(/\bid="([A-Za-z][\w-]*)"/g)||[]).map(s=>s.slice(4,-1));
+  ok(ids.length===new Set(ids).size, 'G2.7: нет дублирующихся id в разметке');
+  ok(/--hud-top/.test(css) && /--hud-bottom/.test(css) && /--cluster/.test(css),
+     'G2.7: раскладка на CSS-переменных');
+  ok(/#hud \.controls\{[^}]*bottom:var\(--hud-bottom\)/.test(css),
+     'G2.7: нижняя зона HUD привязана к --hud-bottom');
+  ok(/min-width:44px/.test(css) && /min-height:44px/.test(css) && /min-height:48px/.test(css),
+     'G2.7: сенсорные цели >= 44 dp');
+  const chip=num('chip-h'), cluster=num('cluster'), ring=num('ring'), sat=num('sat'), joy=num('joy');
+  ok(chip>0 && cluster>0 && ring>0 && sat>0 && joy>0, 'G2.7: геометрия HUD задана явно');
+  ok(sat>=44 && ring+sat/2<=cluster/2+1, 'G2.7: спутники кластера не выходят за границы');
+  ok(chip+cluster<=0.42*640, 'G2.7: в портрете игровому полю оставлено >= 58% высоты');
+  ok(cluster<=0.5*390, 'G2.7: в ландшафте кластер занимает <= половины высоты');
+  ok(joy+cluster+16<=360, 'G2.7: джойстик и кластер помещаются на 360 dp ширины');
+  ok(/@media \(orientation:landscape\) and \(max-height:520px\)/.test(css) &&
+     /#hud\[data-hand="left"\]/.test(css),
+     'G2.7: отдельная раскладка ландшафта и зеркалирование под левшу');
+  ok(/function setHudState\(\)/.test(js) && /function toggleMenu\(\)/.test(js) &&
+     /const MENU =/.test(js), 'G2.7: состояния и карта режимов в main.js');
+  ok(/arkeon-g27-v1/.test(sw), 'G2.7: офлайн-кэш PWA обновлён');
 }
 
 (async()=>{
   console.log('=== ARKEON · G2 · smoke_g2 ===');
   await run(false);
   await run(true);
+  checkLayout();
   console.log(`Проверок: ${checks} | PASS: ${checks-fails.length} | FAIL: ${fails.length}`);
   fails.forEach(f=>console.log('  FAIL:',f));
   if(fails.length) process.exit(1);
