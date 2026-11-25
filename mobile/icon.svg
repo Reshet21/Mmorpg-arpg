@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="t d">
+  <title id="t">АРКЕОН: Пепел Завета</title>
+  <desc id="d">Семь Светочей Завета: шесть горят, седьмой погас. Знак Рубежа.</desc>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="76%">
+      <stop offset="0" stop-color="#17303c"/>
+      <stop offset="0.55" stop-color="#0b1822"/>
+      <stop offset="1" stop-color="#050a10"/>
+    </radialGradient>
+    <linearGradient id="ember" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd27a"/>
+      <stop offset="0.5" stop-color="#ff9a4d"/>
+      <stop offset="1" stop-color="#c9452f"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fe8ff"/>
+      <stop offset="1" stop-color="#3b8ea8"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="92" fill="url(#bg)"/>
+  <rect x="26" y="26" width="460" height="460" rx="76" fill="none" stroke="#3b6b7d" stroke-width="3" opacity="0.7"/>
+  <circle cx="256" cy="256" r="176" fill="none" stroke="url(#steel)" stroke-width="4" opacity="0.75"/>
+  <circle cx="256" cy="256" r="146" fill="none" stroke="#5fd0e6" stroke-width="2" opacity="0.35" stroke-dasharray="7 11"/>
+  <g stroke-linecap="round" filter="url(#glow)">
+    <g stroke="url(#ember)" stroke-width="13">
+      <path d="M256 96 V148"/>
+      <path d="M394 176 L349 201"/>
+      <path d="M394 336 L349 311"/>
+      <path d="M256 416 V364"/>
+      <path d="M118 336 L163 311"/>
+      <path d="M118 176 L163 201"/>
+    </g>
+  </g>
+  <g fill="url(#ember)" filter="url(#glow)">
+    <circle cx="256" cy="96" r="11"/>
+    <circle cx="394" cy="176" r="11"/>
+    <circle cx="394" cy="336" r="11"/>
+    <circle cx="256" cy="416" r="11"/>
+    <circle cx="118" cy="336" r="11"/>
+    <circle cx="118" cy="176" r="11"/>
+  </g>
+  <circle cx="256" cy="80" r="9" fill="#3a4650" stroke="#6b7780" stroke-width="2"/>
+  <path d="M244 66 L268 94" stroke="#ff8a5c" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  <path d="M256 168 L336 256 L256 344 L176 256 Z" fill="#0c202b" stroke="url(#steel)" stroke-width="6"/>
+  <path d="M256 196 L308 256 L256 316 L204 256 Z" fill="url(#ember)" opacity="0.92"/>
+  <path d="M256 214 L256 298 M214 256 L298 256" stroke="#fff2d0" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
+  <text x="256" y="470" text-anchor="middle" font-family="Georgia,serif" font-size="30" letter-spacing="9" fill="#9fd8e6" opacity="0.9">АРКЕОН</text>
+</svg>

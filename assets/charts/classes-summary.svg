@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" width="760" height="480">
+<rect width="100%" height="100%" fill="#0d141c"/>
+<g stroke="#2c3b48" stroke-width="1">
+<line x1="194" y1="70" x2="194" y2="410"/>
+<line x1="70" y1="342" x2="690" y2="342"/>
+<line x1="318" y1="70" x2="318" y2="410"/>
+<line x1="70" y1="274" x2="690" y2="274"/>
+<line x1="442" y1="70" x2="442" y2="410"/>
+<line x1="70" y1="206" x2="690" y2="206"/>
+<line x1="566" y1="70" x2="566" y2="410"/>
+<line x1="70" y1="138" x2="690" y2="138"/>
+</g>
+<line x1="70" y1="410" x2="690" y2="410" stroke="#9fb4c0" stroke-width="2"/>
+<line x1="70" y1="70" x2="70" y2="410" stroke="#9fb4c0" stroke-width="2"/>
+<text x="380.0" y="458" fill="#b9c9d2" font-family="Arial" font-size="13" text-anchor="middle">Риск позиционирования →</text>
+<text x="18" y="240.0" fill="#b9c9d2" font-family="Arial" font-size="13" transform="rotate(-90 18 240.0)" text-anchor="middle">Устойчивый урон →</text>
+<circle cx="182" cy="199" r="16" fill="#e8b25c" fill-opacity=".28" stroke="#e8b25c" stroke-width="2.5"/>
+<circle cx="182" cy="199" r="4" fill="#e8b25c"/>
+<text x="204" y="204" fill="#e9e2d2" font-family="Arial" font-size="13">Воин</text>
+<circle cx="163" cy="247" r="16" fill="#f0d27a" fill-opacity=".28" stroke="#f0d27a" stroke-width="2.5"/>
+<circle cx="163" cy="247" r="4" fill="#f0d27a"/>
+<text x="185" y="252" fill="#e9e2d2" font-family="Arial" font-size="13">Паладин</text>
+<circle cx="640" cy="308" r="16" fill="#8b6cc0" fill-opacity=".28" stroke="#8b6cc0" stroke-width="2.5"/>
+<circle cx="640" cy="308" r="4" fill="#8b6cc0"/>
+<text x="662" y="313" fill="#e9e2d2" font-family="Arial" font-size="13">Ассасин</text>
+<circle cx="454" cy="131" r="16" fill="#7fd6d0" fill-opacity=".28" stroke="#7fd6d0" stroke-width="2.5"/>
+<circle cx="454" cy="131" r="4" fill="#7fd6d0"/>
+<text x="476" y="136" fill="#e9e2d2" font-family="Arial" font-size="13">Лучник</text>
+<circle cx="516" cy="213" r="16" fill="#4fd6d0" fill-opacity=".28" stroke="#4fd6d0" stroke-width="2.5"/>
+<circle cx="516" cy="213" r="4" fill="#4fd6d0"/>
+<text x="538" y="218" fill="#e9e2d2" font-family="Arial" font-size="13">Маг</text>
+<circle cx="368" cy="97" r="16" fill="#b06fd0" fill-opacity=".28" stroke="#b06fd0" stroke-width="2.5"/>
+<circle cx="368" cy="97" r="4" fill="#b06fd0"/>
+<text x="390" y="102" fill="#e9e2d2" font-family="Arial" font-size="13">Некромант</text>
+<text x="70" y="34" fill="#f0d27a" font-family="Arial" font-size="16" font-weight="bold">Пространство ролей ARKEON · 6 классов</text>
+</svg>

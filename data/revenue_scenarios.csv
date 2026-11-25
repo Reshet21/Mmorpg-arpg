@@ -1,0 +1,4 @@
+scenario,mau,dau,arpdau_usd,payer_conversion,payers,arppu_monthly_usd,gross_monthly_usd,net_after_fees_usd,monthly_operating_profit_usd,payback_months,gross_annual_usd
+Консервативный,10000000,2000000,0.14,0.032,320000,26.25,8400000,6132000,512000,438.8,100800000
+Базовый (план),18000000,3600000,0.17,0.042,756000,24.29,18360000,13402800,7782800,28.9,220320000
+Агрессивный,30000000,5800000,0.22,0.05,1500000,25.52,38280000,27944400,22324400,10.1,459360000

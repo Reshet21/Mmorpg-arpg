@@ -1,0 +1,378 @@
+{
+  "project": {
+    "code_name": "Project SEVENTH FLAME",
+    "title_ru": "АРКЕОН: Пепел Завета",
+    "title_en": "ARKEON: Ashes of the Covenant",
+    "short": "ARKEON",
+    "tagline_ru": "Мир не погиб. Он перестал держать слово.",
+    "tagline_en": "The world did not die. It broke its word.",
+    "genre": [
+      "MMORPG",
+      "ARPG",
+      "Open World",
+      "Online"
+    ],
+    "platforms": [
+      "Android 10+",
+      "iOS 16+",
+      "Windows 10/11 (Steam, Epic, ARKEON Launcher)"
+    ],
+    "engine": "Unreal Engine 5.6 (C++ / GAS / World Partition / Nanite / Lumen)",
+    "business_model": "F2P, cosmetics-only monetization, no Pay-To-Win",
+    "rating": "ESRB T / PEGI 12 / RARS 16+",
+    "localization": [
+      "RU",
+      "EN",
+      "DE",
+      "FR",
+      "ES",
+      "PT-BR",
+      "IT",
+      "PL",
+      "TR",
+      "AR",
+      "JA",
+      "KO",
+      "ZH-TW",
+      "ZH-CN"
+    ],
+    "target_audience": "10M+ MAU (базовый план 18M на плато), 300K global CCU capacity"
+  },
+  "progression": {
+    "level_cap": 60,
+    "xp_level_formula": "round(120 * n^1.85 + 40 * n^2)",
+    "xp_total_to_60": 7184400,
+    "hours_to_cap_median": 55,
+    "paragon_cap": 300,
+    "paragon_xp_formula": "80000 + 12000 * p",
+    "rep_ranks": 9,
+    "pvp_ranks": 8,
+    "battle_pass_tiers": 100,
+    "season_weeks": 10,
+    "guild_max_members": 300,
+    "clan_max_members": 12,
+    "alliance_max_guilds": 3,
+    "party_size": 5,
+    "raid_sizes": [
+      8,
+      16,
+      24
+    ]
+  },
+  "combat": {
+    "server_tick_hz": 30,
+    "client_simulation_hz": 60,
+    "snapshot_hz": 20,
+    "interpolation_buffer_ms": 100,
+    "lag_compensation_ms_max": 200,
+    "ability_queue_window_ms": 150,
+    "dodge_iframes_s": 0.3,
+    "dodge_recovery_s": 0.15,
+    "dodge_distance_m": 6.2,
+    "dodge_charges": 2,
+    "dodge_recharge_s": 5.5,
+    "cc_diminishing_returns": [
+      1.0,
+      0.65,
+      0.4,
+      0.0
+    ],
+    "cc_dr_reset_s": 18,
+    "base_crit_chance": 0.05,
+    "base_crit_multiplier": 1.5,
+    "crit_cap": 0.75,
+    "base_move_speed_mps": 5.6,
+    "mount_speed_mps": 9.5,
+    "defense_constant": "K(lvl) = 1200 + 42 * lvl",
+    "mitigation_formula": "DEF / (DEF + K(lvl))",
+    "damage_formula": "Base * (1 + SUM(additive)) * PRODUCT(multiplicative) * (1 - mitigation) * (1 - resistance) * crit * (1 - damage_reduction) * (1 + vulnerability)",
+    "level_60_baseline": {
+      "hp_dps": 12000,
+      "hp_tank": 18000,
+      "attack": 1800,
+      "defense": 2400,
+      "target_dps_dummy": 42000,
+      "pvp_ttk_s": [
+        6,
+        12
+      ],
+      "trash_ttk_s": [
+        3,
+        6
+      ],
+      "elite_ttk_s": [
+        20,
+        40
+      ],
+      "dungeon_boss_ttk_s": [
+        75,
+        120
+      ],
+      "raid_boss_ttk_s": [
+        300,
+        360
+      ]
+    },
+    "elements": [
+      "Физический",
+      "Огонь",
+      "Лёд",
+      "Молния",
+      "Скверна",
+      "Свет",
+      "Тьма"
+    ],
+    "reactions": [
+      "Пар",
+      "Перегрузка",
+      "Стеклование",
+      "Взрыв",
+      "Очищение",
+      "Затемнение",
+      "Гармония"
+    ],
+    "pvp_damage_coeff": 0.08,
+    "pvp_hp_multiplier": 2.0,
+    "pvp_healing_coeff": 0.7,
+    "weapon_hit_l60": 21600,
+    "boss_hp": {
+      "dungeon": 14000000,
+      "raid": 72000000,
+      "world": 240000000
+    }
+  },
+  "items": {
+    "rarities": [
+      {
+        "id": "common",
+        "ru": "Обычная",
+        "affix_budget": 100,
+        "affixes": [
+          0,
+          1
+        ],
+        "drop_weight": 0.62
+      },
+      {
+        "id": "rare",
+        "ru": "Редкая",
+        "affix_budget": 140,
+        "affixes": [
+          2,
+          3
+        ],
+        "drop_weight": 0.26
+      },
+      {
+        "id": "epic",
+        "ru": "Эпическая",
+        "affix_budget": 195,
+        "affixes": [
+          3,
+          4
+        ],
+        "drop_weight": 0.094
+      },
+      {
+        "id": "legendary",
+        "ru": "Легендарная",
+        "affix_budget": 265,
+        "affixes": [
+          4,
+          5
+        ],
+        "drop_weight": 0.022
+      },
+      {
+        "id": "mythic",
+        "ru": "Мифическая",
+        "affix_budget": 345,
+        "affixes": [
+          5,
+          6
+        ],
+        "drop_weight": 0.003
+      },
+      {
+        "id": "unique",
+        "ru": "Уникальная",
+        "affix_budget": 420,
+        "affixes": [
+          1,
+          3
+        ],
+        "drop_weight": 0.0002
+      }
+    ],
+    "pity_legendary_caches": 40,
+    "enchant_max": 12,
+    "enchant_success": [
+      1.0,
+      1.0,
+      0.95,
+      0.88,
+      0.78,
+      0.65,
+      0.52,
+      0.4,
+      0.3,
+      0.22,
+      0.15,
+      0.1,
+      0.07
+    ],
+    "reroll_cost": "500 * 1.35^r silver, cap r = 25 per item",
+    "sockets_max": 3,
+    "set_bonuses": [
+      2,
+      4,
+      6
+    ],
+    "item_power_range": [
+      300,
+      1400
+    ],
+    "gear_slots": 12
+  },
+  "economy": {
+    "currencies": {
+      "silver": "Серебро (S) — основная валюта, чеканится Конклавом из очищенного эфирита, свободно торгуется",
+      "aetherite": "Эфирит (T2–T8) — собираемый ресурс, основа крафта, торгуется",
+      "dawn_crystals": "Кристаллы Зари (DC) — премиальная валюта, только косметика, НЕ передаётся и НЕ конвертируется в серебро",
+      "valor": "Жетоны Доблести (PvP, привязаны к аккаунту)",
+      "ashes": "Пепельные печати (PvE-рейды, привязаны к персонажу)"
+    },
+    "market_tax_listing_pct": 1.5,
+    "market_tax_sale_pct": 4.5,
+    "craft_station_fee_pct": 4.0,
+    "trade_tax_pct": 2.0,
+    "guild_tax_range_pct": [
+      0,
+      20
+    ],
+    "silver_sink_to_faucet_target": 1.08,
+    "reward_controller": "R_t = clamp(0.75, 1.25, 1 + 0.6*(M_target - M_t)/M_target - 0.25*(PI_t - 100)/100)",
+    "price_index_target": 100,
+    "faucets_daily_per_active_silver": 9200,
+    "tiers": [
+      "T2",
+      "T3",
+      "T4",
+      "T5",
+      "T6",
+      "T7",
+      "T8"
+    ],
+    "resource_node_respawn_s": [
+      90,
+      120,
+      180,
+      260,
+      380,
+      540,
+      780
+    ]
+  },
+  "law_zones": [
+    {
+      "id": "green",
+      "ru": "Зелёная (города, стартовые зоны)",
+      "pvp": false,
+      "inventory_drop_pct": 0,
+      "equipped_drop_pct": 0,
+      "destroyed_pct": 0,
+      "durability_loss_pct": 10
+    },
+    {
+      "id": "yellow",
+      "ru": "Жёлтая (приграничье)",
+      "pvp": true,
+      "inventory_drop_pct": 0,
+      "equipped_drop_pct": 0,
+      "destroyed_pct": 0,
+      "durability_loss_pct": 25
+    },
+    {
+      "id": "red",
+      "ru": "Красная (Глухой Предел)",
+      "pvp": true,
+      "inventory_drop_pct": 60,
+      "equipped_drop_pct": 30,
+      "destroyed_pct": 25,
+      "durability_loss_pct": 40
+    },
+    {
+      "id": "black",
+      "ru": "Чёрная (Внутренний Разлом)",
+      "pvp": true,
+      "inventory_drop_pct": 100,
+      "equipped_drop_pct": 100,
+      "destroyed_pct": 30,
+      "durability_loss_pct": 100
+    }
+  ],
+  "infrastructure": {
+    "aoi_radius_m": 120,
+    "interest_bucket_m": 32,
+    "cell_size_m": 256,
+    "max_visible_actors": 120,
+    "ccu_per_realm": 4000,
+    "realms_per_region": 12,
+    "regions": [
+      "EU",
+      "NA",
+      "APAC",
+      "CIS"
+    ],
+    "global_ccu_capacity": 192000,
+    "massive_battle_size": "200 vs 200",
+    "bandwidth_avg_kbps": 14,
+    "bandwidth_peak_kbps": 60,
+    "voice_bitrate_kbps": 32,
+    "slo_login_success_pct": 99.95,
+    "slo_gateway_uptime_pct": 99.95,
+    "slo_market_p99_ms": 250,
+    "slo_chat_p95_ms": 500,
+    "rtt_target_p95_ms": {
+      "EU": 60,
+      "NA": 70,
+      "APAC": 110,
+      "CIS": 80
+    },
+    "rpo_minutes": 5,
+    "rto_minutes": 30
+  },
+  "monetization": {
+    "premium_currency": "Кристаллы Зари (DC)",
+    "battle_pass_price_usd": 9.99,
+    "battle_pass_dc": 1000,
+    "price_points_usd": [
+      0.99,
+      2.99,
+      4.99,
+      9.99,
+      19.99,
+      39.99,
+      79.99
+    ],
+    "target_payer_conversion_pct": 4.2,
+    "target_arppu_monthly_usd": 24.29,
+    "target_arpdau_usd": 0.17,
+    "target_d1": 0.44,
+    "target_d7": 0.19,
+    "target_d30": 0.085,
+    "target_crash_free_sessions_pct": 99.6,
+    "target_mau_base": 18000000,
+    "target_mau_floor": 10000000,
+    "platform_fee_blended": 0.27
+  },
+  "production": {
+    "start": "2027-Q1",
+    "global_launch": "2031-Q2",
+    "duration_months": 54,
+    "total_budget_usd": 224680000,
+    "peak_headcount": 252,
+    "seasons_per_year": 5,
+    "major_expansion_months": 12
+  }
+}

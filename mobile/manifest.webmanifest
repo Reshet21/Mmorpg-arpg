@@ -1,0 +1,76 @@
+{
+  "id": "./",
+  "name": "АРКЕОН: Пепел Завета — Мир Завета (G2.6)",
+  "short_name": "АРКЕОН G2.6",
+  "description": "Открытый мир АРКЕОН G2.6: 6 классов, меню действий с предметом, заточка и перековка из сумки, рынок, торговля 1:1, 12 квестов и онлайн.",
+  "lang": "ru-RU",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "fullscreen",
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "background_color": "#060c12",
+  "theme_color": "#060c12",
+  "categories": [
+    "games",
+    "entertainment"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Воин",
+      "short_name": "Воин",
+      "description": "Войти в мир Воином",
+      "url": "./index.html?class=warrior&autostart=1",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Маг",
+      "short_name": "Маг",
+      "description": "Войти в мир Магом",
+      "url": "./index.html?class=mage&autostart=1",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 430" width="820" height="430">
+<rect width="100%" height="100%" fill="#0d141c"/>
+<text x="24" y="32" fill="#f0d27a" font-family="Arial" font-size="17" font-weight="bold">ARKEON · эталонный DPS L60 после PTR-калибровки</text>
+<line x1="190" y1="66" x2="190" y2="384" stroke="#9fb4c0"/>
+<text x="178" y="103" fill="#d8cbb0" font-size="13" font-family="Arial" text-anchor="end">Воин</text>
+<rect x="190" y="86" width="506.4" height="24" rx="4" fill="#4fd6d0" fill-opacity=".78"/>
+<text x="704.4" y="103" fill="#e9e2d2" font-size="12" font-family="Arial">41,599 DPS</text>
+<text x="178" y="155" fill="#d8cbb0" font-size="13" font-family="Arial" text-anchor="end">Паладин</text>
+<rect x="190" y="138" width="418.8" height="24" rx="4" fill="#e8b25c" fill-opacity=".78"/>
+<text x="616.8" y="155" fill="#e9e2d2" font-size="12" font-family="Arial">34,400 DPS</text>
+<text x="178" y="207" fill="#d8cbb0" font-size="13" font-family="Arial" text-anchor="end">Ассасин</text>
+<rect x="190" y="190" width="521.0" height="24" rx="4" fill="#4fd6d0" fill-opacity=".78"/>
+<text x="719.0" y="207" fill="#e9e2d2" font-size="12" font-family="Arial">42,799 DPS</text>
+<text x="178" y="259" fill="#d8cbb0" font-size="13" font-family="Arial" text-anchor="end">Лучник</text>
+<rect x="190" y="242" width="513.8" height="24" rx="4" fill="#4fd6d0" fill-opacity=".78"/>
+<text x="711.8" y="259" fill="#e9e2d2" font-size="12" font-family="Arial">42,201 DPS</text>
+<text x="178" y="311" fill="#d8cbb0" font-size="13" font-family="Arial" text-anchor="end">Маг</text>
+<rect x="190" y="294" width="502.8" height="24" rx="4" fill="#4fd6d0" fill-opacity=".78"/>
+<text x="700.8" y="311" fill="#e9e2d2" font-size="12" font-family="Arial">41,300 DPS</text>
+<text x="178" y="363" fill="#d8cbb0" font-size="13" font-family="Arial" text-anchor="end">Некромант</text>
+<rect x="190" y="346" width="517.4" height="24" rx="4" fill="#4fd6d0" fill-opacity=".78"/>
+<text x="715.4" y="363" fill="#e9e2d2" font-size="12" font-family="Arial">42,501 DPS</text>
+<line x1="190" y1="384" x2="780" y2="384" stroke="#9fb4c0"/>
+<line x1="190.0" y1="384" x2="190.0" y2="390" stroke="#9fb4c0"/>
+<text x="190.0" y="404" fill="#8ba2b0" font-size="11" font-family="Arial" text-anchor="middle">0k</text>
+<line x1="311.7" y1="384" x2="311.7" y2="390" stroke="#9fb4c0"/>
+<text x="311.7" y="404" fill="#8ba2b0" font-size="11" font-family="Arial" text-anchor="middle">10k</text>
+<line x1="433.5" y1="384" x2="433.5" y2="390" stroke="#9fb4c0"/>
+<text x="433.5" y="404" fill="#8ba2b0" font-size="11" font-family="Arial" text-anchor="middle">20k</text>
+<line x1="555.2" y1="384" x2="555.2" y2="390" stroke="#9fb4c0"/>
+<text x="555.2" y="404" fill="#8ba2b0" font-size="11" font-family="Arial" text-anchor="middle">30k</text>
+<line x1="677.0" y1="384" x2="677.0" y2="390" stroke="#9fb4c0"/>
+<text x="677.0" y="404" fill="#8ba2b0" font-size="11" font-family="Arial" text-anchor="middle">40k</text>
+</svg>
