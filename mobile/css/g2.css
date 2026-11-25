@@ -391,3 +391,42 @@ button.danger,.btnrow button.danger{border-color:rgba(224,87,79,.6);color:#ffb4a
   background:rgba(70,24,22,.6)}
 button.danger:active{background:rgba(120,40,34,.8)}
 @media (max-width:420px){ .bagfilter select.field,.bagfilter input.field{width:100%} }
+
+/* ===================== G2.6 · меню действий с предметом =====================
+   Тап по вещи в сумке открывает карточку, где действия собраны в сетку
+   2×n: крупная иконка, название, цена/эффект. Так в современных MMO. */
+.dhead .dtext{flex:1;min-width:0}
+.dhead .dtext b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dhead .dpower{margin-left:auto;text-align:right;font-size:13px;font-weight:600;line-height:1.15;color:var(--gold2)}
+.dhead .dpower em{display:block;font-style:normal;font-size:9.5px;font-weight:500}
+.dhead .dpower em.up{color:#8fd08a}
+.dhead .dpower em.down{color:#e0574f}
+.dcmp{display:flex;align-items:center;gap:8px;margin:9px 0 4px;font-size:9px;color:var(--muted)}
+.dcmp .dcmpk{flex:0 0 auto}
+.dcmp .dcmpbar{flex:1;height:6px;border-radius:4px;overflow:hidden;
+  background:rgba(0,0,0,.45);border:1px solid rgba(120,160,180,.18)}
+.dcmp .dcmpbar i{display:block;height:100%;border-radius:4px;
+  background:linear-gradient(90deg,#5fa8e8,#4fd6d0)}
+.dcmp .dcmpv{flex:0 0 auto;max-width:46%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acthead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:12px 0 7px;
+  font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:#7d8f9b}
+.acthead small{font-size:8.5px;letter-spacing:.4px;text-transform:none;color:var(--muted)}
+.acts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.act-tile{display:flex;align-items:center;gap:8px;min-height:54px;padding:8px 9px;text-align:left;
+  font:inherit;color:#dfe7ec;border-radius:10px;cursor:pointer;touch-action:manipulation;
+  background:linear-gradient(160deg,rgba(30,44,54,.92),rgba(9,16,22,.95));
+  border:1px solid rgba(120,150,170,.28);
+  transition:transform .12s ease,border-color .12s,background .12s}
+.act-tile .ai{flex:0 0 22px;width:22px;text-align:center;font-size:17px;line-height:1}
+.act-tile .atxt{min-width:0}
+.act-tile b{display:block;font-size:11.5px;font-weight:600;line-height:1.15}
+.act-tile small{display:block;margin-top:2px;font-size:8.5px;line-height:1.25;color:#8aa0ad}
+.act-tile:active{transform:scale(.97);border-color:var(--gold);
+  background:linear-gradient(160deg,rgba(46,64,76,.95),rgba(14,24,32,.98))}
+.act-tile.danger{border-color:rgba(224,87,79,.55);color:#ffb4a8;
+  background:linear-gradient(160deg,rgba(58,26,24,.85),rgba(16,10,10,.95))}
+.act-tile.danger small{color:#c88b84}
+.act-tile.danger:active{border-color:#e0574f;background:rgba(96,34,30,.9)}
+.act-tile.is-off{opacity:.45;filter:saturate(.35);cursor:not-allowed}
+.act-tile.is-off:active{transform:none;border-color:rgba(120,150,170,.28)}
+@media (max-width:360px){.acts-grid{grid-template-columns:1fr}}

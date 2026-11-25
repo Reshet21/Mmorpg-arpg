@@ -245,7 +245,7 @@ for token in ("js/audio.js", "js/market.js", "btnMarket", "btnPlayers", "bagCoun
     check(token in html_g2, f"G2.1: mobile/index.html подключает {token}")
 for token in ("js/audio.js", "js/market.js"):
     check(token in sw_js, f"G2.1: service worker кэширует {token}")
-check("arkeon-g25-v1" in sw_js, "G2.5: версия офлайн-кэша обновлена")
+check("arkeon-g26-v1" in sw_js, "G2.6: версия офлайн-кэша обновлена")
 for token in ("market_list", "market_buy", "trade_invite", "trade_confirm", "whisper", "emote",
               "syncInitial", "broadcastRoster", "broadcastMarket", "idempotent"):
     check(token in sim_js, f"G2.1: авторитетный сервер поддерживает {token}")
@@ -297,7 +297,7 @@ check("bottom:calc(var(--safe-b) + 172px)" in css_g2,
       "G2.2: тулбар поднят над блоком управления — кнопки не перекрыты джойстиком")
 check("A2.Render.minimap" in main_js2 and "G.uiT>0.2" in main_js2,
       "G2.2: обновление HUD и мини-карты реже для плавности")
-check(("G2.2" in html2 or "G2.3" in html2 or "G2.4" in html2 or "G2.5" in html2) and "G2.2" in (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8"),
+check(("G2.2" in html2 or "G2.3" in html2 or "G2.4" in html2 or "G2.5" in html2 or "G2.6" in html2) and "G2.2" in (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8"),
       "G2.2: версия зафиксирована в клиенте и спецификации студии")
 
 # --- 8e. G2.3 «Пристань Завета»: город, пролог, постепенная экипировка ---
@@ -359,7 +359,7 @@ check("G.storyTarget" in render_js3 and "✦ СЮЖЕТ" in render_js3,
       "G2.3: НПС текущей главы и путевая точка помечены в мире")
 check("btnStory" in html3 and "storyBar" in html3 and ".story-bar" in css3 and ".prologue" in css3,
       "G2.3: кнопка сюжета, баннер главы и оформление книги")
-check(("G2.3" in html3 or "G2.4" in html3 or "G2.5" in html3) and "G2.3" in doc3 and "16.24" in doc3,
+check(("G2.3" in html3 or "G2.4" in html3 or "G2.5" in html3 or "G2.6" in html3) and "G2.3" in doc3 and "16.24" in doc3,
       "G2.3: версия зафиксирована в клиенте и спецификации студии")
 check("'haven'" in (ROOT / "server/sim.js").read_text(encoding="utf-8"),
       "G2.3: авторитетный сервер знает безопасный город")
@@ -421,7 +421,7 @@ check("class=\"tool interact\"" in html4 and ".sheet .primary{width:100%" in css
       "G2.4: «Взаим.» больше не растягивается на весь экран")
 check("safeBadge" in html4 and ".safe-badge.show" in css4,
       "G2.4: индикатор безопасной зоны виден в HUD")
-check(("G2.4" in html4 or "G2.5" in html4) and "16.25" in doc4,
+check(("G2.4" in html4 or "G2.5" in html4 or "G2.6" in html4) and "16.25" in doc4,
       "G2.4: версия зафиксирована в клиенте и спецификации студии")
 
 # --- 8g. G2.5 «Удар и добыча»: сумка, умный магнит, анимация атаки ---
@@ -466,8 +466,39 @@ check("G.hitStop=0.055" in rpg_js5 and "G.hitStop" in main_js5,
       "G2.5: hit-stop для веса удара")
 check("const anim=e.attackAnim||0" in render_js5,
       "G2.5: шлейф оружия на спрайте героя")
-check("G2.5" in html5 and "16.26" in doc5,
+check(("G2.5" in html5 or "G2.6" in html5) and "16.26" in doc5,
       "G2.5: версия зафиксирована в клиенте и спецификации студии")
+
+# --- 8h. G2.6 «Меню предмета»: действия с вещью прямо из сумки ---
+rpg_js6 = (MOB / "js/rpg.js").read_text(encoding="utf-8")
+main_js6 = (MOB / "js/main.js").read_text(encoding="utf-8")
+css6 = (MOB / "css/g2.css").read_text(encoding="utf-8")
+html6 = (MOB / "index.html").read_text(encoding="utf-8")
+doc6 = (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8")
+smoke6 = (ROOT / "tools/smoke_g2.js").read_text(encoding="utf-8")
+check("function enchantItem(G, it)" in rpg_js6 and "function rerollItem(G, it)" in rpg_js6 and
+      "return it ? enchantItem(G, it) : false" in rpg_js6,
+      "G2.6: заточка и перековка работают и с надетым, и с предметом из сумки")
+check("function enchantCost(it)" in rpg_js6 and "ENCHANT_MAX = 12" in rpg_js6 and
+      "REROLL_GOLD = 400" in rpg_js6 and "function canReroll(G, it)" in rpg_js6,
+      "G2.6: цена и доступность заточки/перековки в одной функции")
+check("enchantItem, rerollItem, enchantCost, canReroll" in rpg_js6,
+      "G2.6: rpg.js экспортирует операции над конкретным предметом")
+for act in ('data-act="equip"', 'data-act="enchantItem"', 'data-act="rerollItem"',
+            'data-act="listQuick"', 'data-act="drop" data-i='):
+    check(act in main_js6, f"G2.6: меню предмета содержит {act}")
+for act in ("enchantItem", "rerollItem", "listQuick"):
+    check(("case '" + act + "'") in main_js6, f"G2.6: обработчик действия {act} в универсальной панели")
+check('class="acts-grid"' in main_js6 and ".acts-grid" in css6 and ".act-tile" in css6 and
+      ".act-tile.danger" in css6 and ".act-tile.is-off" in css6,
+      "G2.6: сетка действий 2×n, опасные и недоступные плитки оформлены")
+check("A2.RPG.canReroll(G,it)" in main_js6 and "A2.RPG.enchantCost(it)" in main_js6 and
+      "is-off" in main_js6,
+      "G2.6: карточка показывает цену, доступность и неактивные действия")
+check("G2.6" in html6 and "16.27" in doc6,
+      "G2.6: версия зафиксирована в клиенте и спецификации студии")
+check("G2.6" in smoke6 and "enchantItem" in smoke6 and "rerollItem" in smoke6,
+      "G2.6: автотесты покрывают меню действий с предметом")
 
 # --- 9. Отчёт ---
 passed = sum(1 for ok, _ in results if ok)

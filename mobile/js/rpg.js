@@ -380,21 +380,45 @@
     G.log('Разобрано: '+itemName(it)+' → '+mat, '#9db0bd');
     return true;
   }
-  function enchant(G, slot) {
-    const ch=G.char, it=ch.equip[slot]; if(!it||it.plus>=12) return false;
-    const cost=120*(it.plus+1);
-    if(ch.gold<cost) return false;
-    ch.gold-=cost; it.plus++; recompute(ch);
-    G.log('Заточка: '+itemName(it), it.plus>=10?'#ff7a4d':'#f0d27a');
-    storyEvent(G,'enchant',slot,1); return true;
+  /* G2.6 · заточка и перековка работают с любым предметом, а не только с надетым.
+     Это нужно меню действий в сумке: улучшить вещь можно до того, как её наденут. */
+  const ENCHANT_MAX = 12;
+  const ENCHANT_STEP = 120;
+  const REROLL_GOLD = 400;
+  const SHARD = 'Осколок Разлома';
+
+  function enchantCost(it) { return ENCHANT_STEP * ((it && it.plus || 0) + 1); }
+
+  function enchantItem(G, it) {
+    if (!it || it.plus >= ENCHANT_MAX) return false;
+    const ch = G.char, cost = enchantCost(it);
+    if (ch.gold < cost) return false;
+    ch.gold -= cost; it.plus++; recompute(ch);
+    G.log('Заточка: ' + itemName(it), it.plus >= 10 ? '#ff7a4d' : '#f0d27a');
+    storyEvent(G, 'enchant', it.slot, 1);
+    return true;
   }
-  function reroll(G, slot) {
-    const ch=G.char, it=ch.equip[slot]; if(!it||!it.affixes||!it.affixes.length) return false;
-    if(ch.mats['Осколок Разлома']<1 && ch.gold<400) return false;
-    if(ch.mats['Осколок Разлома']>0) ch.mats['Осколок Разлома']--; else ch.gold-=400;
-    for(const f of it.affixes) { const a=A2.AFFIXES.find(x=>x.id===f.id); if(a) f.value = a.max>=10?Math.round(a.min+Math.random()*(a.max-a.min)):Math.round((a.min+Math.random()*(a.max-a.min))*10)/10; }
-    recompute(ch); G.log('Перековка: '+itemName(it),'#4fd6d0'); return true;
+
+  function canReroll(G, it) {
+    if (!it || !it.affixes || !it.affixes.length) return false;
+    const ch = G.char;
+    return (ch.mats[SHARD] || 0) > 0 || ch.gold >= REROLL_GOLD;
   }
+
+  function rerollItem(G, it) {
+    if (!canReroll(G, it)) return false;
+    const ch = G.char;
+    if ((ch.mats[SHARD] || 0) > 0) ch.mats[SHARD]--; else ch.gold -= REROLL_GOLD;
+    for (const f of it.affixes) {
+      const a = A2.AFFIXES.find(x => x.id === f.id);
+      if (a) f.value = a.max >= 10 ? Math.round(a.min + Math.random() * (a.max - a.min))
+                                   : Math.round((a.min + Math.random() * (a.max - a.min)) * 10) / 10;
+    }
+    recompute(ch); G.log('Перековка: ' + itemName(it), '#4fd6d0'); return true;
+  }
+
+  function enchant(G, slot) { const it = G.char.equip[slot]; return it ? enchantItem(G, it) : false; }
+  function reroll(G, slot) { const it = G.char.equip[slot]; return it ? rerollItem(G, it) : false; }
   function buy(G, it) {
     const ch=G.char; if(ch.gold<it.price) return false;
     ch.gold-=it.price; ch.inventory.push(it); return true;
@@ -696,6 +720,7 @@
 
   A2.RPG = { createCharacter, rollItem, itemPower, itemName, recompute, talentMods, setBonus,
     grantXP, grantGold, talentUp, respec, dropItem, pickup, equip, salvage, enchant, reroll, buy,
+    enchantItem, rerollItem, enchantCost, canReroll, ENCHANT_MAX, REROLL_GOLD, SHARD,
     questAvailable, questsFor, startQuest, questProgress, completeQuest, activeQuests, sell, autoPickupAllowed,
     magnetLoot, collectNearby, unequip, equipBest, walkableDropPos, freeBagSlot,
     haveRoom, dropFromBag,
