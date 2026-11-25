@@ -7,19 +7,22 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="АРКЕОН: Пепел Завета — G2.6 «Меню предмета». Тап по вещи открывает действия: надеть, заточить, перековать, разобрать, продать, рынок, выбросить.">
-<title>АРКЕОН · Мир Завета · G2.6</title>
+<meta name="description" content="АРКЕОН: Пепел Завета — G2.6 «Меню предмета» + G2.7 «Компактный HUD»: радиальный кластер боя, контекстный интерфейс, одна кнопка меню.">
+<title>АРКЕОН · Мир Завета · G2.7 Компактный HUD</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="css/g2.css">
+<link rel="stylesheet" href="css/g2.css?v=g27">
 </head>
 <body>
 <div id="app">
   <canvas id="game" aria-label="Игровое поле АРКЕОН"></canvas>
 
-  <!-- ============================== HUD ============================== -->
-  <div id="hud" class="hidden">
+  <!-- ===================== G2.7 · КОМПАКТНЫЙ HUD =====================
+       Постоянно на экране: чип героя, зона, ☰, мини-карта, джойстик и
+       радиальный кластер. Всё остальное появляется по контексту
+       (data-state + класс .show) или живёт в одном bottom-sheet.       -->
+  <div id="hud" class="hidden" data-state="explore" data-hand="right">
     <div class="hud-top">
       <div class="panel pinfo">
         <button class="avatar" id="pAvatar" aria-label="Открыть снаряжение">В</button>
@@ -38,48 +41,75 @@
         <div id="targetName" class="target"></div>
       </div>
       <div class="right-info">
-        <div id="onlineBadge" class="badge">ОФЛАЙН-МИР</div>
-        <div class="badge sound"><span id="soundState">♪</span> ЗВУК</div>
-        <div class="mini-stats"><b id="dpsText">0</b><span>DPS</span><b id="killsText">0</b><span>УБ.</span><b id="goldText">0</b><span>S</span></div>
-        <button id="btnPause" class="icon-btn" aria-label="Меню">❚❚</button>
+        <button id="btnMenu" class="icon-btn fab" aria-label="Открыть меню" aria-expanded="false">☰</button>
       </div>
     </div>
+
+    <canvas id="minimap" width="132" height="132" class="mini" aria-label="Мини-карта · тап увеличивает"></canvas>
 
     <button id="storyBar" class="story-bar"><b id="storyTitle">✦ АКТ I · ПРОЛОГ</b><span id="storyObj">Поговорите с Эльдарой</span></button>
     <div id="questTracker" class="quest-tracker">▸ Квесты у НПС с меткой !</div>
-    <button id="btnLoot" class="loot-chip">✦ Забрать лут <b id="lootCount">0</b> · нажмите</button>
-    <canvas id="minimap" width="132" height="132" aria-label="Мини-карта"></canvas>
-    <div id="hint" class="hint"></div>
-    <div id="toast" class="toast"></div>
+
+    <div class="notify">
+      <div id="toast" class="toast"></div>
+      <div id="hint" class="hint"></div>
+    </div>
+    <button id="btnLoot" class="loot-chip" aria-label="Забрать лут рядом">✦ <b id="lootCount" class="cnt">0</b></button>
+    <button id="btnInteract" class="tool interact" aria-label="Взаимодействие">✦</button>
     <div id="chatLog" class="chat-log"></div>
 
-    <div class="toolbar">
-      <button id="btnInteract" class="tool interact">✦ Взаим.</button>
-      <button id="btnAttack" class="tool attack">⚔ Удар <small>зажать</small></button>
-      <button id="btnCamera" class="tool">↻ Камера</button>
-      <button id="btnChar" class="tool">♛ Герой</button>
-      <button id="btnBag" class="tool">▣ Сумка <i id="bagCount" class="cnt">0</i></button>
-      <button id="btnEquip" class="tool">⚔ Снаряжение <i id="equipCount" class="cnt">0</i></button>
-      <button id="btnMarket" class="tool">▤ Рынок <i id="marketCount" class="cnt">0</i></button>
-      <button id="btnPlayers" class="tool">♟ Игроки</button>
-      <button id="btnStory" class="tool">✦ Сюжет</button>
-      <button id="btnTravel" class="tool">◈ Карта</button>
-      <button id="btnQuests" class="tool">❖ Квесты</button>
-      <button id="btnChat" class="tool">✉ Чат</button>
-      <button id="btnParty" class="tool">⚑ Группа</button>
-      <button id="btnCodex" class="tool">✧ Кодекс</button>
-      <button id="btnSettings" class="tool">⚙</button>
-    </div>
-
+    <!-- Радиальный кластер: центр «Удар», 6 навыков + ульт/додж по кругу -->
     <div class="controls">
       <div id="joy" class="joy" aria-label="Джойстик движения">
         <div class="joy-ring"><div class="joy-knob" id="joyKnob"></div></div>
-        <span class="joy-label">ДВИЖЕНИЕ · свайп = додж</span>
       </div>
-      <div class="skill-zone">
-        <button id="btnUlt" class="skill ult" aria-label="Ультимейт"><span class="glyph">✦</span><span class="cd"></span><small>ИСКРА</small></button>
+      <div class="skill-zone cluster">
+        <button id="btnAttack" class="tool attack core" aria-label="Удар · зажать для серии">⚔</button>
         <div id="skills" class="skills"></div>
-        <button id="btnDodge" class="skill dodge" aria-label="Уклонение"><span class="glyph">↝</span><small>ДОДЖ <b id="dodgeCount">2</b></small></button>
+        <button id="btnUlt" class="skill ult" aria-label="Ультимейт"><span class="glyph">✦</span><span class="cd"></span></button>
+        <button id="btnDodge" class="skill dodge" aria-label="Уклонение"><span class="glyph">↝</span><b id="dodgeCount">2</b></button>
+      </div>
+    </div>
+
+    <!-- Единственная точка входа во все панели: 3 вкладки по 5 иконок -->
+    <div id="menuSheet" class="menu-sheet hidden" aria-hidden="true">
+      <div class="ms-head">
+        <div class="mtabs" role="tablist">
+          <button class="mtab on" data-tab="hero" aria-label="Герой">♛</button>
+          <button class="mtab" data-tab="world" aria-label="Мир">◈</button>
+          <button class="mtab" data-tab="social" aria-label="Социал">⚑</button>
+          <button class="mtab close" id="menuClose" aria-label="Закрыть меню">✕</button>
+        </div>
+        <div id="menuHint" class="mhint">ГЕРОЙ</div>
+        <span class="mver">G2.7</span>
+      </div>
+      <div class="mstatus">
+        <span id="onlineBadge" class="badge">ОФЛАЙН-МИР</span>
+        <span class="badge sound"><span id="soundState">♪</span> ЗВУК</span>
+        <span class="mini-stats"><b id="dpsText">0</b><span>DPS</span><b id="killsText">0</b><span>УБ.</span><b id="goldText">0</b><span>S</span></span>
+      </div>
+      <div class="mgroup on" data-group="hero">
+        <button id="btnChar" class="mtile" data-open="char" aria-label="Герой"><span class="mi">♛</span></button>
+        <button id="btnEquip" class="mtile" data-open="equip" aria-label="Снаряжение"><span class="mi">⚔</span><i id="equipCount" class="cnt">0</i></button>
+        <button id="btnBag" class="mtile" data-open="bag" aria-label="Сумка"><span class="mi">▣</span><i id="bagCount" class="cnt">0</i></button>
+        <button id="btnTalents" class="mtile" data-open="talents" aria-label="Таланты"><span class="mi">✦</span></button>
+        <button id="btnCodex" class="mtile" data-open="codex" aria-label="Кодекс"><span class="mi">✧</span></button>
+      </div>
+      <div class="mgroup" data-group="world">
+        <button id="btnStory" class="mtile" data-open="story" aria-label="Сюжет"><span class="mi">✦</span></button>
+        <button id="btnQuests" class="mtile" data-open="quests" aria-label="Квесты"><span class="mi">❖</span></button>
+        <button id="btnTravel" class="mtile" data-open="travel" aria-label="Карта и телепорты"><span class="mi">◈</span></button>
+        <button id="btnMarket" class="mtile" data-open="market" aria-label="Рынок"><span class="mi">▤</span><i id="marketCount" class="cnt">0</i></button>
+        <button id="btnCamera" class="mtile" data-do="camera" aria-label="Поворот камеры"><span class="mi">↻</span></button>
+      </div>
+      <div class="mgroup" data-group="social">
+        <button id="btnChat" class="mtile" data-open="chat" aria-label="Чат"><span class="mi">✉</span></button>
+        <button id="btnPlayers" class="mtile" data-open="players" aria-label="Игроки"><span class="mi">♟</span></button>
+        <button id="btnParty" class="mtile" data-open="party" aria-label="Группа"><span class="mi">⚑</span></button>
+        <button id="btnForge" class="mtile" data-open="forge" aria-label="Кузница"><span class="mi">⚒</span></button>
+        <button id="btnSettings" class="mtile" data-open="settings" aria-label="Настройки"><span class="mi">⚙</span></button>
+        <button id="btnHand" class="mtile" data-do="hand" aria-label="Сменить руку"><span class="mi">⇄</span></button>
+        <button id="btnMini" class="mtile" data-do="mini" aria-label="Увеличить мини-карту"><span class="mi">⊕</span></button>
       </div>
     </div>
   </div>
@@ -87,9 +117,9 @@
   <!-- ============================ СТАРТ ============================ -->
   <div id="startScreen" class="overlay">
     <div class="sheet">
-      <div class="logo"><span class="beacon"></span><h1>АРКЕОН</h1><p>ПЕПЕЛ ЗАВЕТА · G2.6 МЕНЮ ПРЕДМЕТА</p></div>
+      <div class="logo"><span class="beacon"></span><h1>АРКЕОН</h1><p>ПЕПЕЛ ЗАВЕТА · G2.7 КОМПАКТНЫЙ HUD</p></div>
       <p class="tagline">«Мир не погиб. Он перестал держать слово.»</p>
-      <div class="g21-chip">G2.6 · ДЕЙСТВИЯ С ПРЕДМЕТОМ · ЗАТОЧКА · ПЕРЕКОВКА · РЫНОК</div>
+      <div class="g21-chip">G2.6 · МЕНЮ ПРЕДМЕТА + G2.7 · РАДИАЛЬНЫЙ БОЙ · ОДНО МЕНЮ · ЧИСТЫЙ ЭКРАН</div>
       <h2 class="section-title">Выбери Возжённого · 6 классов канона</h2>
       <div class="class-grid">
         <button class="class-card selected" data-class="warrior"><b>⚔ ВОИН</b><small>Ярость · танк · BREAK</small></button>
@@ -101,14 +131,14 @@
       </div>
       <input id="charName" class="field" maxlength="16" placeholder="Имя Возжённого (необязательно)">
       <div class="how">
-        <div><b>◉</b> Джойстик — движение по открытому миру, свайп — додж с i-frames</div>
-        <div><b>✦</b> 6 навыков, автоатака по цели, ультимейт на 100% Заряда Искры</div>
+        <div><b>◉</b> Джойстик — движение, свайп по полю — додж с i-frames</div>
+        <div><b>✦</b> Большая кнопка «Удар» в центре, 6 навыков, ульт и додж — по кругу вокруг неё</div>
+        <div><b>☰</b> Все панели (сумка, карта, рынок, чат…) — в одном меню с тремя вкладками</div>
+        <div><b>✦</b> «Взаим.» и «Забрать лут» появляются только рядом с НПС, порталом или добычей</div>
         <div><b>✦</b> Пролог из 9 глав в безопасном городе: сначала сюжет и НПС, потом бой</div>
         <div><b>⚔</b> За каждую главу — часть экипировки; 12 квестов Завета откроются после ворот</div>
         <div><b>⚔</b> Автоатаки нет: тап по врагу, «Удар» (зажать) или F. Мобы отвечают только на ваш удар</div>
-        <div><b>◈</b> Карта и телепорты по 5 локациям и к НПС; Волны Разлома выключены по умолчанию</div>
-        <div><b>❖</b> НПС с «!», порталы, мировой босс, рынок и 12 квестов цепочки</div>
-        <div><b>⚑</b> Онлайн: укажи адрес wss-сервера; без него — союзники-призраки</div>
+        <div><b>◈</b> Тап по мини-карте увеличивает её; ⇄ в меню зеркалит раскладку под левшу</div>
         <div><b>▤</b> Инвентарь 40 слотов, лучи редкости, рынок с комиссией 5%, торговля 1:1 и шёпот</div>
       </div>
       <input id="serverInput" class="field" placeholder="wss://сервер/ws — необязательно">
@@ -142,6 +172,6 @@
 <script src="js/net.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/market.js"></script>
-<script src="js/main.js"></script>
+<script src="js/main.js?v=g27"></script>
 </body>
 </html>
