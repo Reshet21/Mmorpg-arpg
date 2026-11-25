@@ -273,8 +273,10 @@ check("d.picked=true" in rpg_js2 or "d.picked = true" in rpg_js2,
       "G2.2: явный флаг подобранного предмета")
 check("autoSalvage" in rpg_js2 and "lootFilter:'all'" in main_js2,
       "G2.2: весь лут подбирается, полная сумка не теряет дроп")
-check("A2.RPG.magnetLoot(G,dt)" in main_js2, "G2.2: магнит вызывается каждый тик симуляции")
-check("A2.RPG.collectNearby(G,7.5)" in main_js2, "G2.2: «Взаим.» забирает весь лут рядом")
+check("МАГНИТ ОТКЛЮЧЁН" in main_js2 and "A2.RPG.magnetLoot(G,dt)" not in main_js2,
+      "G2.8: магнит удалён из игрового цикла (дроп не едет за игроком)")
+check("A2.RPG.collectNearby(G,7.5)" not in main_js2 and "добычу поднимают тапом" in main_js2,
+      "G2.8: «Взаим.» больше не забирает весь лут рядом")
 check("flushItems" in net_js2 and "700" in net_js2,
       "G2.2: реестр предметов в WS троттлится (нет спама при сборе лута)")
 check("setQuality" in render_js2 and "waterCache" in render_js2 and "miniCache" in render_js2,
@@ -287,8 +289,8 @@ check("openModal('equip')" in main_js2 and "openModal('slot',s)" in main_js2,
       "G2.2: отдельные панели снаряжения и слота")
 check('data-act="slot"' in main_js2 and 'data-act="equipSlot"' in main_js2,
       "G2.2: слоты и предметы кликабельны, экипировка меняется из UI")
-check('data-act="pickAll"' in main_js2 and "btnLoot" in html2,
-      "G2.2: кнопки «Забрать лут» в панели и на HUD")
+check('data-act="pickAll"' not in main_js2 and 'id="btnLoot"' not in html2,
+      "G2.8: кнопки «Забрать лут» удалены из панели и HUD")
 check("btnEquip" in html2 and "pAvatar" in html2 and "equipCount" in html2,
       "G2.2: доступ к снаряжению из тулбара и по тапу на портрет")
 check(".equip-grid" in css_g2 and ".slot-card" in css_g2 and ".loot-chip.show" in css_g2,
@@ -438,8 +440,8 @@ check("function haveRoom(G)" in rpg_js5,
 check("!autoPickupAllowed(G,d.item) || !haveRoom(G)" in rpg_js5 and
       "if(d.noMagnet)" in rpg_js5,
       "G2.5: магнит НЕ тащит отфильтрованное, выброшенное и невлезающее")
-check("G.settings.magnet===false" in rpg_js5 and 'data-set="magnet"' in main_js5,
-      "G2.5: магнит можно полностью выключить в настройках")
+check("G.settings.magnet===false" in rpg_js5 and 'data-act="setFx"' in main_js5,
+      "G2.8: магнит выключен, в настройках появились уровни эффектов")
 check("function bagView()" in main_js5 and 'data-act="bagRarity"' in main_js5 and
       'data-bag="slot"' in main_js5 and 'data-bag="q"' in main_js5,
       "G2.5: фильтр сумки по редкости, слоту и названию")
@@ -514,7 +516,7 @@ check('class="skill-zone cluster"' in html7 and 'id="skills"' in html7 and 'id="
 check("data-open=" in html7 and "data-do=" in html7 and "aria-label=" in html7,
       "G2.7: плитки-иконки с действиями и доступными именами")
 for token in ("btnMarket", "btnPlayers", "bagCount", "lootCount", "btnEquip", "pAvatar",
-              "btnLoot", "btnTravel", "btnStory", "equipCount", "btnAttack", "safeBadge",
+              "btnMenu", "btnTravel", "btnStory", "equipCount", "btnAttack", "safeBadge",
               "modalClose", "btnStart", "btnReset"):
     check('id="'+token+'"' in html7, f"G2.7: сохранён вход «{token}»")
 ids7 = re.findall(r'\bid="([A-Za-z][\w-]*)"', html7)
@@ -529,10 +531,38 @@ check('#hud[data-hand="left"]' in css7 and "@media (orientation:landscape)" in c
       "G2.7: поддержка левши и отдельная раскладка ландшафта")
 check("function setHudState()" in main_js7 and "toggleMenu" in main_js7 and "const MENU" in main_js7,
       "G2.7: состояния HUD и карта режимов меню в main.js")
-check("G2.7" in html7 and "16.28" in doc7,
-      "G2.7: версия зафиксирована в клиенте и спецификации студии")
-check("G2.7" in smoke7, "G2.7: автотесты покрывают компактный HUD")
-check("arkeon-g27-v1" in sw7, "G2.7: офлайн-кэш PWA обновлён")
+check("G2.8" in html7 and "16.28" in doc7 and "16.29" in doc7,
+      "G2.8: версия зафиксирована в клиенте и спецификации студии")
+check("G2.7" in smoke7 and "G2.8" in smoke7, "G2.7/G2.8: автотесты покрывают HUD и ручной лут")
+check("arkeon-g28-v1" in sw7, "G2.8: офлайн-кэш PWA обновлён")
+
+# --- 8j. G2.8 «Ручной лут»: тап по вещи, без магнита, уровни FX ---
+rpg8 = (MOB / "js/rpg.js").read_text(encoding="utf-8")
+render8 = (MOB / "js/render.js").read_text(encoding="utf-8")
+man8 = (MOB / "manifest.webmanifest").read_text(encoding="utf-8")
+check("PICKUP_RADIUS = 2.6" in rpg8 and "function pickupOne(G, d, manual)" in rpg8,
+      "G2.8: радиус ручного подбора 2.6 тайла и подбор одного дропа")
+check("function findDrop(G, uid)" in rpg8 and "PICKUP_RADIUS, findDrop, pickupOne" in rpg8,
+      "G2.8: поиск дропа по uid и экспорт нового API")
+check("function lootDrop(d)" in main_js7 and "function tapTarget(cx,cy)" in main_js7 and
+      "kind='drop'" in main_js7,
+      "G2.8: тап по земле различает дропы, мобов и игроков")
+check("G.lootGoal" in main_js7 and "A2.RPG.PICKUP_RADIUS-0.15" in main_js7,
+      "G2.8: по далёкой вещи герой подходит сам, джойстик отменяет подход")
+check("magnet:false" in main_js7 and "fx:'minimal'" in main_js7,
+      "G2.8: магнит выключен по умолчанию, эффекты — «минимум»")
+check("function fxLevel()" in main_js7 and "fxOn()" in main_js7 and "fxShake(" in main_js7,
+      "G2.8: три уровня эффектов управляются из одного места")
+check("mode==='off'" in render8 and "minimal" in render8 and "drawDrop(ctx,dr.d,dr.x,dr.y,t,fxMode" in render8,
+      "G2.8: рендер умеет выключать FX и упрощать отрисовку дропа")
+check("n.crit?20:13" in render8 and "G.hitStop=0.055" in rpg8,
+      "G2.8: полный режим G2.5 сохранён без регрессии")
+check('data-act="setFx"' in main_js7 and "case 'setFx'" in main_js7,
+      "G2.8: переключатель эффектов доступен в настройках")
+check('id="btnLoot"' not in html7 and 'id="lootCount"' in html7 and "G2.8" in html7,
+      "G2.8: кнопки массового сбора нет, счётчик добычи остался информационным")
+check("G2.8" in man8 and "arkeon-g28-v1" in sw7,
+      "G2.8: манифест и PWA-кэш синхронизированы с версией")
 
 # --- 9. Отчёт ---
 passed = sum(1 for ok, _ in results if ok)

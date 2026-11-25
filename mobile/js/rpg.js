@@ -280,7 +280,7 @@
       rar:it.rarity, spin:Math.random()*6.28, picked:false, magnet:0,
       noMagnet:true };   // выброшенная вещь НЕ притягивается обратно
     G.world.drops.push(d);
-    G.log && G.log('🗑 Выброшено: '+itemName(it)+' · можно забрать кнопкой «Забрать лут»','#9db0bd');
+    G.log && G.log('🗑 Выброшено: '+itemName(it)+' · коснитесь вещи, чтобы забрать','#9db0bd');
     G.onDrop && G.onDrop(d);
     if(A2.Audio) A2.Audio.play('ui');
     if(G.net && G.net.syncItems) G.net.syncItems();
@@ -314,6 +314,26 @@
     return got;
   }
 
+  /* G2.8 · РУЧНОЙ ПОДБОР ОДНОГО ПРЕДМЕТА.
+   * Радиус как в Diablo / Torchlight: вещь лежит там, где упала, и поднимается
+   * только по тапу, когда герой подошёл вплотную. Никакого «всё подряд» и
+   * никакого притяжения: соседние дропы остаются на земле. */
+  const PICKUP_RADIUS = 2.6;
+  function findDrop(G, uid) {
+    if(!G || !G.world || !G.world.drops) return null;
+    for(const d of G.world.drops) if(d.uid===uid && !d.picked && d.t>=0) return d;
+    return null;
+  }
+  function pickupOne(G, d, manual) {
+    if(!d || d.picked || d.t<0) return {ok:false,reason:'gone'};
+    if(A2.dist(d.x,d.y,G.player.x,G.player.y)>PICKUP_RADIUS) return {ok:false,reason:'far'};
+    if(!freeBagSlot(G)) return {ok:false,reason:'full'};
+    if(!pickup(G,d,manual)) return {ok:false,reason:'gone'};
+    return {ok:true,item:d.item,gold:d.gold};
+  }
+
+  /* Оставлено как служебный API для инструментов/старых панелей.
+   * Из игрового цикла G2.8 НЕ вызывается: по умолчанию G.settings.magnet=false. */
   function collectNearby(G, radius) {
     const R=radius||7.5; let n=0;
     for(const d of G.world.drops.slice()) {
@@ -519,13 +539,16 @@
     // G2.4 · моб отвечает только тому, кто его ударил; сам по себе не агрессит
     if (A2.World.provoke) A2.World.provoke(G.world, mob);
     G.damageDealt += dmg;
-    G.numbers.push({x:mob.x+(Math.random()-.5),y:mob.y,z:1.4,text:(crit?'✦ ':'')+A2.fmt(dmg),
+    const fxLevel=(G.settings&&G.settings.fx)||'full';
+    if(fxLevel!=='off') G.numbers.push({x:mob.x+(Math.random()-.5),y:mob.y,z:1.4,text:(crit?'✦ ':'')+A2.fmt(dmg),
       color:crit?'#ffe27a':'#e9efed',life:1,max:1,crit:!!crit});
-    spawnParticles(G,mob.x,mob.y,crit?22:11,elementColor(element||cls.element),crit?2.4:1.7);
+    // G2.8 · три уровня эффектов: off (ничего), minimal (короткая вспышка), full (G2.5)
+    if(fxLevel!=='off') spawnParticles(G,mob.x,mob.y,
+      fxLevel==='minimal'?(crit?6:3):(crit?22:11),elementColor(element||cls.element),crit?2.4:1.7);
     // G2.5 · ударная вспышка и «хищение кадра» для веса удара, как в Diablo
-    if(G.attacks) G.attacks.push({ kind:'impact', x:mob.x, y:mob.y, t:0, dur:0.34,
+    if(G.attacks && fxLevel!=='off') G.attacks.push({ kind:'impact', x:mob.x, y:mob.y, t:0, dur:0.34,
       color:elementColor(element||cls.element), crit:!!crit, scale:crit?1.45:1 });
-    if(crit){ G.hitStop=0.055; G.cam.shake=Math.min(11,(G.cam.shake||0)+4); G.flash=Math.max(G.flash||0,0.22); }
+    if(crit && fxLevel==='full'){ G.hitStop=0.055; G.cam.shake=Math.min(11,(G.cam.shake||0)+4); G.flash=Math.max(G.flash||0,0.22); }
     if(crit && st.shieldOnCrit) ch.shield=(ch.shield||0)+st.maxHp*st.shieldOnCrit;
     if(st.leech) ch.hp=Math.min(st.maxHp,ch.hp+dmg*st.leech);
     // статус/реакции
@@ -559,8 +582,9 @@
       const key=A2.pairKey(prev.el,el), r=A2.REACTIONS[key] || {ru:'Гармония',coeff:2.2,color:'#a878e0'};
       const bonus=Math.round(C.WEAPON_HIT*r.coeff*1.34*1.298*mitigation(mob.armor));
       mob.hp-=bonus; G.damageDealt+=bonus; G.reactions++;
-      G.numbers.push({x:mob.x,y:mob.y,z:2.1,text:r.ru,color:r.color,life:1.2,max:1.2});
-      spawnParticles(G,mob.x,mob.y,20,r.color,2.2);
+      const fxr=(G.settings&&G.settings.fx)||'full';
+      if(fxr!=='off') G.numbers.push({x:mob.x,y:mob.y,z:2.1,text:r.ru,color:r.color,life:1.2,max:1.2});
+      if(fxr!=='off') spawnParticles(G,mob.x,mob.y,fxr==='minimal'?5:20,r.color,2.2);
       mob.statuses=mob.statuses.filter(s=>s!==prev);
       G.onReaction&&G.onReaction(r.ru,mob);
       if(mob.hp<=0) { A2.World.kill(G.world,mob); G.char.kills++; grantXP(G,mob.xp); dropItem(G,mob,1); G.onKill&&G.onKill(mob,bonus); }
@@ -587,7 +611,8 @@
     ch.hp-=left;
     G.damageTaken+=left;
     G.numbers.push({x:G.player.x,y:G.player.y,z:1.6,text:'−'+A2.fmt(left),color:'#ff8a7a',life:1,max:1});
-    spawnParticles(G,G.player.x,G.player.y,8,'#e0574f',1);
+    const fxh=(G.settings&&G.settings.fx)||'full';
+    if(fxh!=='off') spawnParticles(G,G.player.x,G.player.y,fxh==='minimal'?3:8,'#e0574f',1);
     G.cam.shake=Math.min(9,G.cam.shake+2.5); G.flash=Math.min(1,G.flash+0.12);
     G.onHurt&&G.onHurt(left,mob);
     if(ch.hp<=0){ ch.hp=0; ch.dead=true; G.log('Возжённый пал. Возрождение у Светоча…','#e0574f'); }
@@ -723,7 +748,7 @@
     enchantItem, rerollItem, enchantCost, canReroll, ENCHANT_MAX, REROLL_GOLD, SHARD,
     questAvailable, questsFor, startQuest, questProgress, completeQuest, activeQuests, sell, autoPickupAllowed,
     magnetLoot, collectNearby, unequip, equipBest, walkableDropPos, freeBagSlot,
-    haveRoom, dropFromBag,
+    haveRoom, dropFromBag, PICKUP_RADIUS, findDrop, pickupOne,
     dialogue, mitigation, hit, elementColor, applyElement, spawnParticles, hurtPlayer,
     save, load, restore, clearSave,
     storyChapter, storyNpc, storyWaypoint, storyEvent, storyCheckReach, storyComplete, storySkip };

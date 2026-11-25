@@ -33,9 +33,23 @@
     attacks:[], hitStop:0,
     story:{chapter:0,done:false,met:{},progress:0,log:[],unlocked:false}, storyTarget:null, storyBannerUntil:0,
     settings:{motion:true,sound:true,vibration:true,quality:'auto',lootFilter:'all',autoSalvage:true,
-      worldEvents:false,magnet:true,volume:0.8,music:0.45},
+      worldEvents:false,magnet:false,fx:'minimal',volume:0.8,music:0.45},
+    lootGoal:null,
     lowFps:0, lastFrame:0, started:false, perf:'high', fpsAvg:60, fpsLowT:0, fpsHighT:0, itemFlushT:0
   };
+
+  /* G2.8 · уровни визуальных эффектов off / minimal / full */
+  function fxLevel(){ return (G.settings&&G.settings.fx)||'full'; }
+  function fxOn(){ return fxLevel()!=='off'; }
+  function fxMin(){ return fxLevel()==='minimal'; }
+  function fxShake(add,cap){
+    if(fxLevel()!=='full' || G.settings.motion===false) return;
+    G.cam.shake=Math.min(cap,(G.cam.shake||0)+add);
+  }
+  function fxParticles(x,y,n,color,power){
+    if(!fxOn()) return;
+    A2.RPG.spawnParticles(G,x,y,fxMin()?Math.max(3,Math.round(n/4)):n,color,power);
+  }
 
   /* ---------------------------журнал и уведомления --------------------------- */
   G.log = function(text,color) {
@@ -72,7 +86,7 @@
   G.onReaction = name => { G.log('✺ Реакция: '+name,'#4fd6d0'); S('reaction'); };
   G.onHurt = () => S('hurt');
   G.onHit = (mob,dmg,crit) => { S(crit?'crit':'hit');
-    if(crit){ G.cam.shake=Math.min(12,(G.cam.shake||0)+3); G.flash=Math.max(G.flash||0,0.18); } };
+    if(crit && fxLevel()==='full'){ G.cam.shake=Math.min(12,(G.cam.shake||0)+3); G.flash=Math.max(G.flash||0,0.18); } };
   G.onCast = () => S('cast');
   G.onDodge = () => S('dodge');
   G.onChat = c => { G.log('['+c.ch+'] '+c.name+': '+c.text,c.color); S('chat'); };
@@ -207,12 +221,12 @@
     // G2.5 · визуальный «почерк» навыка: дуга, рывок, нова или щит
     const fxKind = special==='aoe'||special==='reaction' ? 'nova'
       : special==='dash' ? 'dash' : special==='guard'||special==='shield' ? 'ward' : 'cast';
-    G.attacks.push({ kind:fxKind, x:G.player.x, y:G.player.y,
+    if(fxOn()) G.attacks.push({ kind:fxKind, x:G.player.x, y:G.player.y,
       tx:t?t.x:G.player.x+Math.cos(G.player.facing)*3.5,
       ty:t?t.y:G.player.y+Math.sin(G.player.facing)*3.5,
-      t:0, dur:fxKind==='nova'?0.62:0.45, color:A2.RPG.elementColor(el), element:el,
+      t:0, dur:fxMin()?0.24:(fxKind==='nova'?0.62:0.45), color:A2.RPG.elementColor(el), element:el,
       scale:fxKind==='nova'?1.75:1.3 });
-    G.cam.shake=Math.min(9,(G.cam.shake||0)+(fxKind==='nova'?4:2));
+    fxShake(fxKind==='nova'?4:2,9);
     switch(special) {
       case 'dash': {
         const a=t?Math.atan2(t.y-G.player.y,t.x-G.player.x):G.player.facing;
@@ -231,7 +245,7 @@
         G.toast('Призваны двое слуг',1.8); break;
       case 'aoe':
         A2.World.mobsNear(G.world,G.player.x,G.player.y,5.5).forEach(mb=>A2.RPG.hit(G,mb,coeff,el));
-        A2.RPG.spawnParticles(G,G.player.x,G.player.y,26,A2.RPG.elementColor(el),2.2); break;
+        fxParticles(G.player.x,G.player.y,26,A2.RPG.elementColor(el),2.2); break;
       case 'break':
         if(t){ A2.RPG.hit(G,t,coeff*1.4,el); t.statuses=t.statuses||[]; t.statuses.push({el:'Физический',until:G.world.time+8,break:true}); G.toast('BREAK · −20% брони',2); }
         break;
@@ -273,10 +287,11 @@
     const cls=A2.CLASS(G.char.classId), mult=1+G.char.stats.ult;
     A2.World.mobsNear(G.world,G.player.x,G.player.y,11).forEach(mb=>A2.RPG.hit(G,mb,6.2*mult,cls.element));
     G.char.shield=(G.char.shield||0)+G.char.stats.maxHp*0.45;
-    A2.RPG.spawnParticles(G,G.player.x,G.player.y,70,cls.color,3.4);
-    G.attacks.push({ kind:'nova', x:G.player.x, y:G.player.y, tx:G.player.x, ty:G.player.y,
-      t:0, dur:0.9, color:A2.RPG.elementColor(cls.element), element:cls.element, scale:3.1 });
-    G.hitStop=0.09; G.cam.shake=14; G.flash=0.8; G.toast('✦ '+cls.ult,3);
+    fxParticles(G.player.x,G.player.y,70,cls.color,3.4);
+    if(fxOn()) G.attacks.push({ kind:'nova', x:G.player.x, y:G.player.y, tx:G.player.x, ty:G.player.y,
+      t:0, dur:fxMin()?0.3:0.9, color:A2.RPG.elementColor(cls.element), element:cls.element, scale:3.1 });
+    if(fxLevel()==='full'){ G.hitStop=0.09; G.cam.shake=14; G.flash=0.8; }
+    G.toast('✦ '+cls.ult,3);
     return true;
   }
   function dodge(dx,dy) {
@@ -289,7 +304,7 @@
     if(A2.World.canMove(G.world,nx,ny)){ G.player.x=nx; G.player.y=ny; }
     ch.res=Math.min(ch.maxRes,ch.res+6);
     ch.stats.dodgeDmg && (G.buffs.dodgeUntil=G.time+3);
-    A2.RPG.spawnParticles(G,G.player.x,G.player.y,14,'#9fe8ff',1.6);
+    fxParticles(G.player.x,G.player.y,14,'#9fe8ff',1.6);
     G.onDodge&&G.onDodge();
     return true;
   }
@@ -436,7 +451,6 @@
     on('btnUlt',useUlt);
     on('btnInteract',interact);
     on('pAvatar',()=>openModal('equip'));
-    on('btnLoot',()=>{ A2.RPG.collectNearby(G,9.5); });
     on('storyBar',()=>openModal('story'));
     on('modalClose',closeModal);
     on('btnStart',startGame);
@@ -517,25 +531,60 @@
     switch(G.cam.orient){case 1:X=wy;Y=-wx;break;case 2:X=-wx;Y=-wy;break;case 3:X=-wy;Y=wx;break;}
     const m=Math.hypot(X,Y)||1; return {x:X/m,y:Y/m};
   }
+  /* G2.8 · тап по КОНКРЕТНОЙ вещи поднимает только её. Дропы ищутся
+   * в экранных координатах по той же проекции, что и отрисовка. */
+  function lootDrop(d) {
+    if(!d || G.mode!=='playing') return;
+    const r=A2.RPG.pickupOne(G,d,true);
+    if(r.ok){
+      G.lootGoal=null;
+      const it=r.item, col=it?A2.RARITY(it.rarity).color:'#f0d27a';
+      if(it){ G.log('✦ В сумку: '+A2.RPG.itemName(it),col);
+        G.toast('✦ '+A2.RPG.itemName(it),1.5); }
+      else G.toast('+ '+Math.round(r.gold||0)+' Серебра',1.3);
+      if(A2.Audio) A2.Audio.play('loot',it?it.rarity:'common');
+      fxParticles(d.x,d.y,10,col,1.2);
+      return;
+    }
+    if(r.reason==='far'){
+      G.lootGoal=d.uid; G.lootGoalSince=G.time;
+      G.toast('Иду к предмету · коснитесь его снова, чтобы отменить',1.7);
+      return;
+    }
+    G.lootGoal=null;
+    if(r.reason==='full') G.toast('Сумка полна (40) — разберите лут',2);
+  }
   function tapTarget(cx,cy) {
-    if(!G.camScreen) return;
+    if(!G.camScreen || !G.world || G.mode!=='playing') return;
     const {ox,oy,zoom}=G.camScreen;
-    let best=null,bd=44;
+    const o=G.cam.orient;
+    let best=null,bd=44,kind=null;
+    for(const d of G.world.drops){
+      if(d.picked || d.t<0) continue;
+      const [x,y]=A2.Render.iso(d.x,d.y,0,o);
+      const sx=x*zoom+ox, sy=y*zoom+oy-16*zoom;
+      const dist=Math.hypot(sx-cx,sy-cy);
+      if(dist<bd){bd=dist;best=d;kind='drop';}
+    }
     for(const m of G.world.mobs) if(m.alive){
-      const [x,y]=A2.Render.iso(m.x,m.y,0,G.cam.orient);
+      const [x,y]=A2.Render.iso(m.x,m.y,0,o);
       const sx=x*zoom+ox,sy=y*zoom+oy-28*zoom;
       const d=Math.hypot(sx-cx,sy-cy);
-      if(d<bd){bd=d;best=m;}
+      if(d<bd){bd=d;best=m;kind='mob';}
     }
     // G2.1 · тап по другому игроку открывает реальные социальные действия
     for(const e of G.entities) if(e.isRemote){
-      const [x,y]=A2.Render.iso(e.x,e.y,0,G.cam.orient);
+      const [x,y]=A2.Render.iso(e.x,e.y,0,o);
       const sx=x*zoom+ox,sy=y*zoom+oy-28*zoom;
       const d=Math.hypot(sx-cx,sy-cy);
-      if(d<bd){bd=d;best={player:true,uid:e.uid,name:e.name||'Игрок',level:e.level||1,classId:e.classId||'warrior'};}
+      if(d<bd){bd=d;best={player:true,uid:e.uid,name:e.name||'Игрок',level:e.level||1,classId:e.classId||'warrior'};kind='player';}
     }
-    if(best&&best.player){ G.selectedPlayer=best; openModal('player',best); return; }
-    if(best){ G.target=best; G.toast('Цель: '+(best.nameOverride||best.ru),1.2); basicAttack(); }
+    if(kind==='drop'){
+      if(G.lootGoal===best.uid){ G.lootGoal=null; G.toast('Подход отменён',1.1); return; }
+      G.lootGoal=null; lootDrop(best); return;
+    }
+    if(kind==='player'){ G.selectedPlayer=best; openModal('player',best); return; }
+    if(kind==='mob'){ G.target=best; G.toast('Цель: '+(best.nameOverride||best.ru),1.2); basicAttack(); }
   }
   function startGame() {
     const pick=(typeof document!=='undefined'&&document.querySelector)?document.querySelector('.class-card.selected'):null;
@@ -584,9 +633,9 @@
     }
     const ang=Math.atan2(t.y-G.player.y,t.x-G.player.x);
     G.player.facing=ang;
-    G.attacks.push({ kind:'slash', x:G.player.x, y:G.player.y, tx:t.x, ty:t.y,
-      t:0, dur:0.34, color:cls.color, element:cls.element, scale:1 });
-    G.cam.shake=Math.min(7,(G.cam.shake||0)+1.8);
+    if(fxOn()) G.attacks.push({ kind:'slash', x:G.player.x, y:G.player.y, tx:t.x, ty:t.y,
+      t:0, dur:fxMin()?0.2:0.34, color:cls.color, element:cls.element, scale:1 });
+    fxShake(1.8,7);
     A2.RPG.hit(G,t,1.05,cls.element);
     G.char.res=A2.clamp(G.char.res+8,0,G.char.maxRes);
     G.char.ult=A2.clamp(G.char.ult+2,0,100);
@@ -674,9 +723,7 @@
       const a=p.arrival||{x:A2.ZONE(p.to).spawn[0],y:A2.ZONE(p.to).spawn[1]};
       setZone(p.to,a.x,a.y); A2.RPG.save(G); return;
     }
-    const loot=G.world.drops.some(dd=>!dd.picked && dd.t>0 && A2.dist(dd.x,dd.y,G.player.x,G.player.y)<7.5);
-    if(loot){ A2.RPG.collectNearby(G,7.5); return; }
-    G.toast('Рядом нет НПС, портала или добычи',1.5);
+    G.toast('Рядом нет НПС или портала · добычу поднимают тапом по вещи',1.8);
   }
 
   /* ------------------------------- панели ------------------------------- */
@@ -958,22 +1005,20 @@
       for(let i=0;i<Math.min(empty,40);i++) html.push('<div class="cell empty"></div>');
       html.push('</div>');
       if(!view.length) html.push('<p class="empty">Под фильтр ничего не подходит. Сбросьте фильтр на «Всё».</p>');
-      html.push('<div class="btnrow"><button data-act="goequip">⚔ Снаряжение</button><button data-act="equipBest">✦ Надеть лучшее</button>'+
-        '<button data-act="pickAll">✦ Забрать лут рядом</button></div>');
-      html.push('<div class="btnrow"><button data-act="gomarket">Рынок</button><button data-act="filters">Фильтр лута и магнит</button></div>');
-      html.push('<p class="note">Чекбокс — выбрать предмет для массовых действий. Тап по ячейке — карточка: надеть, разобрать, продать, выставить или <b>выбросить на землю</b>. Выброшенное не притягивается магнитом, пока вы сами его не заберёте.</p>');
+      html.push('<div class="btnrow"><button data-act="goequip">⚔ Снаряжение</button><button data-act="equipBest">✦ Надеть лучшее</button></div>');
+      html.push('<div class="btnrow"><button data-act="gomarket">Рынок</button><button data-act="filters">Добыча и эффекты</button></div>');
+      html.push('<p class="note">Чекбокс — выбрать предмет для массовых действий. Тап по ячейке — карточка: надеть, разобрать, продать, выставить или <b>выбросить на землю</b>. Выброшенное остаётся лежать, пока вы не коснётесь его снова.</p>');
     } else if(mode==='item'){
       const it=ch.inventory[typeof data==='number'?data:G.selectedItem];
       h('Предмет · '+A2.RARITY(it?it.rarity:'common').ru);
       html.push(itemDetail(it, typeof data==='number'?data:G.selectedItem));
     } else if(mode==='filters'){
-      h('Фильтр лута и звук');
-      html.push('<h4>Автоподбор предметов</h4>');
-      [['all','Всё подряд (рекомендуется)'],['rare','Редкое и выше'],['epic','Эпическое и выше'],['legendary','Легендарное и выше'],['none','Только вручную']].forEach(f=>
-        html.push('<button class="wide" data-act="setLoot" data-v="'+f[0]+'" '+(G.settings.lootFilter===f[0]?'style="border-color:#4fd6d0"':'')+'>'+(G.settings.lootFilter===f[0]?'✓ ':'')+f[1]+'</button>'));
-      html.push('<h4>Магнит лута</h4>');
-      html.push('<label class="check"><input type="checkbox" data-set="magnet" '+(G.settings.magnet?'checked':'')+'> Притягивать только то, что реально подберётся</label>');
-      html.push('<p class="note">Отфильтрованное редкостью, выброшенное вручную и «не влезающее» в полную сумку остаётся на месте и не едет за вами. Полностью выключите магнит, чтобы собирать лут только кнопкой «Забрать лут».</p>');
+      h('Добыча, эффекты и звук');
+      html.push('<h4>Подбор предметов · G2.8</h4>');
+      html.push('<p class="note">Магнит и «Забрать всё» отключены. Вещь лежит там, где упала. Коснитесь конкретного предмета в радиусе 2.6 тайла, чтобы поднять <b>только его</b>; по далёкому герой подойдёт сам. Соседние дропы остаются на земле.</p>');
+      html.push('<h4>Визуальные эффекты</h4>');
+      [['off','Выключены · только урон и лут'],['minimal','Минимум · тонкий взмах и кольцо'],['full','Полные · искры, лучи, тряска']].forEach(f=>
+        html.push('<button class="wide" data-act="setFx" data-v="'+f[0]+'" '+(fxLevel()===f[0]?'style="border-color:#4fd6d0"':'')+'>'+(fxLevel()===f[0]?'✓ ':'')+f[1]+'</button>'));
       html.push('<h4>Звук · '+A2.Audio.state().running+' / '+A2.Audio.state().ctx+'</h4>');
       html.push('<label class="check"><input type="checkbox" data-set="sound" '+(G.settings.sound?'checked':'')+'> Звук и музыка биома</label>');
       html.push('<label class="range">Общая громкость <input type="range" data-range="volume" min="0" max="100" value="'+Math.round(G.settings.volume*100)+'"></label>');
@@ -981,7 +1026,6 @@
       html.push('<label class="range">Эффекты <input type="range" data-range="sfx" min="0" max="100" value="90"></label>');
       html.push('<label class="check"><input type="checkbox" data-set="autoSalvage" '+(G.settings.autoSalvage?'checked':'')+'> Авторазбор обычного при полной сумке</label>');
       html.push('<label class="check"><input type="checkbox" data-set="worldEvents" '+(G.settings.worldEvents?'checked':'')+'> Волны Разлома (агрессивные события)</label>');
-      html.push('<label class="check"><input type="checkbox" data-set="magnet" '+(G.settings.magnet?'checked':'')+'> Магнит лута (только подбираемое)</label>');
       html.push('<p class="note">Бой полностью ручной: тап по врагу, кнопка «Удар» или клавиша F. Мобы мирные и отвечают только на ваш удар; через 12 с успокаиваются.</p>');
       html.push('<div class="btnrow"><button data-act="testSound">Проверить звук</button><button data-act="backbag">← К сумке</button></div>');
     } else if(mode==='market'){
@@ -1049,21 +1093,22 @@
       html.push('<p class="note">P3: 0 силовых SKU. P1: вес каждого удара. P2: мир помнит каждый след.</p>');
     } else if(mode==='settings'){
       h('Настройки');
-      html.push('<label class="check"><input type="checkbox" data-set="motion" '+(G.settings.motion?'checked':'')+'> Тряска и частицы</label>');
+      html.push('<h4>Визуальные эффекты</h4>');
+      [['off','Выключены · только урон и лут'],['minimal','Минимум · тонкий взмах и кольцо'],['full','Полные · искры, лучи, тряска']].forEach(f=>
+        html.push('<button class="wide" data-act="setFx" data-v="'+f[0]+'" '+(fxLevel()===f[0]?'style="border-color:#4fd6d0"':'')+'>'+(fxLevel()===f[0]?'✓ ':'')+f[1]+'</button>'));
+      html.push('<label class="check"><input type="checkbox" data-set="motion" '+(G.settings.motion?'checked':'')+'> Тряска камеры в полном режиме</label>');
       html.push('<label class="check"><input type="checkbox" data-set="sound" '+(G.settings.sound?'checked':'')+'> Звук и музыка биома</label>');
       html.push('<label class="check"><input type="checkbox" data-set="vibration" '+(G.settings.vibration?'checked':'')+'> Вибрация</label>');
       html.push('<label class="check"><input type="checkbox" data-set="autoSalvage" '+(G.settings.autoSalvage?'checked':'')+'> Авторазбор обычного при полной сумке</label>');
       html.push('<label class="check"><input type="checkbox" data-set="worldEvents" '+(G.settings.worldEvents?'checked':'')+'> Волны Разлома (агрессивные события)</label>');
-      html.push('<label class="check"><input type="checkbox" data-set="magnet" '+(G.settings.magnet?'checked':'')+'> Магнит лута (только подбираемое)</label>');
-      html.push('<p class="note">Бой полностью ручной: тап по врагу, кнопка «Удар» или клавиша F. Мобы мирные и отвечают только на ваш удар; через 12 с успокаиваются.</p>');
+      html.push('<p class="note">Добыча лежит там, где упала. Коснитесь конкретной вещи, чтобы поднять только её; по далёкой — герой подойдёт сам. Бой ручной: тап по врагу, кнопка «Удар» или клавиша F.</p>');
       html.push('<h4>Графика · сейчас '+(G.perf==='low'?'экономный':'полный')+' режим · '+Math.round(G.fpsAvg)+' FPS</h4>');
       [['auto','Авто (по FPS)'],['high','Полная детализация'],['low','Экономная · без лагов']].forEach(q=>
         html.push('<button class="wide" data-act="quality" data-v="'+q[0]+'" '+(G.settings.quality===q[0]?'style="border-color:#4fd6d0"':'')+'>'+
           (G.settings.quality===q[0]?'✓ ':'')+q[1]+'</button>'));
-      html.push('<div class="btnrow"><button data-act="pickAll">✦ Забрать весь лут рядом</button></div>');
       html.push('<h4>Камера</h4>'+row('Зум',G.cam.zoom.toFixed(2))+row('Поворот',[0,90,180,270][G.cam.orient]+'°'));
       html.push('<div class="btnrow"><button data-act="goTravel">◈ Карта и телепорты</button><button data-act="home">✦ В Пристань</button></div>');
-      html.push('<div class="btnrow"><button data-act="filters">Фильтр лута и звук</button><button data-act="goplayers">Игроки</button>'+
+      html.push('<div class="btnrow"><button data-act="filters">Добыча и эффекты</button><button data-act="goplayers">Игроки</button>'+
         '<button data-act="save">Сохранить</button></div>');
       html.push('<h4>Начать заново</h4><p class="note">Удалит весь прогресс и начнёт АКТ I с первой главы в Пристани Завета.</p>');
       html.push('<div class="btnrow"><button data-act="reset">⟲ НАЧАТЬ ВСЁ ЗАНОВО</button></div>');
@@ -1207,11 +1252,9 @@
         if(n) A2.Audio.play('enchant');
         openModal('equip'); break;
       }
-      case 'pickAll': {
-        const n=A2.RPG.collectNearby(G,9.5);
-        if(n) A2.Audio.play('coin');
-        openModal(G.modalMode||'bag'); break;
-      }
+      case 'pickAll':   // G2.8 · массовый сбор удалён, оставляем только подсказку
+        G.toast('Коснитесь конкретной вещи на земле, чтобы поднять её',2);
+        break;
       case 'quality': {
         G.settings.quality=v; G.fpsLowT=0; G.fpsHighT=0;
         if(v!=='auto'){ G.perf=v; A2.Render.setQuality(v); }
@@ -1283,6 +1326,9 @@
       }
       case 'filters': openModal('filters'); break;
       case 'setLoot': G.settings.lootFilter=v; A2.Audio.play('ui'); openModal('filters'); break;
+      case 'setFx': G.settings.fx=(v==='off'||v==='minimal'||v==='full')?v:'minimal';
+        A2.Audio.play('ui'); G.toast('Эффекты: '+({off:'выкл',minimal:'минимум',full:'полные'}[G.settings.fx]),1.3);
+        openModal(G.modalMode||'settings'); break;
       case 'testSound': A2.Audio.unlock(); ['hit','crit','loot','level','portal','ultimate'].forEach((n,k)=>setTimeout(()=>A2.Audio.play(n,k===2?'legendary':undefined),k*180)); G.toast('Звуковой тест: 6 эффектов',2); break;
       case 'gomarket': openModal('market'); break;
       case 'gotrade': openModal('trade'); break;
@@ -1423,6 +1469,26 @@
       if(A2.World.canMove(G.world,p.x,ny)) p.y=ny;
       p.facing=Math.atan2(w.y,w.x);
     }
+    // G2.8 · автоподход к предмету, по которому тапнули (Diablo / Torchlight).
+    // Ручной ввод джойстика/клавиш всегда имеет приоритет и отменяет подход.
+    if(G.lootGoal){
+      const gd=A2.RPG.findDrop(G,G.lootGoal);
+      if(!gd || G.pinch || m>0.08 || G.time-(G.lootGoalSince||0)>8){
+        if(!gd || G.time-(G.lootGoalSince||0)>8) G.toast('Не могу подойти к предмету',1.4);
+        G.lootGoal=null;
+      } else {
+        const dd=A2.dist(gd.x,gd.y,p.x,p.y);
+        if(dd<=A2.RPG.PICKUP_RADIUS-0.15){ lootDrop(gd); }
+        else {
+          const spd=ch.stats.speed*(1+ch.stats.haste*0.2)*0.95;
+          const a=Math.atan2(gd.y-p.y,gd.x-p.x);
+          const nx=p.x+Math.cos(a)*dt*spd, ny=p.y+Math.sin(a)*dt*spd;
+          if(A2.World.canMove(G.world,nx,p.y)) p.x=nx;
+          if(A2.World.canMove(G.world,p.x,ny)) p.y=ny;
+          p.moving=true; p.facing=a; ch.x=p.x; ch.y=p.y;
+        }
+      }
+    }
     ch.x=p.x; ch.y=p.y;
     // G2.4 · АВТОАТАКИ НЕТ. Удар наносится только по явному вводу:
     // тап по врагу, кнопка «Удар» или удержание этой кнопки.
@@ -1439,9 +1505,8 @@
       } else { pet.x=A2.lerp(pet.x,p.x+1.5,dt); pet.y=A2.lerp(pet.y,p.y+1.5,dt); }
     }
     G.pets=G.pets.filter(x=>x.life>0);
-    // G2.2 · магнит лута: вещи притягиваются к игроку и подбираются сами,
-    // даже если моб умер за стеной или на дальней дистанции.
-    A2.RPG.magnetLoot(G,dt);
+    // G2.8 · МАГНИТ ОТКЛЮЧЁН: дроп лежит там, где упал, и поднимается
+    // только по тапу по конкретной вещи (см. tapTarget / lootDrop).
     // отложенная досылка реестра предметов на сервер (не чаще раза в 700 мс)
     G.itemFlushT+=dt;
     if(G.itemFlushT>=1){ G.itemFlushT=0; if(G.net&&G.net.flushItems) G.net.flushItems(); }
@@ -1463,8 +1528,8 @@
           return d<tg.radius && diff<0.65;
         };
         if(inShape(p.x,p.y)) A2.RPG.hurtPlayer(G,mob.dmg*tg.dmgMul,mob);
-        A2.RPG.spawnParticles(G,tg.x,tg.y,18,'#e0574f',2);
-        G.cam.shake=Math.min(10,G.cam.shake+2);
+        fxParticles(tg.x,tg.y,18,'#e0574f',2);
+        fxShake(2,10);
       },
       onPhase:(mob,ph)=>G.toast('ФАЗА '+ph+' · '+mob.nameOverride,2.5),
       onRespawn:()=>{}
@@ -1488,8 +1553,9 @@
     if(G.attacks.length>28) G.attacks.splice(0,G.attacks.length-28);
     // камера
     G.cam.shake*=Math.pow(0.06,dt);
-    G.cam.shakeX=(Math.random()-0.5)*G.cam.shake*(G.settings.motion?1:0.2);
-    G.cam.shakeY=(Math.random()-0.5)*G.cam.shake*(G.settings.motion?1:0.2);
+    const shakeK=fxLevel()==='full'?(G.settings.motion?1:0.2):0;
+    G.cam.shakeX=(Math.random()-0.5)*G.cam.shake*shakeK;
+    G.cam.shakeY=(Math.random()-0.5)*G.cam.shake*shakeK;
     G.flash=Math.max(0,G.flash-dt*2.2);
     // DPS
     G.dmgWindow.push({t:G.time,d:G.damageDealt});
@@ -1587,8 +1653,6 @@
     const lootN=G.world?G.world.drops.filter(d=>d.t>0&&!d.picked&&d.item).length:0;
     setB('lootCount',String(lootN));
     setB('equipCount',String(Object.values(ch.equip).filter(Boolean).length));
-    const lootChip=$('btnLoot');
-    if(lootChip&&lootChip.classList) lootChip.classList.toggle('show',lootN>0);
     setB('marketCount',String(G.market?G.market.orders.length:0));
     if(G.market) G.market.newItems=Math.min(99,G.market.newItems);
     const sndState=$('soundState'); if(sndState) sndState.textContent=G.settings.sound?'♪':'✕';
@@ -1617,10 +1681,10 @@
 
   /* ------------------------------ тестовый API ------------------------------ */
   window.ARKEON_G2 = {
-    version:'G2.6', ui:'G2.7-compact', state:G,
+    version:'G2.6', ui:'G2.8-tap-loot', state:G,
     get source(){return CANON_SOURCE;},
     boot, startGame, step, cast, dodge, useUlt, setZone, interact, openModal, closeModal,
-    setHudState, toggleMenu, closeMenu, switchTab,
+    setHudState, toggleMenu, closeMenu, switchTab, tapTarget, lootDrop, fxLevel,
     target, meta, updateUI, render:(dt)=>A2.Render.frame(G.world,G,dt||1/60),
     char:()=>G.char, world:()=>G.world, net:()=>G.net?G.net.status():null,
     skills:()=>SKILLS,

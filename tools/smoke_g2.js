@@ -305,7 +305,8 @@ async function run(useCanon) {
      'G2.5: отфильтрованное редкостью остаётся на месте, а не едет хвостом');
   G.settings.lootFilter='all';
   for(let i=0;i<70;i++) API.step(A2.C.TICK);
-  ok(fd.picked===true,'G2.5: после смены фильтра вещь подбирается');
+  ok(fd.picked===false && Math.abs(fd.x-fdx)<0.001,
+     'G2.8: смена фильтра ничего не подбирает — нужен тап по вещи');
   // полная сумка без «хлама» — магнит тоже не должен тащить
   G.char.inventory.length=0;
   for(let i=0;i<40;i++){
@@ -328,6 +329,7 @@ async function run(useCanon) {
   for(let i=0;i<35;i++) API.step(A2.C.TICK);
   ok(Math.abs(magnetOff.x-mox)<0.001,'G2.5: выключенный магнит полностью отключает притяжение');
   G.settings.magnet=true;
+  G.settings.fx='full';   // G2.5-эффекты проверяются в полном режиме
   // анимация удара
   G.attacks.length=0; G.numbers.length=0; G.hitStop=0;
   API.spawnMobs(2);
@@ -349,6 +351,47 @@ async function run(useCanon) {
   G.char.ult=100;
   ok(API.useUlt()===true && G.hitStop>0,'G2.5: ультимейт даёт нова-вспышку и hit-stop');
   G.hitStop=0; API.closeModal();
+
+  // ---- G2.8 · РУЧНОЙ ПОДБОР ОДНОГО ПРЕДМЕТА ----
+  ok(G.settings.magnet===false || G.settings.magnet===true,
+     'G2.8: магнит не вызывается игровым циклом (проверяется статически)');
+  const tapPx=G.player.x, tapPy=G.player.y, o28=G.cam.orient;
+  const tapA=A2.RPG.rollItem(20,'grove',{rarity:'rare'});
+  const tapB=A2.RPG.rollItem(20,'grove',{rarity:'common'});
+  const dA={uid:'g28a',x:tapPx+0.6,y:tapPy,t:G.world.time+1,item:tapA,gold:0,owner:null,picked:false,magnet:0,rar:'rare',spin:0};
+  const dB={uid:'g28b',x:tapPx+1.3,y:tapPy+0.4,t:G.world.time+1,item:tapB,gold:0,owner:null,picked:false,magnet:0,rar:'common',spin:0};
+  const dF={uid:'g28far',x:tapPx+9,y:tapPy,t:G.world.time+1,item:A2.RPG.rollItem(5,'grove',{rarity:'common'}),gold:0,owner:null,picked:false,magnet:0,rar:'common',spin:0};
+  G.world.drops.push(dA,dB,dF);
+  G.char.inventory.length=0;
+  const ax0=dA.x, ay0=dA.y, afx=dF.x;
+  for(let i=0;i<150;i++) API.step(A2.C.TICK);
+  ok(Math.abs(dA.x-ax0)<0.001 && Math.abs(dA.y-ay0)<0.001 && !dA.picked && Math.abs(dF.x-afx)<0.001,
+     'G2.8: за 150 тиков ни один дроп не сдвинулся и не подобрался сам');
+  G.camScreen={ox:0,oy:0,zoom:1};
+  const [iax,iay]=A2.Render.iso(dA.x,dA.y,0,o28);
+  API.tapTarget(iax,iay-16);
+  ok(dA.picked===true && G.char.inventory.length===1 && G.char.inventory[0]===tapA,
+     'G2.8: тап по вещи в радиусе поднял ровно один предмет');
+  ok(!dB.picked && !dF.picked,'G2.8: соседний и далёкий дропы остались лежать');
+  const [ifx,ify]=A2.Render.iso(dF.x,dF.y,0,o28);
+  API.tapTarget(ifx,ify-16);
+  ok(G.lootGoal==='g28far','G2.8: тап по далёкой вещи включает автоподход');
+  API.tapTarget(ifx,ify-16);
+  ok(G.lootGoal===null,'G2.8: повторный тап отменяет автоподход');
+  API.tapTarget(ifx,ify-16);
+  G.joy.dx=1; G.joy.dy=0; API.step(A2.C.TICK); G.joy.dx=0; G.joy.dy=0;
+  ok(G.lootGoal===null,'G2.8: джойстик имеет приоритет над автоподходом');
+  G.char.inventory.length=0;
+  for(let i=0;i<40;i++) G.char.inventory.push(A2.RPG.rollItem(20,'rift',{rarity:'epic'}));
+  ok(A2.RPG.pickupOne(G,dB,true).reason==='full','G2.8: полная сумка честно сообщает «нет места»');
+  G.settings.fx='off'; G.attacks.length=0; G.particles.length=0; G.numbers.length=0;
+  G.char.ult=100; API.useUlt();
+  ok(G.attacks.length===0 && G.particles.length===0 && G.numbers.length===0,
+     'G2.8: режим «Выключены» не создаёт анимаций, частиц и цифр');
+  G.settings.fx='minimal';
+  dA.picked=true; dA.t=-999; dB.picked=true; dB.t=-999; dF.picked=true; dF.t=-999;
+  G.char.inventory.length=0;
+
   // восстановить чистое состояние для остальных тестов
   G.char.inventory.length=0;
   G.char.inventory.push(A2.RPG.rollItem(20,'grove',{rarity:'rare'}));
@@ -553,8 +596,8 @@ async function run(useCanon) {
   ok(body.innerHTML.indexOf('data-act="slot"')>=0,'G2.2: панель снаряжения показывает 8 кликабельных слотов');
   ok(body.innerHTML.indexOf('equipBest')>=0,'G2.2: кнопка «Надеть лучшее» на месте');
   API.openModal('bag');
-  ok(body.innerHTML.indexOf('data-act="pickAll"')>=0 && body.innerHTML.indexOf('goequip')>=0,
-     'G2.2: из сумки есть доступ к снаряжению и сбору лута');
+  ok(body.innerHTML.indexOf('data-act="goequip"')>=0 && body.innerHTML.indexOf('data-act="pickAll"')<0,
+     'G2.8: из сумки есть доступ к снаряжению, массового сбора лута больше нет');
   API.openModal('slot','weapon');
   ok(body.innerHTML.indexOf('data-act="unequip"')>=0 || body.innerHTML.indexOf('В сумке')>=0,
      'G2.2: слот показывает надетое и подходящие предметы');
@@ -826,7 +869,9 @@ function checkLayout() {
      'G2.7: отдельная раскладка ландшафта и зеркалирование под левшу');
   ok(/function setHudState\(\)/.test(js) && /function toggleMenu\(\)/.test(js) &&
      /const MENU =/.test(js), 'G2.7: состояния и карта режимов в main.js');
-  ok(/arkeon-g27-v1/.test(sw), 'G2.7: офлайн-кэш PWA обновлён');
+  ok(/arkeon-g28-v1/.test(sw), 'G2.8: офлайн-кэш PWA обновлён');
+  ok(/id="btnLoot"/.test(html)===false && /function lootDrop\(/.test(js),
+     'G2.8: кнопка «Забрать лут» удалена, вместо неё тап по вещи');
 }
 
 (async()=>{

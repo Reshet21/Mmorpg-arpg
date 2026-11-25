@@ -1,10 +1,10 @@
 /* =====================================================================
- * АРКЕОН · G2.7 «Компактный HUD» · Service Worker
+ * АРКЕОН · G2.8 «Ручной лут» · Service Worker
  * Офлайн-кэш телефонного вертикального среза. Только тот же источник,
  * только GET, без аналитики и без сетевых зависимостей извне.
  * ===================================================================== */
 'use strict';
-const VERSION = 'arkeon-g27-v1';
+const VERSION = 'arkeon-g28-v1';
 const CACHE = 'arkeon-g2-' + VERSION;
 const SHELL = [
   './',
@@ -27,8 +27,8 @@ const SHELL = [
   './js/audio.js',
   './js/market.js',
   './js/main.js',
-  './css/g2.css?v=g27',
-  './js/main.js?v=g27',
+  './css/g2.css?v=g28',
+  './js/main.js?v=g28',
   './js/game.js',
   '../data/classes.json'
 ];

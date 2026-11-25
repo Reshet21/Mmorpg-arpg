@@ -494,16 +494,27 @@
     g.restore();
   }
 
-  function drawDrop(g, d, x, y, t) {
-    if (lowQ()) { // дешёвый режим для слабых телефонов: без градиентов и рун
-      const col = A2.RARITY(d.item ? d.item.rarity : 'rare').color;
+  function drawDrop(g, d, x, y, t, mode, goal) {
+    /* G2.8 · «minimal» / «off» / экономный режим: одна статичная иконка
+     * с цветом редкости. Никаких вертикальных лучей, рун, искр и bloom. */
+    if (lowQ() || mode!=='full') {
+      const rar0 = A2.RARITY(d.item ? d.item.rarity : 'rare');
+      const col = rar0.color;
       const bob = Math.sin(t*3+d.t)*1.5;
-      g.save(); g.translate(x,y-9+bob); g.fillStyle=col;
-      g.shadowColor=col; g.shadowBlur=6;
-      g.beginPath(); g.moveTo(0,-6); g.lineTo(5,0); g.lineTo(0,6); g.lineTo(-5,0); g.closePath(); g.fill();
+      g.save(); g.translate(x,y-10+bob);
+      g.strokeStyle=rgba(col,.45); g.lineWidth=1;
+      g.beginPath(); g.ellipse(0,10,10,4,0,0,6.283); g.stroke();
+      g.fillStyle=col;
+      g.beginPath(); g.moveTo(0,-6); g.lineTo(5.5,0); g.lineTo(0,6); g.lineTo(-5.5,0); g.closePath(); g.fill();
+      g.fillStyle='rgba(255,255,255,.7)';
+      g.beginPath(); g.arc(-1.5,-1.5,1.4,0,6.283); g.fill();
       g.restore();
-      if(d.item && A2.RARITIES.indexOf(A2.RARITY(d.item.rarity))>=3)
-        lootLabel(g,x,y-24,A2.RPG.itemName(d.item).slice(0,14),col);
+      if(goal && goal===d.uid){
+        g.save(); g.setLineDash([3,3]); g.strokeStyle='rgba(255,255,255,.9)'; g.lineWidth=1.4;
+        g.beginPath(); g.ellipse(x,y,13,6,0,0,6.283); g.stroke(); g.restore();
+      }
+      if(d.item && A2.RARITIES.indexOf(rar0)>=2)
+        lootLabel(g,x,y-28,A2.RPG.itemName(d.item).slice(0,14),col);
       return;
     }
     const rar = A2.RARITY(d.item ? d.item.rarity : 'rare');
@@ -642,9 +653,12 @@
    * без внешних ассетов; в экономном режиме число слоёв сокращается.
    */
   function drawAttackFX(g, G, o, zoom) {
+    const mode=(G.settings&&G.settings.fx)||'full';
+    if(mode==='off') return;
     const list=G.attacks||[]; if(!list.length) return;
     const simple=lowQ();
-    g.save(); g.globalCompositeOperation='lighter';
+    const minimal=mode==='minimal';
+    g.save(); g.globalCompositeOperation=minimal?'source-over':'lighter';
     for(const fx of list){
       const k=A2.clamp(fx.t/fx.dur,0,1);
       const fade=Math.sin(Math.PI*k);
@@ -652,6 +666,23 @@
       const [x,y]=iso(fx.x,fx.y,0,o);
       const [tx,ty]=iso(fx.tx===undefined?fx.x:fx.tx, fx.ty===undefined?fx.y:fx.ty, 0, o);
       const ang=Math.atan2(ty-y,tx-x) || 0;
+      /* G2.8 · минимальный режим: одна тонкая дуга/кольцо, без градиентов,
+       * искр, лучей, аддитивного свечения и тряски. */
+      if(minimal){
+        g.save(); g.translate(x,y);
+        g.strokeStyle=rgba(col,0.55*fade); g.lineWidth=2.2; g.lineCap='round';
+        if(fx.kind==='nova'){
+          g.beginPath(); g.arc(0,-10,14+k*54,0,6.283); g.stroke();
+        } else if(fx.kind==='impact'){
+          g.beginPath(); g.ellipse(0,-14,6+k*20,(6+k*20)*0.5,0,0,6.283); g.stroke();
+        } else if(fx.kind==='ward'){
+          g.beginPath(); g.ellipse(0,-16,22+k*10,(22+k*10)*0.75,0,Math.PI,0); g.stroke();
+        } else {
+          const a0=ang-0.7, a1=ang+0.7;
+          g.beginPath(); g.arc(0,0,32,a0,a0+(a1-a0)*A2.clamp(k*1.6,0,1)); g.stroke();
+        }
+        g.restore(); continue;
+      }
       g.save(); g.translate(x,y);
 
       if(fx.kind==='slash' || fx.kind==='dash' || fx.kind==='cast'){
@@ -734,6 +765,7 @@
     if (!ctx) return;
     const z = W.zone, cam = G.cam, t = G.time;
     const o = cam.orient | 0, zoom = cam.zoom;
+    const fxMode=(G.settings&&G.settings.fx)||'full';
     const ground = makeGround(W, o);
     const [px, py] = iso(G.player.x, G.player.y, 0, o);
     const ox = VW/2 - px*zoom + (cam.shakeX||0), oy = VH*0.56 - py*zoom + (cam.shakeY||0);
@@ -794,7 +826,8 @@
     dropsVisible.sort((a,b)=>a.dist-b.dist);
     const dropCap = lowQ() ? 14 : 30;
     for (const dr of dropsVisible.slice(0,dropCap))
-      items.push({ d: depth(dr.d.x,dr.d.y,o)+0.05, fn: () => drawDrop(ctx,dr.d,dr.x,dr.y,t) });
+      items.push({ d: depth(dr.d.x,dr.d.y,o)+0.05,
+        fn: () => drawDrop(ctx,dr.d,dr.x,dr.y,t,fxMode,G.lootGoal) });
     for (const e of G.entities) {
       const [x,y]=iso(e.x,e.y,0,o);
       items.push({ d: depth(e.x,e.y,o)+0.2, fn: () => {
@@ -810,15 +843,15 @@
     items.sort((a,b)=>a.d-b.d);
     for (const it of items) it.fn();
     // частицы и цифры урона в мировом пространстве
-    for (const p of G.particles) {
+    if(fxMode!=='off') for (const p of G.particles) {
       const [x,y]=iso(p.x,p.y,p.z||0,o);
-      ctx.globalAlpha = A2.clamp(p.life/p.max,0,1);
-      ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(x,y,p.size,0,6.283); ctx.fill();
+      ctx.globalAlpha = A2.clamp(p.life/p.max,0,1)*(fxMode==='minimal'?.65:1);
+      ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(x,y,p.size*(fxMode==='minimal'?.7:1),0,6.283); ctx.fill();
     }
     ctx.globalAlpha=1;
-    for (const n of G.numbers) {
+    if(fxMode!=='off') for (const n of G.numbers) {
       const [x,y]=iso(n.x,n.y,n.z||1.2,o);
-      const fs=n.crit?20:13;
+      const fs=fxMode==='minimal'?(n.crit?16:12):(n.crit?20:13);
       ctx.font='800 '+fs+'px -apple-system,system-ui,sans-serif'; ctx.textAlign='center';
       if(n.crit){ ctx.shadowColor=n.color; ctx.shadowBlur=12; }
       ctx.fillStyle='rgba(0,0,0,.8)'; ctx.fillText(n.text,x+1,y+1);
@@ -857,7 +890,7 @@
       gr.addColorStop(0,rgba(L.color,.16)); gr.addColorStop(1,'rgba(0,0,0,0)');
       ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(sx,sy,r,0,6.283); ctx.fill();
     }
-    for (const dr of dropsVisible.slice(0, lowQ()?3:6)) {
+    for (const dr of (fxMode==='full'?dropsVisible.slice(0, lowQ()?3:6):[])) {
       const d=dr.d;
       if(!d.item || d.picked || d.t<0) continue;
       const [lx,ly]=iso(d.x,d.y,0,o); const sx=lx*zoom+ox, sy=ly*zoom+oy-24*zoom;
