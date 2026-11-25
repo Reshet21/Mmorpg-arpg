@@ -294,6 +294,47 @@
     return true;
   }
 
+  /* --------------------- G2.7 · компактное меню HUD --------------------- */
+  /* Состояние HUD: explore / combat / menu. Контекстные кнопки и плашки
+     показываются CSS по data-state, а не висят на экране постоянно. */
+  function setHudState() {
+    const hud=$('hud'); if(!hud||!hud.dataset) return;
+    let state='explore';
+    if(G.menuOpen||G.modalMode) state='menu';
+    else if(G.target&&G.target.alive) state='combat';
+    if(hud.dataset.state!==state) hud.dataset.state=state;
+  }
+  function switchTab(tab) {
+    const sheet=$('menuSheet'); if(!sheet) return;
+    const name=tab&&tab.getAttribute?tab.getAttribute('data-tab'):null;
+    if(!name) return;
+    const tabs=sheet.querySelectorAll?sheet.querySelectorAll('.mtab'):[];
+    tabs.forEach(t=>{ if(t.classList&&t.id!=='menuClose') t.classList.toggle('on',t===tab); });
+    const groups=sheet.querySelectorAll?sheet.querySelectorAll('.mgroup'):[];
+    groups.forEach(g=>{ if(g.classList&&g.dataset) g.classList.toggle('on',g.dataset.group===name); });
+    const hint=$('menuHint');
+    if(hint) hint.textContent = name==='hero'?'ГЕРОЙ':name==='world'?'МИР':'СОЦИАЛ';
+  }
+  function closeMenu() {
+    const sheet=$('menuSheet');
+    if(sheet&&sheet.classList) sheet.classList.add('hidden');
+    if(sheet&&sheet.setAttribute) sheet.setAttribute('aria-hidden','true');
+    const fab=$('btnMenu'); if(fab&&fab.classList) fab.classList.remove('on');
+    if(fab&&fab.setAttribute) fab.setAttribute('aria-expanded','false');
+    G.menuOpen=false; setHudState();
+  }
+  function toggleMenu() {
+    const sheet=$('menuSheet'); if(!sheet||!sheet.classList) return;
+    const open=sheet.classList.contains('hidden');
+    sheet.classList.toggle('hidden',!open);
+    if(sheet.setAttribute) sheet.setAttribute('aria-hidden',open?'false':'true');
+    G.menuOpen=open;
+    const fab=$('btnMenu'); if(fab&&fab.classList) fab.classList.toggle('on',open);
+    if(fab&&fab.setAttribute) fab.setAttribute('aria-expanded',open?'true':'false');
+    if(open&&sheet.querySelector) switchTab(sheet.querySelector('.mtab.on')||sheet.querySelector('.mtab'));
+    setHudState();
+  }
+
   /* -------------------------------- ввод -------------------------------- */
   function bindInput() {
     if(typeof document==='undefined'||!document.addEventListener) return;
@@ -332,7 +373,8 @@
       let dx=(cx-G.joy.cx)/(G.joy.r||66), dy=(cy-G.joy.cy)/(G.joy.r||66);
       const m=Math.hypot(dx,dy); if(m>1){dx/=m;dy/=m;}
       G.joy.dx=dx; G.joy.dy=dy;
-      const k=$('joyKnob'); if(k&&k.style) k.style.transform='translate('+(dx*38)+'px,'+(dy*38)+'px)';
+      const k=$('joyKnob'); if(k&&k.style){ const amp=(G.joy.r||60)*0.58;
+        k.style.transform='translate('+(dx*amp)+'px,'+(dy*amp)+'px)'; }
     }
     const app=$('app'), cv=$('game');
     if(app&&app.addEventListener){
@@ -392,22 +434,65 @@
     const on=(id,fn)=>{ const e=$(id); if(e&&e.addEventListener) e.addEventListener('pointerdown',ev=>{ev.preventDefault&&ev.preventDefault();fn();}); };
     on('btnDodge',()=>dodge(-Math.cos(G.player.facing),-Math.sin(G.player.facing)));
     on('btnUlt',useUlt);
-    on('btnCamera',()=>{ G.cam.orient=(G.cam.orient+1)%4; A2.Render.makeGround(G.world,G.cam.orient); G.toast('Камера: '+[0,90,180,270][G.cam.orient]+'°',1.2); });
     on('btnInteract',interact);
-    on('btnChar',()=>openModal('char')); on('btnBag',()=>openModal('bag'));
-    on('btnEquip',()=>openModal('equip')); on('pAvatar',()=>openModal('equip'));
+    on('pAvatar',()=>openModal('equip'));
     on('btnLoot',()=>{ A2.RPG.collectNearby(G,9.5); });
-    on('btnStory',()=>openModal('story')); on('storyBar',()=>openModal('story'));
-    on('btnQuests',()=>openModal('quests')); on('btnChat',()=>openModal('chat'));
-    on('btnParty',()=>openModal('party')); on('btnCodex',()=>openModal('codex'));
-    on('btnSettings',()=>openModal('settings')); on('btnPause',()=>openModal('settings'));
-    on('btnMarket',()=>openModal('market')); on('btnPlayers',()=>openModal('players'));
+    on('storyBar',()=>openModal('story'));
     on('modalClose',closeModal);
     on('btnStart',startGame);
     on('btnReset',resetGame);
-    on('btnTravel',()=>openModal('travel'));
     on('btnConnect',()=>{ const e=$('serverInput'); if(e&&e.value) G.net.connect(e.value.trim()); });
     on('btnChatSend',()=>{ const e=$('chatInput'); if(e&&e.value){ G.net.chat(e.value.trim()); e.value=''; } });
+    on('btnMenu',toggleMenu);
+    on('minimap',()=>{ const m=$('minimap'); if(m&&m.classList) m.classList.toggle('expanded'); });
+
+    /* G2.7 · компактный HUD: 15 разрозненных кнопок тулбара → один bottom-sheet
+       с тремя вкладками. Карта MENU сохраняет прежние вызовы openModal(),
+       поэтому логика ~20 панелей не меняется. Долгое нажатие на плитку
+       показывает её название (иконки без подписей, но с aria-label). */
+    const MENU = {
+      char:()=>openModal('char'), equip:()=>openModal('equip'), bag:()=>openModal('bag'),
+      market:()=>openModal('market'), players:()=>openModal('players'),
+      story:()=>openModal('story'), quests:()=>openModal('quests'),
+      chat:()=>openModal('chat'), party:()=>openModal('party'), codex:()=>openModal('codex'),
+      settings:()=>openModal('settings'), travel:()=>openModal('travel'),
+      talents:()=>openModal('talents'), forge:()=>openModal('forge'),
+      camera:()=>{ G.cam.orient=(G.cam.orient+1)%4; A2.Render.makeGround(G.world,G.cam.orient);
+                   G.toast('Камера: '+[0,90,180,270][G.cam.orient]+'°',1.2); },
+      hand:()=>{ const h=$('hud'); if(!h||!h.dataset) return;
+                 h.dataset.hand = h.dataset.hand==='left'?'right':'left';
+                 G.toast('Раскладка: '+(h.dataset.hand==='left'?'левша':'правша'),1.2); },
+      mini:()=>{ const m=$('minimap'); if(m&&m.classList) m.classList.toggle('expanded'); }
+    };
+    const sheet=$('menuSheet');
+    if(sheet&&sheet.addEventListener){
+      let hold=null, held=false;
+      const tile=ev=>ev&&ev.target&&ev.target.closest?ev.target.closest('.mtile'):null;
+      sheet.addEventListener('pointerdown',ev=>{
+        if(!ev||!ev.target||!ev.target.closest) return;
+        const tab=ev.target.closest('.mtab');
+        if(tab){ ev.preventDefault&&ev.preventDefault();
+          if(tab.id==='menuClose'){ closeMenu(); return; }
+          switchTab(tab); return; }
+        const t=tile(ev); if(!t) return;
+        ev.preventDefault&&ev.preventDefault(); held=false;
+        const label=t.getAttribute?t.getAttribute('aria-label'):'';
+        hold=setTimeout(()=>{ held=true; if(A2.Audio) A2.Audio.play('ui'); G.toast(label||'',1.6); },450);
+      });
+      const cancelHold=()=>{ if(hold){ if(typeof clearTimeout==='function') clearTimeout(hold); hold=null; } };
+      const finish=ev=>{
+        cancelHold();
+        const t=tile(ev); if(!t) return;
+        if(held){ held=false; return; }
+        const key=(t.getAttribute?t.getAttribute('data-open'):null)||
+                  (t.getAttribute?t.getAttribute('data-do'):null);
+        closeMenu();
+        const fn=MENU[key]; if(fn) fn();
+      };
+      sheet.addEventListener('pointerup',finish);
+      sheet.addEventListener('pointercancel',()=>{ cancelHold(); held=false; });
+      sheet.addEventListener('pointerleave',()=>{ cancelHold(); held=false; });
+    }
     document.addEventListener('keydown',ev=>{
       G.keys[ev.key]=true;
       if(/^[1-6]$/.test(ev.key)) cast(parseInt(ev.key,10)-1);
@@ -727,7 +812,7 @@
   }
 
   function openModal(mode,data) {
-    G.modalMode=mode; G.modalData=data||null;
+    G.modalMode=mode; G.modalData=data||null; setHudState();
     const box=$('modal'); if(!box) return;
     const title=$('modalTitle'), body=$('modalBody');
     if(!title||!body) return;
@@ -1011,7 +1096,7 @@
     body.onchange=modalChange;
     box.classList.remove('hidden');
   }
-  function closeModal(){ const b=$('modal'); if(b) b.classList.add('hidden'); G.modalMode=null; }
+  function closeModal(){ const b=$('modal'); if(b) b.classList.add('hidden'); G.modalMode=null; setHudState(); }
   function modalChange(ev){
     let el=ev.target; if(!el||!el.getAttribute) return;
     if(!el.getAttribute('data-range') && !el.getAttribute('data-set') && !el.getAttribute('data-bag') && el.closest){
@@ -1476,6 +1561,7 @@
 
   function updateUI(force) {
     if(!G.char) return;
+    setHudState();
     updateStoryUI();
     const ch=G.char, cls=A2.CLASS(ch.classId), net=G.net?G.net.status():{state:'offline',count:0};
     const storyCh=A2.RPG.storyChapter(G);
@@ -1525,14 +1611,16 @@
       const nearStory=wp && A2.dist(wp.x,wp.y,G.player.x,G.player.y)<7;
       hint.textContent=npc?'✦ '+npc.ru+' · нажмите «Взаим.»':p?'◈ '+p.label+' · нажмите «Взаим.»':
         d?'✦ Добыча рядом · «Взаим.» заберёт всё':nearStory?'✦ Сюжет: '+(storyCh?storyCh.objective.ru:''):'';
-      hint.classList.toggle('show',!!(npc||p||d||nearStory)); }
+      hint.classList.toggle('show',!!(npc||p||d||nearStory));
+      const ib=$('btnInteract'); if(ib&&ib.classList) ib.classList.toggle('show',!!(npc||p||d)); }
   }
 
   /* ------------------------------ тестовый API ------------------------------ */
   window.ARKEON_G2 = {
-    version:'G2.6', state:G,
+    version:'G2.6', ui:'G2.7-compact', state:G,
     get source(){return CANON_SOURCE;},
     boot, startGame, step, cast, dodge, useUlt, setZone, interact, openModal, closeModal,
+    setHudState, toggleMenu, closeMenu, switchTab,
     target, meta, updateUI, render:(dt)=>A2.Render.frame(G.world,G,dt||1/60),
     char:()=>G.char, world:()=>G.world, net:()=>G.net?G.net.status():null,
     skills:()=>SKILLS,

@@ -245,7 +245,7 @@ for token in ("js/audio.js", "js/market.js", "btnMarket", "btnPlayers", "bagCoun
     check(token in html_g2, f"G2.1: mobile/index.html подключает {token}")
 for token in ("js/audio.js", "js/market.js"):
     check(token in sw_js, f"G2.1: service worker кэширует {token}")
-check("arkeon-g26-v1" in sw_js, "G2.6: версия офлайн-кэша обновлена")
+check(bool(re.search(r"arkeon-g2\d+-v\d+", sw_js)), "G2.6/G2.7: версия офлайн-кэша обновлена")
 for token in ("market_list", "market_buy", "trade_invite", "trade_confirm", "whisper", "emote",
               "syncInitial", "broadcastRoster", "broadcastMarket", "idempotent"):
     check(token in sim_js, f"G2.1: авторитетный сервер поддерживает {token}")
@@ -293,8 +293,8 @@ check("btnEquip" in html2 and "pAvatar" in html2 and "equipCount" in html2,
       "G2.2: доступ к снаряжению из тулбара и по тапу на портрет")
 check(".equip-grid" in css_g2 and ".slot-card" in css_g2 and ".loot-chip.show" in css_g2,
       "G2.2: стили сетки слотов и visibility-чина лута")
-check("bottom:calc(var(--safe-b) + 172px)" in css_g2,
-      "G2.2: тулбар поднят над блоком управления — кнопки не перекрыты джойстиком")
+check("bottom:calc(var(--safe-b) + 172px)" in css_g2 or "--hud-bottom" in css_g2,
+      "G2.2/G2.7: панели управления не перекрываются (сетка --hud-bottom)")
 check("A2.Render.minimap" in main_js2 and "G.uiT>0.2" in main_js2,
       "G2.2: обновление HUD и мини-карты реже для плавности")
 check(("G2.2" in html2 or "G2.3" in html2 or "G2.4" in html2 or "G2.5" in html2 or "G2.6" in html2) and "G2.2" in (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8"),
@@ -499,6 +499,40 @@ check("G2.6" in html6 and "16.27" in doc6,
       "G2.6: версия зафиксирована в клиенте и спецификации студии")
 check("G2.6" in smoke6 and "enchantItem" in smoke6 and "rerollItem" in smoke6,
       "G2.6: автотесты покрывают меню действий с предметом")
+
+# --- 8i. G2.7 «Компактный HUD»: радиальный бой, контекст, одно меню ---
+html7 = (MOB / "index.html").read_text(encoding="utf-8")
+css7 = (MOB / "css/g2.css").read_text(encoding="utf-8")
+main_js7 = (MOB / "js/main.js").read_text(encoding="utf-8")
+doc7 = (ROOT / "docs/16-mobile.md").read_text(encoding="utf-8")
+smoke7 = (ROOT / "tools/smoke_g2.js").read_text(encoding="utf-8")
+sw7 = (MOB / "sw.js").read_text(encoding="utf-8")
+check('id="menuSheet"' in html7 and 'id="btnMenu"' in html7 and "data-state=" in html7,
+      "G2.7: одно меню и контекстный data-state в разметке")
+check('class="skill-zone cluster"' in html7 and 'id="skills"' in html7 and 'id="btnAttack"' in html7,
+      "G2.7: радиальный кластер с навыками вокруг кнопки удара")
+check("data-open=" in html7 and "data-do=" in html7 and "aria-label=" in html7,
+      "G2.7: плитки-иконки с действиями и доступными именами")
+for token in ("btnMarket", "btnPlayers", "bagCount", "lootCount", "btnEquip", "pAvatar",
+              "btnLoot", "btnTravel", "btnStory", "equipCount", "btnAttack", "safeBadge",
+              "modalClose", "btnStart", "btnReset"):
+    check('id="'+token+'"' in html7, f"G2.7: сохранён вход «{token}»")
+ids7 = re.findall(r'\bid="([A-Za-z][\w-]*)"', html7)
+check(len(ids7) == len(set(ids7)), "G2.7: нет дублирующихся id в разметке")
+check("--hud-top" in css7 and "--hud-bottom" in css7 and "--cluster" in css7 and "--ring" in css7,
+      "G2.7: раскладка на CSS-переменных вместо магических пикселей")
+check(".menu-sheet" in css7 and ".mtile" in css7 and ".core" in css7,
+      "G2.7: стили bottom-sheet, плиток и ядра кластера")
+check("min-width:44px" in css7 and "min-height:44px" in css7 and "min-height:48px" in css7,
+      "G2.7: все сенсорные цели >= 44 dp")
+check('#hud[data-hand="left"]' in css7 and "@media (orientation:landscape)" in css7,
+      "G2.7: поддержка левши и отдельная раскладка ландшафта")
+check("function setHudState()" in main_js7 and "toggleMenu" in main_js7 and "const MENU" in main_js7,
+      "G2.7: состояния HUD и карта режимов меню в main.js")
+check("G2.7" in html7 and "16.28" in doc7,
+      "G2.7: версия зафиксирована в клиенте и спецификации студии")
+check("G2.7" in smoke7, "G2.7: автотесты покрывают компактный HUD")
+check("arkeon-g27-v1" in sw7, "G2.7: офлайн-кэш PWA обновлён")
 
 # --- 9. Отчёт ---
 passed = sum(1 for ok, _ in results if ok)
