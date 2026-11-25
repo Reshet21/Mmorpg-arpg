@@ -7,12 +7,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="АРКЕОН: Пепел Завета — G2.6 «Меню предмета» + G2.7 «Компактный HUD»: радиальный кластер боя, контекстный интерфейс, одна кнопка меню.">
-<title>АРКЕОН · Мир Завета · G2.7 Компактный HUD</title>
+<meta name="description" content="АРКЕОН: Пепел Завета — G2.6 «Меню предмета» + G2.8 «Ручной лут»: радиальный кластер боя, контекстный интерфейс, одна кнопка меню.">
+<title>АРКЕОН · Мир Завета · G2.8 Ручной лут</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="css/g2.css?v=g27">
+<link rel="stylesheet" href="css/g2.css?v=g28">
 </head>
 <body>
 <div id="app">
@@ -54,7 +54,6 @@
       <div id="toast" class="toast"></div>
       <div id="hint" class="hint"></div>
     </div>
-    <button id="btnLoot" class="loot-chip" aria-label="Забрать лут рядом">✦ <b id="lootCount" class="cnt">0</b></button>
     <button id="btnInteract" class="tool interact" aria-label="Взаимодействие">✦</button>
     <div id="chatLog" class="chat-log"></div>
 
@@ -81,12 +80,12 @@
           <button class="mtab close" id="menuClose" aria-label="Закрыть меню">✕</button>
         </div>
         <div id="menuHint" class="mhint">ГЕРОЙ</div>
-        <span class="mver">G2.7</span>
+        <span class="mver">G2.8</span>
       </div>
       <div class="mstatus">
         <span id="onlineBadge" class="badge">ОФЛАЙН-МИР</span>
         <span class="badge sound"><span id="soundState">♪</span> ЗВУК</span>
-        <span class="mini-stats"><b id="dpsText">0</b><span>DPS</span><b id="killsText">0</b><span>УБ.</span><b id="goldText">0</b><span>S</span></span>
+        <span class="mini-stats"><b id="dpsText">0</b><span>DPS</span><b id="killsText">0</b><span>УБ.</span><b id="goldText">0</b><span>S</span><b id="lootCount">0</b><span>НА ЗЕМЛЕ</span></span>
       </div>
       <div class="mgroup on" data-group="hero">
         <button id="btnChar" class="mtile" data-open="char" aria-label="Герой"><span class="mi">♛</span></button>
@@ -117,9 +116,9 @@
   <!-- ============================ СТАРТ ============================ -->
   <div id="startScreen" class="overlay">
     <div class="sheet">
-      <div class="logo"><span class="beacon"></span><h1>АРКЕОН</h1><p>ПЕПЕЛ ЗАВЕТА · G2.7 КОМПАКТНЫЙ HUD</p></div>
+      <div class="logo"><span class="beacon"></span><h1>АРКЕОН</h1><p>ПЕПЕЛ ЗАВЕТА · G2.8 РУЧНОЙ ЛУТ</p></div>
       <p class="tagline">«Мир не погиб. Он перестал держать слово.»</p>
-      <div class="g21-chip">G2.6 · МЕНЮ ПРЕДМЕТА + G2.7 · РАДИАЛЬНЫЙ БОЙ · ОДНО МЕНЮ · ЧИСТЫЙ ЭКРАН</div>
+      <div class="g21-chip">G2.6 · МЕНЮ ПРЕДМЕТА + G2.7 · РАДИАЛЬНЫЙ БОЙ + G2.8 · ТАП ПО ВЕЩИ · ОДНО МЕНЮ · ЧИСТЫЙ ЭКРАН</div>
       <h2 class="section-title">Выбери Возжённого · 6 классов канона</h2>
       <div class="class-grid">
         <button class="class-card selected" data-class="warrior"><b>⚔ ВОИН</b><small>Ярость · танк · BREAK</small></button>
@@ -172,6 +171,6 @@
 <script src="js/net.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/market.js"></script>
-<script src="js/main.js?v=g27"></script>
+<script src="js/main.js?v=g28"></script>
 </body>
 </html>
